@@ -3,8 +3,8 @@
 ; Game code start at $8394
 !cpu 6502
 ; switches
-;P500 = 1
-!ifdef 	P500{!to "pm500", cbm
+P500 = 1
+!ifdef 	P500{!to "pm500.prg", cbm
 } else{ 	!to "pm500.rom", plain }
 ; ########################################### TODO ################################################
 ;
@@ -257,29 +257,54 @@ mapend:	lda #<cLookUpTable
 		jsr StoreIncPointer2			; store low nibble
 		inx
 		bne -							; next byte
-;jmp CharCopy
+
 		lda $dc0e
 		and #$fe
 		sta $dc0e
+; copy the first 128 chars of the first fontset
+!ifdef 	P500{ ; 25 bytes
+		lda #SYSTEMBANK					; select bank 15 to get font from char ROM
+		sta IndirectBank
+fontcpy:lda (CharROM1),y				; load from character ROM - Y already $00	
+		sta $2400,y						; store to game fontset from char $80
+		sta $2c00,y						; store to menu fontset from char $80
+		lda (CharROM0),y
+		sta $2500,y
+		sta $2d00,y
+		dey
+		bne fontcpy
+		sty IndirectBank				; select bank 0 - Y already $00
+		nop
+		nop
+		nop
+		nop
+		nop
+		nop
+		nop
+		nop
+		nop
+		nop
+} else{ ; 35 bytes
 		lda $01
 		and #$fb
 		sta $01
 		ldx #$00
-l8436:	lda $d100,x
+fontcpy:lda $d100,x
 		sta $2400,x
 		sta $2c00,x
 		lda $d000,x
 		sta $2500,x
 		sta $2d00,x
 		dex
-		bne l8436
+		bne fontcpy
 		lda $01
 		ora #$04
 		sta $01
+}
 		lda $dc0e
 		ora #$01
 		sta $dc0e
-;*= $8459
+; *= $8459
 		lda #$11
 		sta pointer1
 		lda #$80
@@ -464,6 +489,8 @@ l85ec:	sta $042a,x
 		dex
 		bpl l85ec
 		rts
+; ----------------------------------------------------------------------------
+; write_1_up_2_up_0_score
 l85f3:	jsr l8dcb
 		ldx #$05
 		lda #$90
@@ -490,7 +517,7 @@ l8619:	lsr
 		sta temp
 		lda (pointer1),y
 		cmp #$ff
-		beq rts1						; branch to rts
+		beq lip_rts						; branch to rts
 		and #$3f
 		tax
 		lda $9dc6,x
@@ -506,7 +533,7 @@ IncPointer1:
 		inc pointer1
 		bne +
 		inc pointer1+1
-rts1:
+lip_rts:
 +		rts
 ; ----------------------------------------------------------------------------
 ; $863f Store++ pointer 2 sub
@@ -3379,21 +3406,4 @@ Test:	lda #SYSTEMBANK
 		lda #GAMEBANK
 		sta IndirectBank				; select bank 0
 		jmp Warm
-CharCopy:
-		lda #SYSTEMBANK
-		sta IndirectBank				; select bank 15
-		ldy #$00
-		ldx #$00
--		lda (CharROM1),y
-		sta $2400,x
-		sta $2c00,x
-		lda (CharROM0),y
-		sta $2500,x
-		sta $2d00,x
-		dex
-		dey
-		bne -
-		lda #GAMEBANK
-		sta IndirectBank				; select bank 0
-		jmp $8459
 }
