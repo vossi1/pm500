@@ -8,19 +8,19 @@
 } else{ 	!to "pm500.rom", plain }
 ; ########################################### TODO ################################################
 ;
-; Jiffy not at $a2
+; jiffy not at $a2
 ; VIC, CIA, SID, Color RAM indirect access
 ;
 ; #################################################################################################
 ; ***************************************** CONSTANTS *********************************************
 FILL					= $aa		; fills free memory areas with $aa
+NOPCODE					= $ea		; nop instruction for fill
 GAMEBANK				= $00		; Game code bank
 SYSTEMBANK				= $0f		; systembank
 BLACK					= $00		; color codes
 ; ***************************************** ADDRESSES *********************************************
 !addr CodeBank			= $00		; code bank register
 !addr IndirectBank		= $01		; indirect bank register
-!addr Jiffy				= $a2		; jiffy clock 20ms counter
 !addr CharROMbase		= $c000		; Character ROM
 !addr ScreenRAM			= $d000		; Screen RAM
 !addr ColorRAMbase		= $d400		; Color RAM
@@ -43,6 +43,8 @@ BLACK					= $00		; color codes
 
 !addr pointer1			= $2a		; source pointer
 !addr pointer2			= $2c		; target pointer
+!addr jiffy				= $a2		; jiffy clock 20ms counter from raster interrupt = Vsync
+!addr pressed_key		= $c5		; pressed key from interrupt
 
 !addr ColorRAM			= $f0
 !addr VIC				= $f2
@@ -60,8 +62,7 @@ BLACK					= $00		; color codes
 *= $8000
 !ifdef 	P500{
 		jsr InitP500
-;		jmp Warm
-		jmp Test
+		jmp Start
 } else{ 	
 ; ROM ident
 		!byte <Start, >Start, <Warm, >Warm			; ROM start addresses
@@ -71,66 +72,70 @@ BLACK					= $00		; color codes
 *= $8008
 ; $8008 Table
 		!byte $30, $02, $bb, $5a, $30, $5f, $ee, $3d
-		!byte $a8, $c0, $c0, $80, $57, $80, $57, $ee
-		!byte $57, $40, $01, $c4, $04, $40, $19, $ca
-		!byte $ca, $4a, $19, $40, $c4, $04, $01, $c0
-		!byte $1e, $40, $1b, $44, $40, $19, $4a, $19
-		!byte $c0, $1e, $40, $05, $4a, $40, $01, $44
-		!byte $01, $c0, $2e, $c0, $80, $1e, $40, $1e
-		!byte $40, $c4, $c4, $40, $1e, $c0, $00, $ca
-		!byte $ca, $c0, $00, $1e, $c0, $40, $c1, $c1
-		!byte $c0, $c1, $c1, $d9, $d9, $40, $1e, $40
-		!byte $1b, $44, $40, $1e, $40, $05, $4a, $44
-		!byte $1b, $40, $1e, $40, $4a, $05, $40, $1e
-		!byte $40, $4a, $05, $40, $05, $4a, $44, $1b
-		!byte $40, $1b, $44, $17, $2e, $2f, $09, $2f
-		!byte $2e, $17, $80, $0d, $19, $00, $05, $ca
-		!byte $05, $00, $19, $0d, $c0, $1d, $01, $00
-		!byte $1b, $c4, $1b, $00, $01, $1d, $c0, $40
-		!byte $d9, $d9, $c0, $00, $2f, $57, $2f, $57
-		!byte $00, $00, $2b, $57, $6b, $17, $40, $2e
-		!byte $2b, $2e, $6b, $2e, $40, $25, $03, $89
-		!byte $28, $40, $2b, $2d, $49, $2e, $09, $40
-		!byte $2f, $d7, $2f, $40, $25, $2b, $57, $2b
-		!byte $25, $40, $6b, $2f, $89, $40, $6c, $26
-		!byte $00, $43, $40, $a5, $00, $65, $40, $2f
-		!byte $6b, $2c, $2b, $2f, $40, $2b, $00, $03
-		!byte $ac, $40, $17, $2e, $66, $2e, $26, $40
-		!byte $49, $e8, $40, $03, $28, $2e, $15, $43
-		!byte $40, $e8, $68, $40, $2d, $00, $2b, $40
-		!byte $2d, $80, $c3, $80, $2e, $e6, $2e, $40
-		!byte $09, $a8, $26, $80, $d7, $2b, $25, $40
-		!byte $2e, $2b, $2e, $6b, $2e, $40, $28, $c9
-		!byte $28, $40, $2d, $49, $2d, $17, $09, $40
-		!byte $03, $30, $91, $16, $11, $14, $2b, $14
-		!byte $63, $2a, $23, $00, $03, $09, $11, $13
-		!byte $11, $12, $07, $02, $00, $25, $21, $29
-		!byte $61, $1f, $00, $42, $09, $ef, $09, $40
-		!byte $25, $eb, $25, $03, $07, $d1, $11, $07
-		!byte $00, $1f, $61, $69, $21, $1f, $43, $07
-		!byte $d1, $07, $40, $1f, $e1, $1f, $43, $07
-		!byte $d1, $07, $40, $1f, $e1, $1f, $9e, $4d
-		!byte $05, $43, $9d, $5b, $19, $40, $9e, $4d
-		!byte $05, $43, $9d, $5b, $19, $40, $03, $08
-		!byte $af, $16, $12, $07, $00, $25, $ab, $24
-		!byte $21, $1f, $07, $06, $07, $c3, $03, $21
-		!byte $0e, $21, $25, $2b, $25, $2b, $25, $00
-		!byte $03, $c0, $03, $00, $25, $e6, $26, $2b
-		!byte $00, $2f, $40, $03, $00, $14, $09, $00
-		!byte $2b, $15, $66, $55, $25, $00, $2f, $14
-		!byte $2f, $40, $14, $09, $00, $2b, $03, $26
-		!byte $95, $25, $00, $2f, $40, $03, $b0, $00
-		!byte $2b, $15, $26, $83, $40, $03, $09, $c3
-		!byte $09, $00, $03, $f0, $30, $26, $00, $2f
-		!byte $25, $00, $09, $14, $25, $2e, $00, $03
-		!byte $67, $b0, $26, $00, $2e, $00, $03, $09
-		!byte $00, $25, $2f, $00, $26, $27, $70, $67
-		!byte $03, $00, $2e, $25, $2e, $40, $25, $2f
-		!byte $00, $26, $70, $a7, $03, $00, $25, $d5
-		!byte $15, $25, $00, $2b, $f0, $30, $2b, $00
-		!byte $17, $e6, $26, $17, $00, $40, $1e, $40
-		!byte $1d, $c1, $1d, $40, $1e, $c0, $1e, $40
-		!byte $0d, $d9, $0d, $40, $1e, $40, $ff
+		!byte $a8
+; ----------------------------------------------------------------------------
+; $8011 compressed game user font (bytes 0-$3f from FontData, bit 6+7 = count)
+cUserFontGame:
+		!byte $c0, $c0, $80, $57, $80, $57, $ee, $57
+		!byte $40, $01, $c4, $04, $40, $19, $ca, $ca
+		!byte $4a, $19, $40, $c4, $04, $01, $c0, $1e
+		!byte $40, $1b, $44, $40, $19, $4a, $19, $c0
+		!byte $1e, $40, $05, $4a, $40, $01, $44, $01
+		!byte $c0, $2e, $c0, $80, $1e, $40, $1e, $40
+		!byte $c4, $c4, $40, $1e, $c0, $00, $ca, $ca
+		!byte $c0, $00, $1e, $c0, $40, $c1, $c1, $c0
+		!byte $c1, $c1, $d9, $d9, $40, $1e, $40, $1b
+		!byte $44, $40, $1e, $40, $05, $4a, $44, $1b
+		!byte $40, $1e, $40, $4a, $05, $40, $1e, $40
+		!byte $4a, $05, $40, $05, $4a, $44, $1b, $40
+		!byte $1b, $44, $17, $2e, $2f, $09, $2f, $2e
+		!byte $17, $80, $0d, $19, $00, $05, $ca, $05
+		!byte $00, $19, $0d, $c0, $1d, $01, $00, $1b
+		!byte $c4, $1b, $00, $01, $1d, $c0, $40, $d9
+		!byte $d9, $c0, $00, $2f, $57, $2f, $57, $00
+		!byte $00, $2b, $57, $6b, $17, $40, $2e, $2b
+		!byte $2e, $6b, $2e, $40, $25, $03, $89, $28
+		!byte $40, $2b, $2d, $49, $2e, $09, $40, $2f
+		!byte $d7, $2f, $40, $25, $2b, $57, $2b, $25
+		!byte $40, $6b, $2f, $89, $40, $6c, $26, $00
+		!byte $43, $40, $a5, $00, $65, $40, $2f, $6b
+		!byte $2c, $2b, $2f, $40, $2b, $00, $03, $ac
+		!byte $40, $17, $2e, $66, $2e, $26, $40, $49
+		!byte $e8, $40, $03, $28, $2e, $15, $43, $40
+		!byte $e8, $68, $40, $2d, $00, $2b, $40, $2d
+		!byte $80, $c3, $80, $2e, $e6, $2e, $40, $09
+		!byte $a8, $26, $80, $d7, $2b, $25, $40, $2e
+		!byte $2b, $2e, $6b, $2e, $40, $28, $c9, $28
+		!byte $40, $2d, $49, $2d, $17, $09, $40, $03
+		!byte $30, $91, $16, $11, $14, $2b, $14, $63
+		!byte $2a, $23, $00, $03, $09, $11, $13, $11
+		!byte $12, $07, $02, $00, $25, $21, $29, $61
+		!byte $1f, $00, $42, $09, $ef, $09, $40, $25
+		!byte $eb, $25, $03, $07, $d1, $11, $07, $00
+		!byte $1f, $61, $69, $21, $1f, $43, $07, $d1
+		!byte $07, $40, $1f, $e1, $1f, $43, $07, $d1
+		!byte $07, $40, $1f, $e1, $1f, $9e, $4d, $05
+		!byte $43, $9d, $5b, $19, $40, $9e, $4d, $05
+		!byte $43, $9d, $5b, $19, $40, $03, $08, $af
+		!byte $16, $12, $07, $00, $25, $ab, $24, $21
+		!byte $1f, $07, $06, $07, $c3, $03, $21, $0e
+		!byte $21, $25, $2b, $25, $2b, $25, $00, $03
+		!byte $c0, $03, $00, $25, $e6, $26, $2b, $00
+		!byte $2f, $40, $03, $00, $14, $09, $00, $2b
+		!byte $15, $66, $55, $25, $00, $2f, $14, $2f
+		!byte $40, $14, $09, $00, $2b, $03, $26, $95
+		!byte $25, $00, $2f, $40, $03, $b0, $00, $2b
+		!byte $15, $26, $83, $40, $03, $09, $c3, $09
+		!byte $00, $03, $f0, $30, $26, $00, $2f, $25
+		!byte $00, $09, $14, $25, $2e, $00, $03, $67
+		!byte $b0, $26, $00, $2e, $00, $03, $09, $00
+		!byte $25, $2f, $00, $26, $27, $70, $67, $03
+		!byte $00, $2e, $25, $2e, $40, $25, $2f, $00
+		!byte $26, $70, $a7, $03, $00, $25, $d5, $15
+		!byte $25, $00, $2b, $f0, $30, $2b, $00, $17
+		!byte $e6, $26, $17, $00, $40, $1e, $40, $1d
+		!byte $c1, $1d, $40, $1e, $c0, $1e, $40, $0d
+		!byte $d9, $0d, $40, $1e, $40, $ff
 ; ----------------------------------------------------------------------------
 ; $81ef Compressed map data
 cMapData:
@@ -189,10 +194,22 @@ cMapData:
 		!byte $1f, $21, $a8, $00, $ff
 ; ----------------------------------------------------------------------------
 ; $8394 game code start
-Start:	jsr ioinit 						; IRQ init
+Start:
+!ifdef 	P500{ 
+		jsr Test
+		nop
+		nop
+		nop
+		nop
+		nop
+		lda #GAMEBANK
+		sta IndirectBank				; select bank 0
+} else{ ; 12 bytes
+		jsr ioinit 						; IRQ init
 		jsr ramtas 						; RAM init
 		jsr restor 						; hardware I/O vector init
 		jsr cint   						; video init
+}
 Warm:	lda #$00
 		ldx #$c2
 clrzplp:sta $02,x						; clear zero page $03 - $c4
@@ -200,7 +217,7 @@ clrzplp:sta $02,x						; clear zero page $03 - $c4
 		dex
 		bne clrzplp						; next byte
 		inc $07							; increase $07
-		ldx Jiffy						; load jiffy clock low byte
+		ldx jiffy						; load jiffy clock low byte
 		dex
 		stx $0b							; store jiffy - 1 in $0b
 ; Copy and uncompress map
@@ -250,18 +267,14 @@ mapend:	lda #<cLookUpTable
 		sta pointer2+1					; set target pointer = LookUpTable
 		ldy #$00
 		ldx #$00
--		jsr LoadHiNibblePointer1		; load and shift high nibble 4 bits right
+ludeclp:jsr LoadHiNibblePointer1		; load and shift high nibble 4 bits right
 		jsr StoreIncPointer2			; store high nibble
 		jsr LoadIncPointer1
 		and #$0f
 		jsr StoreIncPointer2			; store low nibble
 		inx
-		bne -							; next byte
-
-		lda $dc0e
-		and #$fe
-		sta $dc0e
-; copy the first 128 chars of the first fontset
+		bne ludeclp						; next byte
+; copy chars $00-$7f of the first (graphic) fontset to $80 of the custom fonts
 !ifdef 	P500{ ; 25 bytes
 		lda #SYSTEMBANK					; select bank 15 to get font from char ROM
 		sta IndirectBank
@@ -274,85 +287,83 @@ fontcpy:lda (CharROM1),y				; load from character ROM - Y already $00
 		dey
 		bne fontcpy
 		sty IndirectBank				; select bank 0 - Y already $00
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-} else{ ; 35 bytes
-		lda $01
+!fill 26, NOPCODE
+} else{ ; 51 bytes
+		lda $dc0e						; stop CIA1 timer A 
+		and #$fe
+		sta $dc0e
+		lda $01							; enable character ROM
 		and #$fb
 		sta $01
 		ldx #$00
-fontcpy:lda $d100,x
-		sta $2400,x
-		sta $2c00,x
+fontcpy:lda $d100,x						; load from character ROM
+		sta $2400,x						; store to game fontset from char $80			
+		sta $2c00,x						; store to menu fontset from char $80
 		lda $d000,x
 		sta $2500,x
 		sta $2d00,x
 		dex
 		bne fontcpy
-		lda $01
+		lda $01							; disable character ROM
 		ora #$04
 		sta $01
-}
-		lda $dc0e
+		lda $dc0e						; start CIA1 timer A
 		ora #$01
 		sta $dc0e
-; *= $8459
-		lda #$11
+}
+; $8459 copy and uncompress user fonts
+		lda #<cUserFontGame
 		sta pointer1
-		lda #$80
-		sta pointer1+1
+		lda #>cUserFontGame
+		sta pointer1+1					; pointer1 = $8011
 		lda #$00
 		sta pointer2
 		lda #$20
-		sta pointer2+1
-		jsr l8602
-		lda #$82
+		sta pointer2+1					; pointer2 = $2000
+		jsr UncompressUserFont			; copy game user font
+		lda #<cUserFontMenu
 		sta pointer1
-		lda #$9e
-		sta pointer1+1
+		lda #>cUserFontMenu
+		sta pointer1+1					; pointer1 = $9e82
 		lda #$08
 		sta pointer2
 		lda #$28
-		sta pointer2+1
-		jsr l8602
+		sta pointer2+1					; pointer2 = $2808
+		jsr UncompressUserFont			; copy menu user font
+; copy user chars to menu user font
 		ldx #$1f
-l8481:	lda $9ee4,x
+uchrcp1:lda UserCharMenu,x				; copy 32 bytes to menu user font
 		sta $28a8,x
 		dex
-		bpl l8481
-		stx $d40e
-		stx $d40f
+		bpl uchrcp1						; next byte
+; SID init
+		stx $d40e						; X alreday $ff
+		stx $d40f						; set SID voice 3 frequency to $ffff 
 		lda #$80
-		sta $d412
+		sta $d412						; set SID voice 3 to $80 = noise
 		lda #$f0
-		sta $d406
-		sta $d40d
-		ldx #$a1
-l849f:	lda $21cf,x
+		sta $d406						; set SID voice 1 SR to $f0
+		sta $d40d						; set SID voice 2 SR To $f0
+; copy user chars from game to menu user font
+		ldx #$a1						; copy $a1 bytes
+uchrcp2:lda $21cf,x
 		sta $29cf,x
 		dex
-		bne l849f
-		sei
-		lda #$83
+		bne uchrcp2
+; interrupt vector setup
+		sei								; disable interrrupts
+		lda #<Interrupt
 		sta $0314
-		lda #$85
-		sta $0315
+		lda #>Interrupt
+		sta $0315						; set IRQ vector to $8583
 		lda #$01
-		sta $d01a
+		sta $d01a						; VIC enable raster interrupt
 		lda #$1b
-		sta $d011
+		sta $d011						; VIC RC8 = 0, DEN, 40 columns, Y = 3
 		lda #$32
-		sta $d012
-;nop
-		cli
+		sta $d012						; VIC raster reg = $032 (start of screen)
+		cli								; enable interrupts´
+;		
 l84c3:	lda #$00
 		ldx #$1f
 l84c7:	sta $0e,x
@@ -370,8 +381,8 @@ l84c7:	sta $0e,x
 		jsr l919f
 		lda $07
 		bne l851a
-		lda Jiffy
-l84ed:	cmp Jiffy
+		lda jiffy
+l84ed:	cmp jiffy
 		beq l84ed
 		lda #$18
 		sta $d018
@@ -400,10 +411,10 @@ l851a:	lda $07
 l852a:	lda #$10
 		bit $dc00
 		beq l854f
-l8531:	lda $c5
+l8531:	lda pressed_key
 		cmp #$ff
 		beq l851a
-l8537:	cmp $c5
+l8537:	cmp pressed_key
 		beq l8537
 		cmp #$ef
 		beq l854f
@@ -440,30 +451,35 @@ l8573:	cmp #$0c
 l857d:	lda #$00
 		sta $09
 		beq l8562
-		lda $d019
+; ----------------------------------------------------------------------------
+; $8583 interrupt 
+Interrupt:
+		lda $d019						; load VIC interrupt reg and mask bit 1
 		and #$01
-		beq l85ba
-		inc Jiffy
+		beq inorast						; skip if source is not raster interrupt
+		inc jiffy						; increase jiffy
 		lda #$32
-		sta $d012
+		sta $d012						; set VIC raster reg again to $32 (start)
 		lda #$81
-		sta $d019
-		dec $30
-		jsr l864f
+		sta $d019						; clear VIC raster interrupt
+		dec $30							;
+		jsr l864f				; dra screen
 		lda $a4
-		bne l85a2
-		jsr l8b93
-l85a2:	ldx #$ff
-		stx $dc02
+		bne iskpspr						; skip if $a4 is not 0
+		jsr l8b93				; sprite direction compare loop
+iskpspr:ldx #$ff
+		stx $dc02						; set CIA1 port A for output
 		dex
-		stx $dc00
-l85ab:	lda $dc01
+		stx $dc00				; ignore all columns
+idebkey:lda $dc01						; load CIA1 port B
 		cmp $dc01
-		bne l85ab
-		sta $c5
+		bne idebkey						; debounce key
+		sta pressed_key					; store pressed key
 		ldx #$00
-		stx $dc02
-l85ba:	jmp $ea7e
+		stx $dc02						; reset CIA1 port B to input
+inorast:jmp $ea7e						; jump to kernal interrupt
+; ----------------------------------------------------------------------------
+; $85bd
 l85bd:	lda #$00
 		ldx #$07
 l85c1:	sta $02d0,x
@@ -489,7 +505,6 @@ l85ec:	sta $042a,x
 		dex
 		bpl l85ec
 		rts
-; ----------------------------------------------------------------------------
 ; write_1_up_2_up_0_score
 l85f3:	jsr l8dcb
 		ldx #$05
@@ -498,33 +513,36 @@ l85fa:	sta $0447,x
 		dex
 		bpl l85fa
 		bmi l85e5
-l8602:	ldy #$00
-		lda (pointer1),y
+; ----------------------------------------------------------------------------
+; copy and uncompress user font
+UncompressUserFont:	
+		ldy #$00
+		lda (pointer1),y				; load byte
 		and #$c0
-		bne l8619
-		lda (pointer1),y
-		tax
-		lda $9dc6,x
-		jsr StoreIncPointer2
-l8613:	jsr IncPointer1
-		jmp l8602
-l8619:	lsr
+		bne ucfnt67						; branch if bit 6 or 7 = 1
+		lda (pointer1),y				; load byte again
+		tax								; move to X as index
+		lda UserFontData,x				; load part 0-$3f from table
+		jsr StoreIncPointer2			; store in user font
+ucfntlp:jsr IncPointer1
+		jmp UncompressUserFont			; next byte
+ucfnt67:lsr								; shift bit#6+7 to 1+0
 		lsr
 		lsr
 		lsr
 		lsr
 		lsr
-		sta temp
-		lda (pointer1),y
-		cmp #$ff
-		beq lip_rts						; branch to rts
+		sta temp						; store in temp as repeat counter
+		lda (pointer1),y				; load byte again
+		cmp #$ff						; check if end of table
+		beq ucfntrt						; branch to rts
 		and #$3f
 		tax
-		lda $9dc6,x
-l862d:	jsr StoreIncPointer2
+		lda UserFontData,x				; load part 0-$3f from table
+ucfntrp:jsr StoreIncPointer2			; store in user font
 		dec temp
-		bpl l862d
-		bmi l8613
+		bpl ucfntrp						; repeat number of temp counter 
+		bmi ucfntlp						; next byte
 ; ----------------------------------------------------------------------------
 ; $8636 Load++ pointer 1 sub
 LoadIncPointer1:
@@ -533,7 +551,7 @@ IncPointer1:
 		inc pointer1
 		bne +
 		inc pointer1+1
-lip_rts:
+ucfntrt:
 +		rts
 ; ----------------------------------------------------------------------------
 ; $863f Store++ pointer 2 sub
@@ -591,7 +609,7 @@ l8697:	rts
 l8698:	cpy #$02
 		bne l86a4
 		lda $0b
-		cmp Jiffy
+		cmp jiffy
 		bne l8697
 		beq l8695
 l86a4:	ldx $08
@@ -725,7 +743,7 @@ l87a0:	lda ($c0),y
 		dey
 		cpy #$01
 		bne l87a0
-		lda Jiffy
+		lda jiffy
 		and #$0f
 		bne l87c6
 		lda $dc00
@@ -769,7 +787,7 @@ l8801:	sta $c0
 l8805:	ldy #$0c
 		ldx #$22
 		rts
-l880a:	lda Jiffy
+l880a:	lda jiffy
 		and #$03
 		bne l87f5
 		ldx $5f
@@ -1020,7 +1038,7 @@ l8a00:	sta $63
 		lda #$00
 		sta $65
 		jsr l9384
-		lda Jiffy
+		lda jiffy
 		and #$03
 		bne l8a19
 		jsr l97f5
@@ -1031,7 +1049,7 @@ l8a19:	jsr l9617
 l8a22:	lda $8a,x
 		and #$7f
 		beq l8a74
-		lda Jiffy
+		lda jiffy
 		and #$07
 		bne l8a34
 		lda $86,x
@@ -1295,7 +1313,7 @@ l8c40:	sta $b7
 		sta $d401
 		sty $d404
 l8c48:	rts
-l8c49:	lda Jiffy
+l8c49:	lda jiffy
 		and #$0f
 		bne l8c5b
 		lda $6b
@@ -1472,7 +1490,7 @@ l8da6:	sta $063d,x
 		dex
 		bpl l8da6
 		rts
-l8dad:	lda Jiffy
+l8dad:	lda jiffy
 		and #$0f
 		bne l8df2
 		lda $b9
@@ -1554,7 +1572,7 @@ l8e49:	jsr l9163
 		lda $1e,x
 		tay
 		bne l8e60
-		lda Jiffy
+		lda jiffy
 		bpl l8e60
 l8e5a:	jsr l8e72
 		jmp l8e63
@@ -2489,7 +2507,7 @@ l9594:	sta $9a
 		lda #$11
 		sta $d40b
 		rts
-l959f:	lda Jiffy
+l959f:	lda jiffy
 		and #$0f
 		beq l95aa
 		cmp #$08
@@ -2549,7 +2567,7 @@ l960b:	clc
 		sta $71,x
 		lda #$00
 		rts
-l9617:	lda Jiffy
+l9617:	lda jiffy
 		and #$07
 		bne l9623
 		lda $69
@@ -2721,7 +2739,7 @@ l9754:	lda $8a,x
 		bpl l9767
 		jsr l97d1
 		jmp l9784
-l9767:	lda Jiffy
+l9767:	lda jiffy
 		and #$03
 		bne l9784
 		cpx #$03
@@ -3184,7 +3202,7 @@ l9afb:	cmp $45
 		bcc l9b0f
 l9aff:	cpx #$02
 		bne l9b07
-		lda Jiffy
+		lda jiffy
 		bmi l9b0f
 l9b07:	lda #$02
 		sta $8a,x
@@ -3278,15 +3296,21 @@ l9b0f:	rts
 		!byte $5f, $60, $58, $59, $5e, $5f, $60, $5a
 		!byte $5b, $5e, $5f, $60, $5c, $5d, $5e, $5f
 		!byte $60, $00, $05, $0a, $0a, $0f, $0f, $14
-		!byte $14, $19, $19, $1e, $1e, $23, $00, $01
-		!byte $02, $03, $04, $05, $08, $0a, $0d, $0f
-		!byte $10, $11, $14, $15, $20, $22, $28, $2a
-		!byte $2b, $2e, $30, $33, $3a, $3c, $3e, $40
-		!byte $41, $50, $51, $54, $55, $80, $82, $a0
-		!byte $a2, $a8, $b0, $c0, $c3, $cc, $cf, $e0
-		!byte $e8, $f0, $f3, $fc, $ff, $3f, $0c, $fe
-		!byte $fb, $c1, $f8, $1f, $0e, $8f, $df, $81
-		!byte $70, $9f, $87, $07, $bc, $08, $08, $08
+		!byte $14, $19, $19, $1e, $1e, $23
+; ----------------------------------------------------------------------------
+; $9dc6 User font tiles 0 - $3f
+UserFontData:
+		!byte $00, $01, $02, $03, $04, $05, $08, $0a
+		!byte $0d, $0f, $10, $11, $14, $15, $20, $22
+		!byte $28, $2a, $2b, $2e, $30, $33, $3a, $3c
+		!byte $3e, $40, $41, $50, $51, $54, $55, $80
+		!byte $82, $a0, $a2, $a8, $b0, $c0, $c3, $cc
+		!byte $cf, $e0, $e8, $f0, $f3, $fc, $ff, $3f
+		!byte $0c, $fe, $fb, $c1, $f8, $1f, $0e, $8f
+		!byte $df, $81, $70, $9f, $87, $07, $bc, $08
+; ----------------------------------------------------------------------------
+
+		!byte $08, $08
 		!byte $0c, $10, $14, $14, $00, $04, $08, $08
 		!byte $0c, $10, $10, $a8, $a9, $a7, $a8, $80
 		!byte $b3, $a3, $af, $b2, $a5, $88, $a3, $89
@@ -3302,24 +3326,34 @@ l9b0f:	rts
 		!byte $a5, $80, $a4, $a9, $a6, $a6, $a9, $a3
 		!byte $b5, $ac, $b4, $b9, $3a, $3c, $3e, $3e
 		!byte $40, $40, $44, $44, $48, $48, $4a, $4a
-		!byte $4c, $4c, $40, $31, $ae, $32, $2e, $80
-		!byte $1f, $25, $73, $26, $40, $19, $69, $6b
-		!byte $34, $40, $03, $09, $75, $6f, $40, $29
-		!byte $34, $2d, $34, $2b, $29, $c0, $80, $18
-		!byte $40, $06, $30, $36, $89, $80, $01, $03
-		!byte $3d, $37, $38, $40, $df, $1f, $39, $40
-		!byte $0e, $7a, $74, $2d, $40, $06, $30, $36
-		!byte $89, $40, $f5, $3b, $38, $6e, $31, $f4
-		!byte $00, $26, $3c, $3d, $49, $75, $00, $34
-		!byte $3e, $2d, $71, $6e, $00, $af, $75, $09
-		!byte $03, $00, $25, $29, $2b, $34, $2d, $34
-		!byte $29, $00, $58, $c0, $40, $c9, $89, $00
-		!byte $ee, $ae, $00, $ff, $81, $83, $83, $87
-		!byte $87, $8f, $8f, $00, $fc, $de, $fe, $ff
-		!byte $ff, $ff, $ff, $00, $0f, $0f, $0f, $0f
-		!byte $0f, $8f, $8f, $00, $ff, $ff, $ff, $ff
-		!byte $ff, $ff, $ff, $00, $01, $02, $04, $08
-		!byte $10, $fe, $fd, $fb, $f7, $ef
+		!byte $4c, $4c
+; ----------------------------------------------------------------------------
+; $9e82 compressed menu user font (bytes 0-$3f from FontData, bit 6+7 = count)
+cUserFontMenu:
+		!byte $40, $31, $ae, $32, $2e, $80, $1f, $25
+		!byte $73, $26, $40, $19, $69, $6b, $34, $40
+		!byte $03, $09, $75, $6f, $40, $29, $34, $2d
+		!byte $34, $2b, $29, $c0, $80, $18, $40, $06
+		!byte $30, $36, $89, $80, $01, $03, $3d, $37
+		!byte $38, $40, $df, $1f, $39, $40, $0e, $7a
+		!byte $74, $2d, $40, $06, $30, $36, $89, $40
+		!byte $f5, $3b, $38, $6e, $31, $f4, $00, $26
+		!byte $3c, $3d, $49, $75, $00, $34, $3e, $2d
+		!byte $71, $6e, $00, $af, $75, $09, $03, $00
+		!byte $25, $29, $2b, $34, $2d, $34, $29, $00
+		!byte $58, $c0, $40, $c9, $89, $00, $ee, $ae
+		!byte $00, $ff
+; ----------------------------------------------------------------------------
+; $9ee4 
+UserCharMenu:
+		!byte $81, $83, $83, $87, $87, $8f, $8f, $00
+		!byte $fc, $de, $fe, $ff, $ff, $ff, $ff, $00
+		!byte $0f, $0f, $0f, $0f, $0f, $8f, $8f, $00
+		!byte $ff, $ff, $ff, $ff, $ff, $ff, $ff, $00
+; ----------------------------------------------------------------------------
+; $9f04
+		!byte $01, $02, $04, $08, $10, $fe, $fd, $fb
+		!byte $f7, $ef
 ; ----------------------------------------------------------------------------
 ; $9f0e LookUp Table
 cLookUpTable:
@@ -3384,6 +3418,8 @@ InitP500:
 		inx
 		stx CharROM1+1
 		rts
+; ----------------------------------------------------------------------------
+
 Test:	lda #SYSTEMBANK
 		sta IndirectBank				; select bank 15
 		lda #BLACK						; color
@@ -3403,7 +3439,5 @@ Test:	lda #SYSTEMBANK
 		lda #$18
 		ldy #$18						; VIC reg $18 memory pointers
 		sta (VIC),y						; set VM13-10=$3 screen at $0a00, CB13,12,11,x=1010 char at $2800
-		lda #GAMEBANK
-		sta IndirectBank				; select bank 0
-		jmp Warm
+		rts
 }
