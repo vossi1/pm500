@@ -3,7 +3,7 @@
 ; Game code start at $8394
 !cpu 6502
 ; switches
-;P500 = 1
+P500 = 1
 !ifdef 	P500{!to "pm500.prg", cbm
 } else{ 	!to "pm500.rom", plain }
 ; ########################################### TODO ################################################
@@ -65,8 +65,8 @@ BLACK					= $00		; color codes
 		jmp Start
 } else{ 	
 ; ROM ident
-		!byte <Start, >Start, <Warm, >Warm			; ROM start addresses
-		!byte $c3, $c2, $cd, "8"						; cbm-rom ident-bytes 'C'= with init, 'BM', '8' = 4k-block 8
+		!byte <Start, >Start, <Warm, >Warm	; ROM start addresses
+		!byte $c3, $c2, $cd, "8"			; cbm-rom ident-bytes 'C'= with init, 'BM', '8' = 4k-block 8
 }
 ; ----------------------------------------------------------------------------
 *= $8008
@@ -351,6 +351,22 @@ uchrcp2:lda $21cf,x
 		dex
 		bne uchrcp2
 ; interrupt vector setup
+!ifdef 	P500{ ; 27 bytes
+		lda #SYSTEMBANK
+		sta IndirectBank				; select bank 15
+		ldy #$1a
+		lda #$01
+		sta (VIC),y						; VIC enable raster interrupt
+		ldy #$11
+		lda #$1b
+		sta (VIC),y						; VIC RC8 = 0, DEN, 40 columns, Y = 3
+		ldy #$12
+		lda #$32
+		sta (VIC),y						; VIC raster reg = $032 (start visible screen)
+		lda #GAMEBANK
+		sta IndirectBank				; select bank 15
+		cli								; enable interrupts
+} else{ ; 27 bytes
 		sei								; disable interrrupts
 		lda #<Interrupt
 		sta $0314
@@ -361,10 +377,11 @@ uchrcp2:lda $21cf,x
 		lda #$1b
 		sta $d011						; VIC RC8 = 0, DEN, 40 columns, Y = 3
 		lda #$32
-		sta $d012						; VIC raster reg = $032 (start of screen)
-		cli								; enable interrupts´
-;		
-l84c3:	lda #$00
+		sta $d012						; VIC raster reg = $032 (start visible screen)
+		cli								; enable interrupts
+}
+; main loop		
+mainlp:	lda #$00
 		ldx #$1f
 l84c7:	sta $0e,x
 		dex
@@ -431,7 +448,9 @@ l854f:	lda #$00
 		sta $07
 		lda #$01
 		sta $0a
-		jmp l84c3
+		jmp mainlp
+; ----------------------------------------------------------------------------
+
 l855c:	lda $08
 		eor #$01
 		sta $08
@@ -463,7 +482,7 @@ Interrupt:
 		lda #$81
 		sta $d019						; clear VIC raster interrupt
 		dec $30							;
-		jsr l864f				; dra screen
+		jsr l864f				; draw screen
 		lda $a4
 		bne iskpspr						; skip if $a4 is not 0
 		jsr l8b93				; sprite direction compare loop
@@ -3417,9 +3436,59 @@ InitP500:
 		stx CharROM0+1
 		inx
 		stx CharROM1+1
+
+		lda #<Irqp500
+		sta $fffe
+		lda #>Irqp500
+		sta $ffff						; set IRQ vector to $8583
+
 		rts
 ; ----------------------------------------------------------------------------
-
+; p500 irq sub
+Irqp500:
+		pha
+		txa
+		pha
+		tya
+		pha
+		lda #SYSTEMBANK
+		sta IndirectBank				; select bank 15
+		ldy #$19
+		lda (VIC),y						; load VIC interrupt reg and mask bit 1
+		and #$01
+		beq inoraster						; skip if source is not raster interrupt
+		inc jiffy						; increase jiffy
+		ldy #$12
+		lda #$32
+		sta (VIC),y						; set VIC raster reg again to $32 (start)
+		ldy #$19
+		lda #$81
+		sta (VIC),y						; clear VIC raster interrupt
+		dec $30							;
+		lda #GAMEBANK
+		sta IndirectBank				; select bank 15
+		jsr l864f				; draw screen
+;		lda $a4
+;		bne iskpspr						; skip if $a4 is not 0
+;		jsr l8b93				; sprite direction compare loop
+;iskpspr:ldx #$ff
+;		stx $dc02						; set CIA1 port A for output
+;		dex
+;		stx $dc00				; ignore all columns
+;idebkey:lda $dc01						; load CIA1 port B
+;		cmp $dc01
+;		bne idebkey						; debounce key
+;		sta pressed_key					; store pressed key
+;		ldx #$00
+;		stx $dc02						; reset CIA1 port B to input
+inoraster:
+		pla
+		tay
+		pla
+		tax
+		pla
+		rti
+; ----------------------------------------------------------------------------
 Test:	lda #SYSTEMBANK
 		sta IndirectBank				; select bank 15
 		lda #BLACK						; color
@@ -3436,8 +3505,16 @@ Test:	lda #SYSTEMBANK
 		lda (TPI2),y					; load TRI2 port c
 		and #$3f						; clear bit#6,7 vic 16k select bank $0000-$3fff
 		sta (TPI2),y					; store to TRI2 port c
-		lda #$18
+		lda #$3a
 		ldy #$18						; VIC reg $18 memory pointers
 		sta (VIC),y						; set VM13-10=$3 screen at $0a00, CB13,12,11,x=1010 char at $2800
+
+		lda #$7f						; bit#7=0 clears/mask out all 5 irq sources with bit#0-4 = 1
+		ldy #$0d						; CIA interrupt control register
+		sta (CIA),y						; disable all hardware interrupts
+		lda #$00
+		ldy #$05
+		sta (TPI1),y					; set TPI1 reg $5 interrupt mask reg = $00 - disable all irq
+
 		rts
 }
