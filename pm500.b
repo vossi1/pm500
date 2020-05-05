@@ -1,24 +1,42 @@
-; disassembled by DASM6502b v.3.1 by Marat Fayzullin
-; modified by Vossi 02/2019
-; Game code start at $8394
+; Disassembled by Vossi 04/2020
+; Prepared for ACME reassembling
+; Comments by Vossi 05/2020
+; Converted for P500 by Vossi 05/2020
 !cpu 6502
 ; switches
-P500 = 1
+;P500 = 1
 !ifdef 	P500{!to "pm500.prg", cbm
 } else{ 	!to "pm500.rom", plain }
 ; ########################################### TODO ################################################
 ;
-; jiffy not at $a2
 ; VIC, CIA, SID, Color RAM indirect access
 ;
 ; #################################################################################################
+; ******************************************* INFO ************************************************
+; Game screen is at $0400, game font at $2000
+; Menu screen is at $0a00, menu font at $2800
+; First half of char ROM copied to lower half of user fonts
+; Game screen is compressed at $81ef -> decompressed to $4000
+; Game font is compressed at $8011 -> decompressed to $2000 
+; Menu font is compressed at $9e82-> decompressed to $2800
+; compreessed font data are 2bit count + 6bit tile numbers of table at $9dc6
+;
 ; ***************************************** CONSTANTS *********************************************
 FILL					= $aa		; fills free memory areas with $aa
 NOPCODE					= $ea		; nop instruction for fill
 GAMEBANK				= $00		; Game code bank
 SYSTEMBANK				= $0f		; systembank
 BLACK					= $00		; color codes
-; ***************************************** ADDRESSES *********************************************
+WHITE					= $01
+RED						= $02
+GREEN					= $05
+YELLOW					= $07
+ORANGE					= $08
+BROWN					= $09
+LIGHTRED				= $0a
+LIGHTBLUE				= $0e
+GRAY3					= $0f
+; ************************************** P500 ADDRESSES *******************************************
 !addr CodeBank			= $00		; code bank register
 !addr IndirectBank		= $01		; indirect bank register
 !addr CharROMbase		= $c000		; Character ROM
@@ -29,15 +47,26 @@ BLACK					= $00		; color codes
 !addr CIAbase			= $dc00		; CIA
 !addr TPI1base			= $de00		; TPI1
 !addr TPI2base			= $df00		; TPI2
+; *************************************** C64 ADDRESSES *******************************************
+!addr CharROM64			= $d000		; Character RAM
+!addr ColorRAM64		= $d800		; Color RAM
 !addr ioinit			= $fda3		; Kernal IRQ init
 !addr ramtas			= $fd50		; Kernal RAM init
 !addr restor			= $fd15		; Kernal hardware I/O vector init
 !addr cint				= $ff5b		; Kernal video init
+; ************************************** USER ADDRESSES *******************************************
+!addr GameScreen		= $0400		; game screen page
+!addr MenuScreen		= $0a00		; game screen page
+!addr CharGame			= $2000		; user character game
+!addr CharMenu			= $2800		; user character menu
+!addr MapData			= $4000		; Map data
+!addr ScreenBackup1		= $4400		; Game screen backup 1
+!addr ScreenBackup2		= $4800		; Game screen backup 2
 !addr MapData			= $4000		; Map data
 !addr LookUpTable		= $4c00		; LookUp Table 484 nibbles
 
 ; ***************************************** ZERO PAGE *********************************************
-;!addr 					= $07
+!addr menu_key			= $07		; key in menu
 ;!addr					= $0b		; temp jiffy
 !addr temp				= $18		; temp byte
 
@@ -46,6 +75,7 @@ BLACK					= $00		; color codes
 !addr jiffy				= $a2		; jiffy clock 20ms counter from raster interrupt = Vsync
 !addr pressed_key		= $c5		; pressed key from interrupt
 
+; ************************************** P500 ZERO PAGE *******************************************
 !addr ColorRAM			= $f0
 !addr VIC				= $f2
 !addr SID				= $f4
@@ -74,7 +104,7 @@ BLACK					= $00		; color codes
 		!byte $30, $02, $bb, $5a, $30, $5f, $ee, $3d
 		!byte $a8
 ; ----------------------------------------------------------------------------
-; $8011 compressed game user font (bytes 0-$3f from FontData, bit 6+7 = count)
+; $8011 Compressed game user font (bytes 0-$3f from FontData, bit 6+7 = count)
 cUserFontGame:
 		!byte $c0, $c0, $80, $57, $80, $57, $ee, $57
 		!byte $40, $01, $c4, $04, $40, $19, $ca, $ca
@@ -193,7 +223,7 @@ cMapData:
 		!byte $0d, $14, $00, $00, $12, $1d, $a1, $0c
 		!byte $1f, $21, $a8, $00, $ff
 ; ----------------------------------------------------------------------------
-; $8394 game code start
+; $8394 Game code start
 Start:
 !ifdef 	P500{ 
 		jsr Test
@@ -216,11 +246,11 @@ clrzplp:sta $02,x						; clear zero page $03 - $c4
 		sta $03ff,x						; clear screen $400 - $4c1
 		dex
 		bne clrzplp						; next byte
-		inc $07							; increase $07
+		inc menu_key					; increase menu key
 		ldx jiffy						; load jiffy clock low byte
 		dex
 		stx $0b							; store jiffy - 1 in $0b
-; Copy and uncompress map
+; $83b3 Copy and uncompress map
 		lda #<MapData
 		sta pointer2
 		lda #>MapData
@@ -256,7 +286,7 @@ mapbit6:and #$3f						; clear ident bits#7,6
 mapchar:jsr StoreIncPointer2			; copy byte to map
 		jsr IncPointer1
 		jmp mapcplp						; read next byte
-; copy and decode LookUpTable Nibbles
+; $8401 Copy and decode LookUpTable Nibbles
 mapend:	lda #<cLookUpTable
 		sta pointer1
 		lda #>cLookUpTable
@@ -274,18 +304,18 @@ ludeclp:jsr LoadHiNibblePointer1		; load and shift high nibble 4 bits right
 		jsr StoreIncPointer2			; store low nibble
 		inx
 		bne ludeclp						; next byte
-; copy chars $00-$7f of the first (graphic) fontset to $80 of the custom fonts
+; $8426 Copy chars $00-$7f of the first (graphic) fontset to $80 of the custom fonts
 !ifdef 	P500{ ; 25 bytes
 		lda #SYSTEMBANK					; select bank 15 to get font from char ROM
 		sta IndirectBank
-fontcpy:lda (CharROM1),y				; load from character ROM - Y already $00	
-		sta $2400,y						; store to game fontset from char $80
-		sta $2c00,y						; store to menu fontset from char $80
+fntcplp:lda (CharROM1),y				; load from character ROM - Y already $00	
+		sta CharGame+$400,y				; store to game fontset from char $80
+		sta CharMenu+$400,y				; store to menu fontset from char $80
 		lda (CharROM0),y
-		sta $2500,y
-		sta $2d00,y
+		sta CharGame+$500,y
+		sta CharMenu+$500,y
 		dey
-		bne fontcpy
+		bne fntcplp
 		sty IndirectBank				; select bank 0 - Y already $00
 !fill 26, NOPCODE
 } else{ ; 51 bytes
@@ -296,14 +326,14 @@ fontcpy:lda (CharROM1),y				; load from character ROM - Y already $00
 		and #$fb
 		sta $01
 		ldx #$00
-fontcpy:lda $d100,x						; load from character ROM
-		sta $2400,x						; store to game fontset from char $80			
-		sta $2c00,x						; store to menu fontset from char $80
-		lda $d000,x
-		sta $2500,x
-		sta $2d00,x
+fntcplp:lda CharROM64+$100,x			; load from character ROM
+		sta CharGame+$400,x				; store to game fontset from char $80
+		sta CharMenu+$400,x				; store to menu fontset from char $80
+		lda CharROM64,x
+		sta CharGame+$500,x
+		sta CharMenu+$500,x
 		dex
-		bne fontcpy
+		bne fntcplp
 		lda $01							; disable character ROM
 		ora #$04
 		sta $01
@@ -311,7 +341,7 @@ fontcpy:lda $d100,x						; load from character ROM
 		ora #$01
 		sta $dc0e
 }
-; $8459 copy and uncompress user fonts
+; $8459 Copy and uncompress user fonts
 		lda #<cUserFontGame
 		sta pointer1
 		lda #>cUserFontGame
@@ -330,13 +360,13 @@ fontcpy:lda $d100,x						; load from character ROM
 		lda #$28
 		sta pointer2+1					; pointer2 = $2808
 		jsr UncompressUserFont			; copy menu user font
-; copy user chars to menu user font
+; $847f Copy user chars to menu user font
 		ldx #$1f
-uchrcp1:lda UserCharMenu,x				; copy 32 bytes to menu user font
+uccplp1:lda UserCharMenu,x				; copy 32 bytes to menu user font
 		sta $28a8,x
 		dex
-		bpl uchrcp1						; next byte
-; SID init
+		bpl uccplp1						; next byte
+; $848a SID init
 		stx $d40e						; X alreday $ff
 		stx $d40f						; set SID voice 3 frequency to $ffff 
 		lda #$80
@@ -344,13 +374,13 @@ uchrcp1:lda UserCharMenu,x				; copy 32 bytes to menu user font
 		lda #$f0
 		sta $d406						; set SID voice 1 SR to $f0
 		sta $d40d						; set SID voice 2 SR To $f0
-; copy user chars from game to menu user font
+; $849d Copy user chars from game to menu user font
 		ldx #$a1						; copy $a1 bytes
-uchrcp2:lda $21cf,x
+uccplp2:lda $21cf,x
 		sta $29cf,x
 		dex
-		bne uchrcp2
-; interrupt vector setup
+		bne uccplp2
+; $84a8 Interrupt vector setup
 !ifdef 	P500{ ; 27 bytes
 		lda #SYSTEMBANK
 		sta IndirectBank				; select bank 15
@@ -380,44 +410,45 @@ uchrcp2:lda $21cf,x
 		sta $d012						; VIC raster reg = $032 (start visible screen)
 		cli								; enable interrupts
 }
-; main loop		
+; $84c3 Main loop		
 mainlp:	lda #$00
 		ldx #$1f
-l84c7:	sta $0e,x
+minzplp:sta $0e,x						; store 32x $00 to $0e-$2d
 		dex
-		bpl l84c7
-		txs
-		jsr l910d
-		sta $d020
-		sta $d021
-		lda #$0e
-		sta $d022
-		jsr l913a
-		jsr l9163
-		jsr l9181
-		jsr l919f
-		lda $07
-		bne l851a
+		bpl minzplp
+		txs								; init stack with $ff
+		jsr StopSID						; stop SID sound
+		sta $d020						; set VIC exterior color = black
+		sta $d021						; set VIC background color0 = black
+		lda #LIGHTBLUE
+		sta $d022						; set VIC background color1 = lightblue
+		jsr ColorInit					; init color RAM and VIC Sprite colors
+		jsr InitGameScreen				; copy game screen to screen RAM
+		jsr BackupGameScreen1			; copies game screen to $4400
+		jsr BackupGameScreen2			; copies game screen to $4800
+		lda menu_key
+		bne l8513						; branch if key pressed
 		lda jiffy
-l84ed:	cmp jiffy
-		beq l84ed
-		lda #$18
-		sta $d018
+mwaitlp:cmp jiffy
+		beq mwaitlp						; wait one jiffy 20ms
+		lda #$18						; VM13-10=$1 screen at $0400, CB13,12,11,x=1000 char at $2000
+		sta $d018						; set VIC memory pointers
 		lda #$d8
-		sta $d016
+		sta $d016						; set VIC multicolormode MCM=1, 40 columns
 		lda #$1f
-		sta $d015
-		sta $d01d
-		jsr l8df3
-		jsr l8e38
+		sta $d015						; set VIC enable sprite 0-4
+		sta $d01d						; set VIC x-expand sprite 0-4
+		jsr InitNewGame
+		jsr InitGameVariables
 		lda $08
-		beq l8513
-		jsr l85f3
-		jmp l8516
-l8513:	jsr l85d8
-l8516:	lda #$02
+		beq mkeyprs
+		jsr write_1_up_2_up_0_score
+		jmp mskip
+;		
+mkeyprs:jsr write_null_1_up_0_score
+mskip:	lda #$02
 		sta $0a
-l851a:	lda $07
+l8513:	lda menu_key
 		bne l852a
 		lda $0e
 		beq l8531
@@ -430,22 +461,22 @@ l852a:	lda #$10
 		beq l854f
 l8531:	lda pressed_key
 		cmp #$ff
-		beq l851a
+		beq l8513
 l8537:	cmp pressed_key
 		beq l8537
 		cmp #$ef
 		beq l854f
-		ldx $07
+		ldx menu_key
 		cpx #$03
 		bcc l8562
 		cmp #$bf
 		beq l8569
 		cmp #$df
 		beq l855c
-		bne l851a
+		bne l8513
 l854f:	lda #$00
 		sta $0e
-		sta $07
+		sta menu_key
 		lda #$01
 		sta $0a
 		jmp mainlp
@@ -455,8 +486,8 @@ l855c:	lda $08
 		eor #$01
 		sta $08
 l8562:	lda #$03
-l8564:	sta $07
-		jmp l851a
+l8564:	sta menu_key
+		jmp l8513
 l8569:	lda $09
 		cmp #$02
 		bcs l8573
@@ -499,19 +530,23 @@ idebkey:lda $dc01						; load CIA1 port B
 inorast:jmp $ea7e						; jump to kernal interrupt
 ; ----------------------------------------------------------------------------
 ; $85bd
-l85bd:	lda #$00
+InitMenu:
+		lda #$00
 		ldx #$07
-l85c1:	sta $02d0,x
+-		sta $02d0,x
 		dex
-		bpl l85c1
-		lda #$3a
-		sta $d018
+		bpl -
+		lda #$3a						; VIC memory pointers
+		sta $d018						; VM13-10=$3 screen $0a00, CB13,12,11,x=1010 char $2800
 		lda #$c8
-		sta $d016
-		jsr l910d
-		sta $d015
+		sta $d016						; VIC Multicolor mode off, 40 Columns
+		jsr StopSID						; returns with A=$00
+		sta $d015						; VIC disable sprites
 		rts
-l85d8:	ldx #$05
+; ----------------------------------------------------------------------------
+; $85d8
+write_null_1_up_0_score:
+		ldx #$05
 		lda #$80
 l85dc:	sta $0420,x
 		sta $0447,x
@@ -525,12 +560,13 @@ l85ec:	sta $042a,x
 		bpl l85ec
 		rts
 ; write_1_up_2_up_0_score
-l85f3:	jsr l8dcb
+write_1_up_2_up_0_score:
+		jsr l8dcb
 		ldx #$05
 		lda #$90
-l85fa:	sta $0447,x
+-		sta $0447,x
 		dex
-		bpl l85fa
+		bpl -
 		bmi l85e5
 ; ----------------------------------------------------------------------------
 ; copy and uncompress user font
@@ -541,7 +577,7 @@ UncompressUserFont:
 		bne ucfnt67						; branch if bit 6 or 7 = 1
 		lda (pointer1),y				; load byte again
 		tax								; move to X as index
-		lda UserFontData,x				; load part 0-$3f from table
+		lda UserFontTiles,x				; load part 0-$3f from table
 		jsr StoreIncPointer2			; store in user font
 ucfntlp:jsr IncPointer1
 		jmp UncompressUserFont			; next byte
@@ -557,7 +593,7 @@ ucfnt67:lsr								; shift bit#6+7 to 1+0
 		beq ucfntrt						; branch to rts
 		and #$3f
 		tax
-		lda UserFontData,x				; load part 0-$3f from table
+		lda UserFontTiles,x				; load part 0-$3f from table
 ucfntrp:jsr StoreIncPointer2			; store in user font
 		dec temp
 		bpl ucfntrp						; repeat number of temp counter 
@@ -590,12 +626,12 @@ LoadHiNibblePointer1:
 		lsr
 		rts
 ; ----------------------------------------------------------------------------
-l864f:	ldy $07
+l864f:	ldy menu_key
 		bne +
 		jmp l8715
 +		cpy #$01
 		bne l8698
-		jsr l85bd
+		jsr InitMenu
 		ldx #$00
 		txa
 		sta $02c5
@@ -623,7 +659,7 @@ l8683:	txa
 		inx
 		cpx #$0c
 		bne l8683
-l8695:	inc $07
+l8695:	inc menu_key
 l8697:	rts
 l8698:	cpy #$02
 		bne l86a4
@@ -640,12 +676,12 @@ l86a4:	ldx $08
 		bne l86bc
 		cpy #$03
 		bne l86b8
-		jsr l85d8
+		jsr write_null_1_up_0_score
 l86b8:	lda #$92
 		bne l86c5
 l86bc:	cpy #$03
 		bne l86c3
-		jsr l85f3
+		jsr write_1_up_2_up_0_score
 l86c3:	lda #$91
 l86c5:	sta $0d4f
 		ldx #$0a
@@ -654,7 +690,7 @@ l86ca:	lda $9e58,x
 		sta $0cd9,x
 		dex
 		bpl l86ca
-		jsr l85bd
+		jsr InitMenu
 		ldx #$0b
 l86db:	lda $9e37,x
 		sta $0d27,x
@@ -776,7 +812,7 @@ l87c0:	lda $0c
 		dec $0c
 l87c6:	lda $57
 		beq l87cd
-		jmp l910d
+		jmp StopSID
 l87cd:	jsr l8dad
 		lda $0a
 		beq l87d8
@@ -821,7 +857,7 @@ l880a:	lda jiffy
 		inc $5f
 		cpx #$28
 		bne l87f5
-		jmp l8d52
+		jmp PlayerDead
 l8830:	inc $0f
 l8832:	inc $8a
 		jsr l8da2
@@ -979,7 +1015,7 @@ l8963:	sta $53
 l8968:	lda $66
 		ora #$80
 		sta $66
-		jsr l910d
+		jsr StopSID
 		lda #$01
 		sta $6a
 		sta $ac
@@ -1169,7 +1205,7 @@ l8ae8:	lda $08
 		lda #$30
 		sta $13
 		bne l8b3a
-l8b02:	jsr l9181
+l8b02:	jsr BackupGameScreen1
 		lda #$30
 		sta $13
 		lda #$02
@@ -1183,7 +1219,7 @@ l8b0d:	lda $1a
 		lda #$30
 		sta $13
 		bne l8b3a
-l8b1f:	jsr l919f
+l8b1f:	jsr BackupGameScreen2
 		lda #$30
 		sta $13
 		lda #$01
@@ -1192,9 +1228,9 @@ l8b2a:	rts
 l8b2b:	ldx $19
 		lda $1a,x
 		beq l8b3a
-		jsr l8df3
+		jsr InitNewGame
 		jsr l8cd7
-		jmp l8d52
+		jmp PlayerDead
 l8b3a:	lda #$2c
 		ldx #$00
 l8b3e:	sta $063d,x
@@ -1344,7 +1380,7 @@ l8c59:	inc $6b
 l8c5b:	rts
 l8c5c:	lda $15
 		bne l8c6d
-		jsr l910d
+		jsr StopSID
 		jsr l8d8d
 		lda #$40
 l8c68:	sta $16
@@ -1386,7 +1422,7 @@ l8ca7:	sta $d022
 		rts
 l8caf:	cmp #$03
 		bne l8cb9
-		jsr l8df3
+		jsr InitNewGame
 		inc $15
 		rts
 l8cb9:	jsr l8e49
@@ -1394,7 +1430,7 @@ l8cb9:	jsr l8e49
 		inc $1a,x
 		inc $1e,x
 		jsr l8cd7
-		jsr l8d52
+		jsr PlayerDead
 		lda #$00
 		sta $14
 		sta $15
@@ -1468,10 +1504,15 @@ l8d3f:	lda (pointer1),y
 		cpy #$07
 		bne l8d3f
 l8d51:	rts
-l8d52:	jsr l8d8d
+; ----------------------------------------------------------------------------
+; $8d52
+PlayerDead:
+		jsr l8d8d
 		ldx $19
 		dec $1a,x
-l8d59:	ldx $19
+; $8d59
+UpdateLivesDisplay:
+		ldx $19
 		lda $1a,x
 		ldx #$00
 		ldy #$1b
@@ -1481,6 +1522,8 @@ l8d59:	ldx $19
 l8d68:	sty $07c6
 l8d6b:	sty $07c4
 		rts
+; ----------------------------------------------------------------------------
+; $
 l8d6f:	cmp #$02
 		bne l8d79
 		jsr l8d89
@@ -1544,77 +1587,88 @@ l8de9:	sta $0404
 		stx $0405
 		sty $0406
 l8df2:	rts
-l8df3:	jsr l911d
+; ----------------------------------------------------------------------------
+; $8df3 init new game
+InitNewGame:
+		jsr ClearGameRAM				; clear RAM at $3000, $5300
 		ldx #$8a
-l8df8:	sta $3b,x
+-		sta $3b,x
 		dex
-		bne l8df8
-		jsr l913a
+		bne -							; clear ZP $3c - $c5
+		jsr ColorInit					; init colors
 		ldx $19
 		lda $1e,x
 		cmp #$06
-		bcc l8e0a
+		bcc +
 		lda #$06
-l8e0a:	tay
-		lda $9e05,y
++		tay
+		lda $9e05,y						; load from table as index
 		tax
-		lda $4dae,x
+		lda $4dae,x						; copy data from RAM to ZP with index
 		sta $75
 		lda $9e0c,y
 		tay
 		ldx #$03
-l8e1a:	lda $4dae,y
+-		lda $4dae,y
 		sta $71,x
 		dex
-		bpl l8e1a
+		bpl -
 		ldx #$13
-l8e24:	lda $9bbf,x
+-		lda $9bbf,x
 		sta $3c,x
 		dex
-		bpl l8e24
+		bpl -
 		ldy #$00
-		jsr l8e72
-		lda $d01e
-		lda $d01f
+		jsr Init87_89
+		lda $d01e						; VIC reset sprite-sprite collision
+		lda $d01f						; VIC reset sprite-foreground collision
 		rts
-l8e38:	lda #$03
+; ----------------------------------------------------------------------------
+; $8e38 Init game variables - lives, score...
+InitGameVariables:
+		lda #$03
 		sta $1a
 		sta $1b
 		lda $09
 		sta $1e
 		sta $1f
 		ldx #$01
-		jsr l8e65
-l8e49:	jsr l9163
-		jsr l8d59
+		jsr inzersc						; sub zero score
+l8e49:	jsr InitGameScreen
+		jsr UpdateLivesDisplay
 		ldx $19
 		lda $1e,x
 		tay
-		bne l8e60
+		bne +
 		lda jiffy
-		bpl l8e60
-l8e5a:	jsr l8e72
-		jmp l8e63
-l8e60:	iny
-		bne l8e5a
-l8e63:	ldx $19
-l8e65:	lda #$0f
+		bpl +
+-		jsr Init87_89
+		jmp ++
++		iny
+		bne -
+++		ldx $19
+inzersc:lda #$0f						; zero score
 		sta $20,x
 		lda #$00
 		sta $2e,x
 		sta $22,x
 		sta $24,x
 		rts
-l8e72:	cpy #$03
-		bcc l8e78
+; ----------------------------------------------------------------------------
+; $8e72 copies data from table to $87-$89
+Init87_89:
+		cpy #$03
+		bcc +
 		ldy #$03
-l8e78:	ldx #$02
-l8e7a:	lda $9c3e,y
++		ldx #$02
+-		lda $9c3e,y
 		sta $87,x
 		iny
 		dex
-		bpl l8e7a
+		bpl -
 		rts
+; ----------------------------------------------------------------------------
+; $
 l8e84:	lda $ac
 		cmp #$01
 		bne l8ea2
@@ -1640,7 +1694,7 @@ l8eaa:	sta $02d0,x
 		lda #$25
 		sta $af
 		sta $ae
-		jsr l910d
+		jsr StopSID
 		sta $b0
 		sta $aa
 		inc $a9
@@ -1697,7 +1751,7 @@ l8f17:	lda #$21
 		sta $ae
 		cmp #$35
 		bne l8f33
-		jsr l910d
+		jsr StopSID
 		lda #$80
 		sta $b0
 l8f31:	inc $ac
@@ -1903,7 +1957,7 @@ l90a4:	lda #$02
 		lda #$21
 l90b7:	sta $d40b
 		bne l9109
-l90bc:	jsr l910d
+l90bc:	jsr StopSID
 		sta $a4
 		sta $63
 		sty $a7
@@ -1940,16 +1994,22 @@ l9102:	inc $b4
 		lda #$21
 l9109:	sta $d404
 l910c:	rts
-l910d:	lda #$88
-		sta $d418
+; ----------------------------------------------------------------------------
+; $910d Stop SID sound
+StopSID:
+		lda #$88
+		sta $d418						; set SID mode to 3OFF, Volume = 8
 		lda #$00
-		sta $d404
-		sta $d40b
+		sta $d404						; set SID voice 1 control = off
+		sta $d40b						; set SID voice 2 control = off
 		ldy #$ff
 		rts
-l911d:	ldx #$00
+; ----------------------------------------------------------------------------
+; $911d clear RAM areas $3000-$31ff and $5300-$57ff
+ClearGameRAM:
+		ldx #$00
 		txa
-l9120:	sta $3000,x
+clramlp:sta $3000,x
 		sta $3100,x
 		sta $5300,x
 		sta $5400,x
@@ -1957,64 +2017,78 @@ l9120:	sta $3000,x
 		sta $5600,x
 		sta $5700,x
 		inx
-		bne l9120
+		bne clramlp
 		txa
 		rts
-l913a:	ldx #$00
-		lda #$0f
-l913e:	sta $d800,x
-		sta $d900,x
-		sta $da00,x
-		sta $db00,x
+; ----------------------------------------------------------------------------
+; $913a Init color RAM + Sprite colors
+ColorInit:
+		ldx #$00
+		lda #GRAY3
+coinlp1:sta ColorRAM64,x				; init color RAM with gray3
+		sta ColorRAM64+$100,x
+		sta ColorRAM64+$200,x
+		sta ColorRAM64+$300,x
 		dex
-		bne l913e
+		bne coinlp1
 		ldx #$4f
-		lda #$01
-l9151:	sta $d800,x
+		lda #WHITE
+coinlp2:sta ColorRAM64,x				; init lines 0-1 with white
 		dex
-		bpl l9151
+		bpl coinlp2
 		ldx #$07
-l9159:	lda $9c32,x
-		sta $d027,x
+coinlp3:lda SpriteColors,x
+		sta $d027,x						; init VIC Sprite colors from table
 		dex
-		bpl l9159
+		bpl coinlp3
 		rts
-l9163:	ldx #$00
-l9165:	lda $4000,x
-		sta $0450,x
-		lda $4100,x
-		sta $0550,x
-		lda $4200,x
-		sta $0650,x
-		lda $4300,x
-		sta $0750,x
+; ----------------------------------------------------------------------------
+; $9163 init Screen
+InitGameScreen:
+		ldx #$00
+scrinlp:lda MapData,x					; load decompressed Screen Data
+		sta GameScreen+$50,x						; copy to game screen from line2
+		lda MapData+$100,x
+		sta GameScreen+$150,x
+		lda MapData+$200,x
+		sta GameScreen+$250,x
+		lda MapData+$300,x
+		sta GameScreen+$350,x
 		inx
-		bne l9165
+		bne scrinlp
 		rts
-l9181:	ldx #$00
-l9183:	lda $0450,x
-		sta $4400,x
-		lda $0550,x
-		sta $4500,x
-		lda $0650,x
-		sta $4600,x
-		lda $0750,x
-		sta $4700,x
+; ----------------------------------------------------------------------------
+; $9181 backup game screen to $4400
+BackupGameScreen1:
+		ldx #$00
+bscr1lp:lda GameScreen+$50,x
+		sta ScreenBackup1,x
+		lda GameScreen+$150,x
+		sta ScreenBackup1+$100,x
+		lda GameScreen+$250,x
+		sta ScreenBackup1+$200,x
+		lda GameScreen+$350,x
+		sta ScreenBackup1+$300,x
 		inx
-		bne l9183
+		bne bscr1lp
 		rts
-l919f:	ldx #$00
-l91a1:	lda $0450,x
-		sta $4800,x
-		lda $0550,x
-		sta $4900,x
-		lda $0650,x
-		sta $4a00,x
-		lda $0750,x
-		sta $4b00,x
+; ----------------------------------------------------------------------------
+; $919f backup game screen to $4800
+BackupGameScreen2:
+		ldx #$00
+bscr2lp:lda GameScreen+$50,x
+		sta ScreenBackup2,x
+		lda GameScreen+$150,x
+		sta ScreenBackup2+$100,x
+		lda GameScreen+$250,x
+		sta ScreenBackup2+$200,x
+		lda GameScreen+$350,x
+		sta ScreenBackup2+$300,x
 		inx
-		bne l91a1
+		bne bscr2lp
 l91bc:	rts
+; ----------------------------------------------------------------------------
+; $
 l91bd:	lda $66
 		bmi l91bc
 		ldx #$04
@@ -2424,7 +2498,7 @@ l94d0:	lda $0448
 		beq l94cf
 l94d7:	inc $1c,x
 		inc $1a,x
-		jmp l8d59
+		jmp UpdateLivesDisplay
 l94de:	lda $46,x
 		sta $61
 		lda $41,x
@@ -3265,8 +3339,15 @@ l9b0f:	rts
 		!byte $84, $9c, $bc, $ff, $3c, $ff, $38, $5c
 		!byte $9c, $bc, $ff, $4c, $74, $8c, $ac, $ff
 		!byte $00, $03, $0a, $0c, $11, $11, $0c, $0a
-		!byte $03, $00, $02, $0a, $05, $08, $07, $09
-		!byte $08, $0f, $0f, $0a, $0f, $0d, $90, $60
+		!byte $03, $00
+; ----------------------------------------------------------------------------
+; $9c32 Sprite color table
+SpriteColors:
+		!byte RED, LIGHTRED, GREEN, ORANGE
+		!byte YELLOW, BROWN, ORANGE, GRAY3
+; ----------------------------------------------------------------------------
+; 		
+		!byte $0f, $0a, $0f, $0d, $90, $60
 		!byte $30, $04, $00, $00, $ff, $c0, $80, $40
 		!byte $00, $c0, $00, $00, $00, $c0, $00, $00
 		!byte $00, $40, $00, $00, $00, $00, $00, $00
@@ -3318,7 +3399,7 @@ l9b0f:	rts
 		!byte $14, $19, $19, $1e, $1e, $23
 ; ----------------------------------------------------------------------------
 ; $9dc6 User font tiles 0 - $3f
-UserFontData:
+UserFontTiles:
 		!byte $00, $01, $02, $03, $04, $05, $08, $0a
 		!byte $0d, $0f, $10, $11, $14, $15, $20, $22
 		!byte $28, $2a, $2b, $2e, $30, $33, $3a, $3c
