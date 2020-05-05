@@ -280,7 +280,7 @@ clrzplp:sta $02,x						; clear zero page $03 - $c4
 		sta GameScreen-1,x				; clear top of game screen $0400 - $04c1
 		dex
 		bne clrzplp						; next byte
-		inc state						; increase state to 1
+		inc state						; increase state to 1 to start in menu mode
 		ldx jiffy						; load jiffy clock low byte
 		dex
 		stx jiffy_start					; store jiffy - 1 in $0b
@@ -444,28 +444,29 @@ uccplp2:lda CharGame+$1cf,x
 		sta $d012						; VIC raster reg = $032 (start visible screen)
 		cli								; enable interrupts
 }
+; ----------------------------------------------------------------------------
 ; $84c3 Main loop		
 mainlp:	lda #$00
 		ldx #$1f
-minzplp:sta $0e,x						; store 32x $00 to $0e-$2d
+clvarlp:sta $0e,x						; clear game variables $0e-$2d
 		dex
-		bpl minzplp
+		bpl clvarlp
 		txs								; init stack with $ff
-		jsr StopSID						; stop SID sound
+		jsr SoundOff					; SID sound off
 		sta $d020						; set VIC exterior color = black
 		sta $d021						; set VIC background color0 = black
 		lda #LIGHTBLUE
 		sta $d022						; set VIC background color1 = lightblue
 		jsr ColorInit					; init color RAM and VIC Sprite colors
 		jsr InitGameScreen				; copy game screen to screen RAM
-		jsr BackupGameScreen1			; copies game screen to $4400
-		jsr BackupGameScreen2			; copies game screen to $4800
-		lda state
-		bne mnogame						; branch if not game state = 0
+		jsr BackupGameScreen1			; init game screen player1 $4400
+		jsr BackupGameScreen2			; init game screen player2 $4800
+		lda state						; state at startup = 1
+		bne notgame						; branch if not game state = 0
 ; start new game
 		lda jiffy
-mwaitlp:cmp jiffy
-		beq mwaitlp						; wait one jiffy = 20ms
+waitlp :cmp jiffy
+		beq waitlp						; wait one jiffy = 20ms
 		lda #$18						; VM13-10=$1 screen at $0400, CB13,12,11,x=1000 char at $2000
 		sta $d018						; set VIC memory pointers
 		lda #$d8
@@ -476,45 +477,46 @@ mwaitlp:cmp jiffy
 		jsr InitNewGame
 		jsr InitGameVariables
 		lda players
-		beq mnew1up						; skip if 1 player
-		jsr write_1_up_2_up_0_score
-		jmp mnew2up						; skip if 2 player
+		beq new1up						; skip if 1 player
+		jsr Init2Player					; write 1up, 2up, score=0
+		jmp new2up						; skip if 2 player
 ;		
-mnew1up:jsr write_null_1_up_0_score
-mnew2up:lda #$02
-		sta $0a							; $0a = 2 if 2 players
-mnogame:lda state
-		bne mnogam2						; branch if not game state
+new1up: jsr Init1Player					; write 1up, score=0
+new2up: lda #$02
+		sta $0a							; $0a=2 if 2 players
+notgame:lda state
+		bne checkey						; branch if not game state
 		lda $0e
-		beq l8531
+		beq chkfkey						; game runs - check only f-keys
 		lda $0c
-		bne mnogam2
+		bne checkey
 		lda #$04
-		bne l8564
-mnogam2:lda #$10
-		bit $dc00
+		bne SetState4					; set state to 4
+checkey:lda #$10
+		bit $dc00						; check CIA1 Porta column 4 = Joy 2 button
 		beq mnewgam
-l8531:	lda pressed_key
+chkfkey:lda pressed_key
 		cmp #$ff
-		beq mnogame						; no key pressed
-mkeydeb:cmp pressed_key
-		beq mkeydeb						; debounce key
+		beq notgame						; no key pressed
+keydebo:cmp pressed_key
+		beq keydebo						; debounce key
 		cmp #$ef
 		beq mnewgam						; F1, Joy1Button -> start new game
 		ldx state
 		cpx #$03
-		bcc SetStateMenu				; set 
+		bcc SetStateMenu				; set state to 3 = menu (at startup its 1)
 		cmp #$bf
 		beq IncreaseDifficulty			; F5 -> increase difficulty
 		cmp #$df
 		beq TogglePlayers				; F3 -> toggle players
-		bne mnogame
+		bne notgame
+; start new game
 mnewgam:lda #$00						; start new game
 		sta $0e
-		sta state
+		sta state						; state = 0 game mode
 		lda #$01
 		sta $0a
-		jmp mainlp
+		jmp mainlp						; start the new game in next main loop
 ; ----------------------------------------------------------------------------
 ; $855c toogle players
 TogglePlayers:
@@ -524,8 +526,9 @@ TogglePlayers:
 ; $8562	set state=menu -> return to main loop	
 SetStateMenu:
 		lda #$03
-l8564:	sta state
-		jmp mnogame
+SetState4:
+		sta state
+		jmp notgame
 ; ----------------------------------------------------------------------------
 ; $8569 increase difficulty		
 IncreaseDifficulty:
@@ -581,12 +584,12 @@ InitMenu:
 		sta $d018						; VM13-10=$3 screen $0a00, CB13,12,11,x=1010 char $2800
 		lda #$c8
 		sta $d016						; VIC Multicolor mode off, 40 Columns
-		jsr StopSID						; returns with A=$00
+		jsr SoundOff					; returns with A=$00
 		sta $d015						; VIC disable sprites
 		rts
 ; ----------------------------------------------------------------------------
 ; $85d8
-write_null_1_up_0_score:
+Init1Player:
 		ldx #$05
 		lda #$80
 l85dc:	sta $0420,x
@@ -600,8 +603,8 @@ l85ec:	sta $042a,x
 		dex
 		bpl l85ec
 		rts
-; write_1_up_2_up_0_score
-write_1_up_2_up_0_score:
+; Init2Player
+Init2Player:
 		jsr l8dcb
 		ldx #$05
 		lda #$90
@@ -717,12 +720,12 @@ l86a4:	ldx players
 		bne l86bc
 		cpy #$03
 		bne l86b8
-		jsr write_null_1_up_0_score
+		jsr Init1Player
 l86b8:	lda #$92
 		bne l86c5
 l86bc:	cpy #$03
 		bne l86c3
-		jsr write_1_up_2_up_0_score
+		jsr Init2Player
 l86c3:	lda #$91
 l86c5:	sta $0d4f
 		ldx #$0a
@@ -853,7 +856,7 @@ l87c0:	lda $0c
 		dec $0c
 l87c6:	lda $57
 		beq l87cd
-		jmp StopSID
+		jmp SoundOff
 l87cd:	jsr l8dad
 		lda $0a
 		beq l87d8
@@ -1056,7 +1059,7 @@ l8963:	sta $53
 l8968:	lda $66
 		ora #$80
 		sta $66
-		jsr StopSID
+		jsr SoundOff
 		lda #$01
 		sta $6a
 		sta $ac
@@ -1421,7 +1424,7 @@ l8c59:	inc $6b
 l8c5b:	rts
 l8c5c:	lda $15
 		bne l8c6d
-		jsr StopSID
+		jsr SoundOff
 		jsr l8d8d
 		lda #$40
 l8c68:	sta $16
@@ -1674,7 +1677,7 @@ InitGameVariables:
 		sta difficulty1
 		sta difficulty2
 		ldx #$01
-		jsr inzersc						; sub zero score
+		jsr inzersc						; zero score
 l8e49:	jsr InitGameScreen				; copy game screen to screen RAM
 		jsr UpdateLivesDisplay
 		ldx $19
@@ -1735,7 +1738,7 @@ l8eaa:	sta $02d0,x
 		lda #$25
 		sta $af
 		sta $ae
-		jsr StopSID
+		jsr SoundOff
 		sta $b0
 		sta $aa
 		inc $a9
@@ -1792,7 +1795,7 @@ l8f17:	lda #$21
 		sta $ae
 		cmp #$35
 		bne l8f33
-		jsr StopSID
+		jsr SoundOff
 		lda #$80
 		sta $b0
 l8f31:	inc $ac
@@ -1998,7 +2001,7 @@ l90a4:	lda #$02
 		lda #$21
 l90b7:	sta $d40b
 		bne l9109
-l90bc:	jsr StopSID
+l90bc:	jsr SoundOff
 		sta $a4
 		sta $63
 		sty $a7
@@ -2037,7 +2040,7 @@ l9109:	sta $d404
 l910c:	rts
 ; ----------------------------------------------------------------------------
 ; $910d Stop SID sound
-StopSID:
+SoundOff:
 		lda #$88
 		sta $d418						; set SID mode to 3OFF, Volume = 8
 		lda #$00
