@@ -758,7 +758,7 @@ l86db:	lda $9e37,x
 		dex
 		bpl l86db
 		ldx difficulty
-		lda $9e74,x
+		lda DifficultyTable22,x
 		sta $0dcc
 		clc
 		adc #$01
@@ -1705,16 +1705,16 @@ InitNewGame:
 		bne -							; clear ZP $3c - $c5
 		jsr ColorInit					; init color RAM and VIC Sprite colors
 		ldx $19
-		lda difficulty1,x
+		lda difficulty1,x				; load player difficulty
 		cmp #$06
 		bcc +
-		lda #$06
+		lda #$06						; limit A to 6 and move it to Y
 +		tay
-		lda DifficultyIndex,y			; load from table as index
+		lda DifficultyTable1,y			; load from table as index
 		tax
 		lda $4dae,x						; copy data from RAM to ZP with index
 		sta $75
-		lda DifficultyTable,y
+		lda DifficultyTable2,y
 		tay
 		ldx #$03
 -		lda $4dae,y
@@ -2797,16 +2797,16 @@ l95e7:	lda $6c,x
 		sta $6c,x
 l95f1:	inc $6c,x
 		ldy $19
-		lda $001e,y
+		lda $0000+difficulty1,y			; load player difficulty in A
 		cmp #$06
-		bcc l95fe
-		lda #$06
-l95fe:	tay
+		bcc +
+		lda #$06						; limit A to 6 and move it to Y
++		tay
 		cpx #$04
 		bne l9608
-		lda DifficultyIndex,y
+		lda DifficultyTable1,y
 		bpl +							; skip always
-l9608:	lda DifficultyTable,y
+l9608:	lda DifficultyTable2,y
 +		clc
 		adc $6c,x
 		tay
@@ -3615,13 +3615,14 @@ UserFontTiles:
 		!byte $df, $81, $70, $9f, $87, $07, $bc
 ; -------------------------------------------------------------------------------------------------
 ; $9e05
-DifficultyIndex:
+DifficultyTable1:
 		!byte $08, $08, $08, $0c, $10, $14, $14
 ; $9e0c
-DifficultyTable:
-		!byte $00, $04, $08, $08, $0c, $10, $10, $a8
-		!byte $a9, $a7, $a8, $80, $b3, $a3, $af, $b2
-		!byte $a5
+DifficultyTable2:
+		!byte $00, $04, $08, $08, $0c, $10, $10
+; $9e13 unused
+Text_HighScore
+		!byte $a8, $a9, $a7, $a8, $80, $b3, $a3, $af, $b2, $a5
 ; $9e1d
 Text_Atari1983:
 		!byte $88, $a3, $89, $80, $a1, $b4, $a1, $b2
@@ -3647,7 +3648,7 @@ Text_ChangeDifficulty:
 		!byte $a9, $a6, $a6, $a9, $a3, $b5, $ac, $b4
 		!byte $b9
 ; $9e74
-Table8:
+DifficultyTable22:
 		!byte $3a, $3c, $3e, $3e, $40, $40, $44, $44
 		!byte $48, $48, $4a, $4a, $4c, $4c
 ; -------------------------------------------------------------------------------------------------
