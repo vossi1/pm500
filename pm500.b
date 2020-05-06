@@ -758,7 +758,7 @@ l86db:	lda $9e37,x
 		dex
 		bpl l86db
 		ldx difficulty
-		lda DifficultyTable22,x
+		lda DifficultyTable3,x
 		sta $0dcc
 		clc
 		adc #$01
@@ -3648,7 +3648,7 @@ Text_ChangeDifficulty:
 		!byte $a9, $a6, $a6, $a9, $a3, $b5, $ac, $b4
 		!byte $b9
 ; $9e74
-DifficultyTable22:
+DifficultyTable3:
 		!byte $3a, $3c, $3e, $3e, $40, $40, $44, $44
 		!byte $48, $48, $4a, $4a, $4c, $4c
 ; -------------------------------------------------------------------------------------------------
