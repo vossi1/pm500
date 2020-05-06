@@ -692,7 +692,7 @@ l864f:	ldy state
 		dex
 		bne -
 		ldx #$0d
-l8679:	lda $9e1d,x
+l8679:	lda Table1,x
 		sta $0e67,x
 		dex
 		bpl l8679
@@ -1697,11 +1697,11 @@ InitNewGame:
 		bcc +
 		lda #$06
 +		tay
-		lda $9e05,y						; load from table as index
+		lda DifficultyIndex,y			; load from table as index
 		tax
 		lda $4dae,x						; copy data from RAM to ZP with index
 		sta $75
-		lda $9e0c,y
+		lda DifficultyTable,y
 		tay
 		ldx #$03
 -		lda $4dae,y
@@ -2791,10 +2791,10 @@ l95f1:	inc $6c,x
 l95fe:	tay
 		cpx #$04
 		bne l9608
-		lda $9e05,y
-		bpl l960b
-l9608:	lda $9e0c,y
-l960b:	clc
+		lda DifficultyIndex,y
+		bpl +							; skip always
+l9608:	lda DifficultyTable,y
++		clc
 		adc $6c,x
 		tay
 		lda $4dae,y
@@ -3590,7 +3590,7 @@ SpriteColors:
 		!byte $60, $00, $05, $0a, $0a, $0f, $0f, $14
 		!byte $14, $19, $19, $1e, $1e, $23
 ; -------------------------------------------------------------------------------------------------
-; $9dc6 User font tiles 0 - $3f
+; $9dc6 User font tiles 0 - $3e
 UserFontTiles:
 		!byte $00, $01, $02, $03, $04, $05, $08, $0a
 		!byte $0d, $0f, $10, $11, $14, $15, $20, $22
@@ -3599,26 +3599,45 @@ UserFontTiles:
 		!byte $82, $a0, $a2, $a8, $b0, $c0, $c3, $cc
 		!byte $cf, $e0, $e8, $f0, $f3, $fc, $ff, $3f
 		!byte $0c, $fe, $fb, $c1, $f8, $1f, $0e, $8f
-		!byte $df, $81, $70, $9f, $87, $07, $bc, $08
+		!byte $df, $81, $70, $9f, $87, $07, $bc
 ; -------------------------------------------------------------------------------------------------
-
-		!byte $08, $08
-		!byte $0c, $10, $14, $14, $00, $04, $08, $08
-		!byte $0c, $10, $10, $a8, $a9, $a7, $a8, $80
-		!byte $b3, $a3, $af, $b2, $a5, $88, $a3, $89
-		!byte $80, $a1, $b4, $a1, $b2, $a9, $80, $91
-		!byte $99, $98, $93, $b0, $b2, $a5, $b3, $b3
-		!byte $80, $a6, $91, $80, $b4, $af, $80, $b0
-		!byte $b2, $a5, $b3, $b3, $80, $a6, $93, $80
-		!byte $a6, $af, $b2, $b0, $b2, $a5, $b3, $b3
-		!byte $80, $a6, $95, $80, $b4, $af, $80, $b0
-		!byte $ac, $a1, $b9, $80, $a7, $a1, $ad, $a5
+; $9e05
+DifficultyIndex:
+		!byte $08, $08, $08, $0c, $10, $14, $14
+; $9e0c
+DifficultyTable:
+		!byte $00, $04, $08, $08, $0c, $10, $10, $a8
+		!byte $a9, $a7, $a8, $80, $b3, $a3, $af, $b2
+		!byte $a5
+; $9e1d
+Table1:
+		!byte $88, $a3, $89, $80, $a1, $b4, $a1, $b2
+		!byte $a9, $80, $91, $99, $98, $93
+; $9e2b
+Table2:		
+		!byte $b0, $b2, $a5, $b3, $b3, $80, $a6, $91, $80, $b4, $af, $80
+; $9e37
+Table3:	
+		!byte $b0, $b2, $a5, $b3, $b3, $80, $a6, $93, $80, $a6, $af, $b2
+; $9e43
+Table4:
+		!byte $b0, $b2, $a5, $b3, $b3, $80, $a6, $95, $80, $b4, $af, $80  
+; $9e4f
+Table5:
+		!byte $b0, $ac, $a1, $b9, $80, $a7, $a1, $ad, $a5
+; $9e58
+Table6:
 		!byte $b0, $ac, $a1, $b9, $a5, $b2, $80, $a7
-		!byte $a1, $ad, $a5, $a3, $a8, $a1, $ae, $a7
-		!byte $a5, $80, $a4, $a9, $a6, $a6, $a9, $a3
-		!byte $b5, $ac, $b4, $b9, $3a, $3c, $3e, $3e
-		!byte $40, $40, $44, $44, $48, $48, $4a, $4a
-		!byte $4c, $4c
+		!byte $a1, $ad, $a5
+; $9e63
+Table7:
+		!byte $a3, $a8, $a1, $ae, $a7, $a5, $80, $a4
+		!byte $a9, $a6, $a6, $a9, $a3, $b5, $ac, $b4
+		!byte $b9
+; $9e74
+Table8:
+		!byte $3a, $3c, $3e, $3e, $40, $40, $44, $44
+		!byte $48, $48, $4a, $4a, $4c, $4c
 ; -------------------------------------------------------------------------------------------------
 ; $9e82 compressed menu user font (bytes 0-$3f from FontData, bit 6+7 = count)
 cUserFontMenu:
