@@ -691,7 +691,7 @@ l864f:	ldy state
 		txa
 		sta $02c5
 		lda #$80
--		sta $0c00,x
+-		sta $0c00,x						; clear menu screen
 		sta $0d00,x
 		sta $0e00,x
 		sta $0f00,x
@@ -699,7 +699,7 @@ l864f:	ldy state
 		dex
 		bne -
 		ldx #$0d
-l8679:	lda Table1,x
+l8679:	lda Text_Atari1983,x
 		sta $0e67,x
 		dex
 		bpl l8679
@@ -1338,8 +1338,8 @@ l8b3e:	sta $063d,x
 		jsr l8de3
 		jmp l95aa
 l8b71:	ldy #$00
-l8b73:	lda $0400,x
-		cmp $0439,y
+l8b73:	lda GameScreen,x
+		cmp GameScreen+$39,y
 		beq l8b7f
 		bcc l8b92
 		bcs l8b86
@@ -1350,8 +1350,8 @@ l8b7f:	inx
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $8b86
-l8b86:	lda $0400,x
-		sta $0439,y
+l8b86:	lda GameScreen,x
+		sta GameScreen+$39,y
 		inx
 		iny
 		cpy #$06
@@ -1682,6 +1682,7 @@ l8dd1:	sta $0421
 		stx $0422
 		sty $0423
 		rts
+; $8ddb
 l8ddb:	lda $b9
 		bne l8de3
 		tax
@@ -2590,7 +2591,7 @@ l946d:	lda #$00
 l947a:	ldx #$2f
 l947c:	ldy #$05
 l947e:	clc
-		lda $0400,x
+		lda GameScreen,x
 		and #$0f
 		adc $56
 		adc $0050,y
@@ -3622,27 +3623,26 @@ DifficultyTable:
 		!byte $a9, $a7, $a8, $80, $b3, $a3, $af, $b2
 		!byte $a5
 ; $9e1d
-Table1:
+Text_Atari1983:
 		!byte $88, $a3, $89, $80, $a1, $b4, $a1, $b2
 		!byte $a9, $80, $91, $99, $98, $93
 ; $9e2b
-Table2:		
+Text_PressF1To:		
 		!byte $b0, $b2, $a5, $b3, $b3, $80, $a6, $91, $80, $b4, $af, $80
 ; $9e37
-Table3:	
+Text_PressF3To:	
 		!byte $b0, $b2, $a5, $b3, $b3, $80, $a6, $93, $80, $a6, $af, $b2
 ; $9e43
-Table4:
+Text_PressF5To:
 		!byte $b0, $b2, $a5, $b3, $b3, $80, $a6, $95, $80, $b4, $af, $80  
 ; $9e4f
-Table5:
+Text_PlayGame:
 		!byte $b0, $ac, $a1, $b9, $80, $a7, $a1, $ad, $a5
 ; $9e58
-Table6:
-		!byte $b0, $ac, $a1, $b9, $a5, $b2, $80, $a7
-		!byte $a1, $ad, $a5
+Text_PlayerGame:
+		!byte $b0, $ac, $a1, $b9, $a5, $b2, $80, $a7, $a1, $ad, $a5
 ; $9e63
-Table7:
+Text_ChangeDifficulty:
 		!byte $a3, $a8, $a1, $ae, $a7, $a5, $80, $a4
 		!byte $a9, $a6, $a6, $a9, $a3, $b5, $ac, $b4
 		!byte $b9
