@@ -24,7 +24,7 @@
 ; Menu font is compressed at $9e82-> decompressed to $2800
 ; compreessed font data are 2bit count + 6bit tile numbers of table at $9dc6
 ; Only SID voices 1+2 are used with sawtooth+triangle
-; SID reg $1b used for random number generation 
+; SID voice 3 with noise and reg $1b used for random number generation 
 ; ***************************************** CONSTANTS *********************************************
 FILL					= $aa		; fills free memory areas with $aa
 NOPCODE					= $ea		; nop instruction for fill
@@ -95,6 +95,7 @@ VR_EIRQ					= $1a
 !addr sprite_y			= $41		; -$45 sprite y postion 
 !addr jiffy				= $a2		; jiffy clock 20ms counter from raster interrupt = Vsync
 !addr pressed_key		= $c5		; pressed key from interrupt
+; ***************************************** VARIABLES *********************************************
 !addr sprite_x			= $02d0		; -$02d4 sprite x positions (>>1 +$2c)
 ; ************************************** P500 ZERO PAGE *******************************************
 !addr ColorRAM			= $f0
@@ -403,10 +404,10 @@ uccplp1:lda UserCharMenu,x				; copy 32 bytes to menu user font
 		dex
 		bpl uccplp1						; next byte
 ; $848a SID init						; x already $ff
-		stx $d40e						; SID voice 3 frequency lo						; set SID voice 3 frequency lo to $ff 
+		stx $d40e						; SID voice 3 frequency lo to $ff 
 		stx $d40f						; SID voice 3 frequency hi to $ff 
 		lda #$80
-		sta $d412						; SID voice 3 to $80 = noise
+		sta $d412						; SID voice 3 to $80 = noise for random generation
 		lda #$f0
 		sta $d406						; SID voice 1 SR to $f0
 		sta $d40d						; SID voice 2 SR To $f0
