@@ -17,7 +17,9 @@
 ; ******************************************* INFO ************************************************
 ; Menu screen is at $0a00, menu font at $2800
 ; Game screen is at $0400, game font at $2000, multicolor
-; Sprites 0-3 are ghosts, sprite 4 is pacman
+; Sprites 0-3 are ghosts, sprite 4 is pacman, sprites are 10 px heigh, 6px wide + xpanded -> 12px
+; Sprite data pointer are static $c0-$c4 -> $3000-$3100, sprites are not multicolor
+; Sprite source data is at $5300,$5400-$57ff and will copied in each cycle to the VIC sprite data
 ; First half of char ROM copied to lower half of user fonts
 ; Game screen is compressed at $81ef -> decompressed to $4000
 ; Game font is compressed at $8011 -> decompressed to $2000 
@@ -67,15 +69,19 @@ VR_EIRQ					= $1a
 !addr restor			= $fd15		; Kernal hardware I/O vector init
 !addr cint				= $ff5b		; Kernal video init
 ; ************************************** USER ADDRESSES *******************************************
-!addr GameScreen		= $0400		; game screen page
+!addr GameScreen		= $0400		; Game screen page
+!addr SpriteDataPointer	= $07f8		; 5 Pointer to sprite 0-4
+!addr Playfield			= GameScreen + 2*40	; Line 2 of game screen
 !addr MenuScreen		= $0a00		; game screen page
-!addr CharGame			= $2000		; user character game
-!addr CharMenu			= $2800		; user character menu
+!addr CharGame			= $2000		; User character game
+!addr CharMenu			= $2800		; User character menu
+!addr SpriteData		= $3000		; Sprite data 5x $40
 !addr MapData			= $4000		; Map data
 !addr ScreenBackup1		= $4400		; Game screen backup player 1
 !addr ScreenBackup2		= $4800		; Game screen backup player 2
 !addr MapData			= $4000		; Map data
 !addr LookUpTable		= $4c00		; LookUp Table 484 nibbles
+!addr SpriteRAM			= $5300		; 5x Sprite RAM -$57ff
 
 ; ***************************************** ZERO PAGE *********************************************
 !addr state				= $07		; 0 = game, 3 = menu
@@ -94,6 +100,7 @@ VR_EIRQ					= $1a
 !addr pointer2			= $2c		; target pointer
 !addr sprite_y			= $41		; -$45 sprite y postion 
 !addr jiffy				= $a2		; jiffy clock 20ms counter from raster interrupt = Vsync
+!addr spritedata_pointer= $c0		; 16bit pointer for sprite data copy
 !addr pressed_key		= $c5		; pressed key from interrupt
 ; ***************************************** VARIABLES *********************************************
 !addr sprite_x			= $02d0		; -$02d4 sprite x positions (>>1 +$2c)
@@ -783,7 +790,7 @@ spposlp:lda sprite_x,x						; load x
 		bne spnoclr						; skip nextx instruction
 spnomsb:and SpriteClearMSBMask,x		; clear bit with bit-clear-table
 spnoclr:sta $d010						; store new X-MSB-byte to VIC
-		lda sprite_y,x						; load y
+		lda sprite_y,x					; load y
 		clc
 		adc #$1b						; calc sprite y postion
 		sta $d001,y						; set VIC sprite y
@@ -793,64 +800,64 @@ spnoclr:sta $d010						; store new X-MSB-byte to VIC
 		bpl spposlp						; next sprite
 		ldx #$04
 		lda #$c4
-l8744:	sta $07f8,x
+sppntlp:sta SpriteDataPointer,x			; copy sprite data pointer for all 5 sprites
 		sec
 		sbc #$01
 		dex
-		bpl l8744
-		lda $45
-		sta $c0
+		bpl sppntlp
+		lda sprite_y+4					; set data pointer to $5345 (pacman $5348-$5351)
+		sta spritedata_pointer
 		lda #$53
-		sta $c1
-		jsr l8805
-l8758:	lda ($c0),y
-		sta $3100,x
+		sta spritedata_pointer+1
+		jsr SetPacmanDataEnd
+spmcplp:lda ($c0),y						; copy pacman sprite data
+		sta SpriteData+$100,x
 		dex
 		dex
 		dex
 		dey
-		cpy #$02
-		bne l8758
-		lda sprite_y
-		jsr l8801
-l876a:	lda ($c0),y
-		sta $3000,x
+		cpy #$02						; reach last byte
+		bne spmcplp
+		lda sprite_y+0
+		jsr SetGhostDataEnd
+sg0cplp:lda ($c0),y						; copy ghost 0 sprite data
+		sta SpriteData,x
 		dex
 		dex
 		dex
 		dey
-		cpy #$01
-		bne l876a
-		lda $42
-		jsr l8801
-l877c:	lda ($c0),y
-		sta $3040,x
+		cpy #$01						; reach last byte
+		bne sg0cplp
+		lda sprite_y+1
+		jsr SetGhostDataEnd
+sg1cplp:lda ($c0),y						; copy ghost 1 sprite data
+		sta SpriteData+$40,x
 		dex
 		dex
 		dex
 		dey
-		cpy #$01
-		bne l877c
-		lda $43
-		jsr l8801
-l878e:	lda ($c0),y
-		sta $3080,x
+		cpy #$01						; reach last byte
+		bne sg1cplp
+		lda sprite_y+2
+		jsr SetGhostDataEnd
+sg2cplp:lda ($c0),y						; copy ghost 2 sprite data
+		sta SpriteData+$80,x
 		dex
 		dex
 		dex
 		dey
-		cpy #$01
-		bne l878e
-		lda $44
-		jsr l8801
-l87a0:	lda ($c0),y
-		sta $30c0,x
+		cpy #$01						; reach last byte
+		bne sg2cplp
+		lda sprite_y+3
+		jsr SetGhostDataEnd
+sg3cplp:lda ($c0),y						; copy ghost 3 sprite data
+		sta SpriteData+$c0,x
 		dex
 		dex
 		dex
 		dey
-		cpy #$01
-		bne l87a0
+		cpy #$01						; reach last byte
+		bne sg3cplp
 		lda jiffy
 		and #$0f
 		bne l87c6
@@ -892,10 +899,15 @@ l87f6:	inc $10
 		sta $03
 		sta $0a
 		jmp l8cd7
-l8801:	sta $c0
-		inc $c1
-l8805:	ldy #$0c
-		ldx #$22
+; -------------------------------------------------------------------------------------------------
+; $8801 calc new ghost data pointer
+SetGhostDataEnd:
+		sta spritedata_pointer
+		inc spritedata_pointer+1
+; $8805 Set last row, last byte of pacman
+SetPacmanDataEnd:
+		ldy #$0c						; last sprite line ghosts/pacman
+		ldx #$22						; last data byte ghosts/pacman row 11 byte 2
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $880a
@@ -1685,7 +1697,7 @@ l8df2:	rts
 ; -------------------------------------------------------------------------------------------------
 ; $8df3 init new game
 InitNewGame:
-		jsr ClearGameRAM				; clear RAM at $3000, $5300
+		jsr ClearSpriteRAM				; clear sprite RAM at $3000, $5300
 		ldx #$8a
 -		sta $3b,x
 		dex
@@ -2126,17 +2138,17 @@ SoundOff:
 		ldy #$ff
 		rts
 ; -------------------------------------------------------------------------------------------------
-; $911d clear RAM areas $3000-$31ff and $5300-$57ff
-ClearGameRAM:
+; $911d clear RAM areas $3000-$31ff (Sprite data) and $5300-$57ff (sprite data source RAM)
+ClearSpriteRAM:
 		ldx #$00
 		txa
-clramlp:sta $3000,x
-		sta $3100,x
-		sta $5300,x
-		sta $5400,x
-		sta $5500,x
-		sta $5600,x
-		sta $5700,x
+clramlp:sta SpriteData,x
+		sta SpriteData+$100,x
+		sta SpriteRAM,x
+		sta SpriteRAM+$100,x
+		sta SpriteRAM+$200,x
+		sta SpriteRAM+$300,x
+		sta SpriteRAM+$400,x
 		inx
 		bne clramlp
 		txa
@@ -2168,13 +2180,13 @@ coinlp3:lda SpriteColors,x
 InitGameScreen:
 		ldx #$00
 scrinlp:lda MapData,x					; load decompressed Screen Data
-		sta GameScreen+$50,x			; copy to game screen from line2
+		sta Playfield,x			; copy to game screen from line2
 		lda MapData+$100,x
-		sta GameScreen+$150,x
+		sta Playfield+$100,x
 		lda MapData+$200,x
-		sta GameScreen+$250,x
+		sta Playfield+$200,x
 		lda MapData+$300,x
-		sta GameScreen+$350,x
+		sta Playfield+$300,x
 		inx
 		bne scrinlp
 		rts
@@ -2182,13 +2194,13 @@ scrinlp:lda MapData,x					; load decompressed Screen Data
 ; $9181 backup game screen to $4400
 BackupGameScreen1:
 		ldx #$00
-bscr1lp:lda GameScreen+$50,x
+bscr1lp:lda Playfield,x
 		sta ScreenBackup1,x
-		lda GameScreen+$150,x
+		lda Playfield+$100,x
 		sta ScreenBackup1+$100,x
-		lda GameScreen+$250,x
+		lda Playfield+$200,x
 		sta ScreenBackup1+$200,x
-		lda GameScreen+$350,x
+		lda Playfield+$300,x
 		sta ScreenBackup1+$300,x
 		inx
 		bne bscr1lp
@@ -2197,13 +2209,13 @@ bscr1lp:lda GameScreen+$50,x
 ; $919f backup game screen to $4800
 BackupGameScreen2:
 		ldx #$00
-bscr2lp:lda GameScreen+$50,x
+bscr2lp:lda Playfield,x
 		sta ScreenBackup2,x
-		lda GameScreen+$150,x
+		lda Playfield+$100,x
 		sta ScreenBackup2+$100,x
-		lda GameScreen+$250,x
+		lda Playfield+$200,x
 		sta ScreenBackup2+$200,x
-		lda GameScreen+$350,x
+		lda Playfield+$300,x
 		sta ScreenBackup2+$300,x
 		inx
 		bne bscr2lp
