@@ -23,7 +23,8 @@
 ; Game font is compressed at $8011 -> decompressed to $2000 
 ; Menu font is compressed at $9e82-> decompressed to $2800
 ; compreessed font data are 2bit count + 6bit tile numbers of table at $9dc6
-;
+; Only SID voices 1+2 are used with sawtooth+triangle
+; SID reg $1b used for random number generation 
 ; ***************************************** CONSTANTS *********************************************
 FILL					= $aa		; fills free memory areas with $aa
 NOPCODE					= $ea		; nop instruction for fill
@@ -51,14 +52,14 @@ VR_EIRQ					= $1a
 !addr IndirectBank		= $01		; indirect bank register
 !addr CharROMbase		= $c000		; Character ROM
 !addr ScreenRAM			= $d000		; Screen RAM
-!addr ColorRAMbase		= $d400		; Color RAM
+!addr ColorRAMbase		= $d400						; set SID voice 1 frequency lo		; Color RAM
 !addr VICbase			= $d800		; VIC
 !addr SIDbase			= $da00		; SID
 !addr CIAbase			= $dc00		; CIA
 !addr TPI1base			= $de00		; TPI1
 !addr TPI2base			= $df00		; TPI2
 ; *************************************** C64 ADDRESSES *******************************************
-!addr CPUPort			= $01		; 6510 CPU port
+!addr CPUPort64			= $01		; 6510 CPU port
 !addr CharROM64			= $d000		; Character RAM
 !addr ColorRAM64		= $d800		; Color RAM
 !addr ioinit			= $fda3		; Kernal IRQ init
@@ -91,9 +92,10 @@ VR_EIRQ					= $1a
 ; score also 20,21-45,25-2e,2f
 !addr pointer1			= $2a		; source pointer
 !addr pointer2			= $2c		; target pointer
+!addr sprite_y			= $41		; -$45 sprite y postion 
 !addr jiffy				= $a2		; jiffy clock 20ms counter from raster interrupt = Vsync
 !addr pressed_key		= $c5		; pressed key from interrupt
-
+!addr sprite_x			= $02d0		; -$02d4 sprite x positions (>>1 +$2c)
 ; ************************************** P500 ZERO PAGE *******************************************
 !addr ColorRAM			= $f0
 !addr VIC				= $f2
@@ -136,7 +138,7 @@ VR_EIRQ					= $1a
 ; table
 		!byte $30, $02, $bb, $5a, $30, $5f, $ee, $3d
 		!byte $a8
-; ----------------------------------------------------------------------------
+; -------------------------------------------------------------------------------------------------
 ; $8011 Compressed game user font (bytes 0-$3f from FontData, bit 6+7 = count)
 cUserFontGame:
 		!byte $c0, $c0, $80, $57, $80, $57, $ee, $57
@@ -199,7 +201,7 @@ cUserFontGame:
 		!byte $e6, $26, $17, $00, $40, $1e, $40, $1d
 		!byte $c1, $1d, $40, $1e, $c0, $1e, $40, $0d
 		!byte $d9, $0d, $40, $1e, $40, $ff
-; ----------------------------------------------------------------------------
+; -------------------------------------------------------------------------------------------------
 ; $81ef Compressed map data
 cMapData:
 		!byte $00, $11, $1c, $8f, $0c, $15, $16, $8f
@@ -356,9 +358,9 @@ fntcplp:lda (CharROM1),y				; load from character ROM - Y already $00
 		lda $dc0e						; stop CIA1 timer A to prevent problems when switching CharROM 
 		and #$fe
 		sta $dc0e
-		lda CPUPort						; enable character ROM
+		lda CPUPort64					; enable character ROM
 		and #$fb
-		sta CPUPort
+		sta CPUPort64
 		ldx #$00
 fntcplp:lda CharROM64+$100,x			; load from character ROM
 		sta CharGame+$400,x				; store to game fontset from char $80
@@ -368,9 +370,9 @@ fntcplp:lda CharROM64+$100,x			; load from character ROM
 		sta CharMenu+$500,x
 		dex
 		bne fntcplp
-		lda CPUPort						; disable character ROM
+		lda CPUPort64					; disable character ROM
 		ora #$04
-		sta CPUPort
+		sta CPUPort64
 		lda $dc0e						; start CIA1 timer A
 		ora #$01
 		sta $dc0e
@@ -400,14 +402,14 @@ uccplp1:lda UserCharMenu,x				; copy 32 bytes to menu user font
 		sta CharMenu+$a8,x
 		dex
 		bpl uccplp1						; next byte
-; $848a SID init
-		stx $d40e						; X alreday $ff
-		stx $d40f						; set SID voice 3 frequency to $ffff 
+; $848a SID init						; x already $ff
+		stx $d40e						; SID voice 3 frequency lo						; set SID voice 3 frequency lo to $ff 
+		stx $d40f						; SID voice 3 frequency hi to $ff 
 		lda #$80
-		sta $d412						; set SID voice 3 to $80 = noise
+		sta $d412						; SID voice 3 to $80 = noise
 		lda #$f0
-		sta $d406						; set SID voice 1 SR to $f0
-		sta $d40d						; set SID voice 2 SR To $f0
+		sta $d406						; SID voice 1 SR to $f0
+		sta $d40d						; SID voice 2 SR To $f0
 ; $849d Copy user chars from game to menu user font
 		ldx #$a1						; copy $a1 bytes
 uccplp2:lda CharGame+$1cf,x
@@ -444,7 +446,7 @@ uccplp2:lda CharGame+$1cf,x
 		sta $d012						; VIC raster reg = $032 (start visible screen)
 		cli								; enable interrupts
 }
-; ----------------------------------------------------------------------------
+; -------------------------------------------------------------------------------------------------
 ; $84c3 Main loop		
 mainlp:	lda #$00
 		ldx #$1f
@@ -453,10 +455,10 @@ clvarlp:sta $0e,x						; clear game variables $0e-$2d
 		bpl clvarlp
 		txs								; init stack with $ff
 		jsr SoundOff					; SID sound off
-		sta $d020						; set VIC exterior color = black
-		sta $d021						; set VIC background color0 = black
+		sta $d020						; VIC exterior color = black
+		sta $d021						; VIC background color0 = black
 		lda #LIGHTBLUE
-		sta $d022						; set VIC background color1 = lightblue
+		sta $d022						; VIC background color1 = lightblue
 		jsr ColorInit					; init color RAM and VIC Sprite colors
 		jsr InitGameScreen				; copy game screen to screen RAM
 		jsr BackupGameScreen1			; init game screen player1 $4400
@@ -470,10 +472,10 @@ waitlp :cmp jiffy
 		lda #$18						; VM13-10=$1 screen at $0400, CB13,12,11,x=1000 char at $2000
 		sta $d018						; set VIC memory pointers
 		lda #$d8
-		sta $d016						; set VIC multicolormode MCM=1, 40 columns
+		sta $d016						; VIC multicolormode MCM=1, 40 columns
 		lda #$1f
-		sta $d015						; set VIC enable sprite 0-4
-		sta $d01d						; set VIC x-expand sprite 0-4
+		sta $d015						; VIC enable spritess 0-4
+		sta $d01d						; VIC x-expand sprites 0-4
 		jsr InitNewGame
 		jsr InitGameVariables
 		lda players
@@ -517,7 +519,7 @@ mnewgam:lda #$00						; start new game
 		lda #$01
 		sta $0a
 		jmp mainlp						; start the new game in next main loop
-; ----------------------------------------------------------------------------
+; -------------------------------------------------------------------------------------------------
 ; $855c toogle players
 TogglePlayers:
 		lda players
@@ -529,7 +531,7 @@ SetStateMenu:
 SetState4:
 		sta state
 		jmp notgame
-; ----------------------------------------------------------------------------
+; -------------------------------------------------------------------------------------------------
 ; $8569 increase difficulty		
 IncreaseDifficulty:
 		lda difficulty
@@ -545,7 +547,7 @@ idiff01:cmp #$0c
 idiff0c:lda #$00
 		sta difficulty					; after $c reset difficulty to 0
 		beq SetStateMenu				; return in menu state
-; ----------------------------------------------------------------------------
+; -------------------------------------------------------------------------------------------------
 ; $8583 interrupt 
 Interrupt:
 		lda $d019						; load VIC interrupt reg and mask bit 1
@@ -572,38 +574,38 @@ idebkey:lda $dc01						; load CIA1 port B = keyboard row
 		ldx #$00
 		stx $dc02						; reset CIA1 port B to input
 inorast:jmp $ea7e						; jump to kernal interrupt
-; ----------------------------------------------------------------------------
+; -------------------------------------------------------------------------------------------------
 ; $85bd
 InitMenu:
 		lda #$00
 		ldx #$07
--		sta $02d0,x
+-		sta sprite_x,x
 		dex
 		bpl -
-		lda #$3a						; VIC memory pointers
-		sta $d018						; VM13-10=$3 screen $0a00, CB13,12,11,x=1010 char $2800
+		lda #$3a						; VM13-10=$3 screen $0a00, CB13,12,11,x=1010 char $2800						; VIC memory pointers
+		sta $d018						; set VIC memory pointers
 		lda #$c8
-		sta $d016						; VIC Multicolor mode off, 40 Columns
+		sta $d016						; set VIC Multicolor mode off, 40 Columns
 		jsr SoundOff					; returns with A=$00
 		sta $d015						; VIC disable sprites
 		rts
-; ----------------------------------------------------------------------------
+; -------------------------------------------------------------------------------------------------
 ; $85d8
 Init1Player:
 		ldx #$05
 		lda #$80
-l85dc:	sta $0420,x
+-		sta $0420,x
 		sta $0447,x
 		dex
-		bpl l85dc
-l85e5:	jsr l8de3
+		bpl -
+iplayer:jsr l8de3
 		ldx #$05
 		lda #$90
-l85ec:	sta $042a,x
+-		sta $042a,x
 		dex
-		bpl l85ec
+		bpl -
 		rts
-; Init2Player
+; $85f3 Init2Player
 Init2Player:
 		jsr l8dcb
 		ldx #$05
@@ -611,9 +613,9 @@ Init2Player:
 -		sta $0447,x
 		dex
 		bpl -
-		bmi l85e5
-; ----------------------------------------------------------------------------
-; copy and uncompress user font
+		bmi iplayer
+; -------------------------------------------------------------------------------------------------
+; $8602 copy and uncompress user font
 UncompressUserFont:	
 		ldy #$00
 		lda (pointer1),y				; load byte
@@ -642,7 +644,7 @@ ucfntrp:jsr StoreIncPointer2			; store in user font
 		dec temp
 		bpl ucfntrp						; repeat number of temp counter 
 		bmi ucfntlp						; next byte
-; ----------------------------------------------------------------------------
+; -------------------------------------------------------------------------------------------------
 ; $8636 Load++ pointer 1 sub
 LoadIncPointer1:
 		lda (pointer1),y
@@ -652,7 +654,7 @@ IncPointer1:
 		inc pointer1+1
 ucfntrt:
 +		rts
-; ----------------------------------------------------------------------------
+; -------------------------------------------------------------------------------------------------
 ; $863f Store++ pointer 2 sub
 StoreIncPointer2:
 		sta (pointer2),y
@@ -660,7 +662,7 @@ StoreIncPointer2:
 		bne +
 		inc pointer2+1
 +		rts
-; ----------------------------------------------------------------------------
+; -------------------------------------------------------------------------------------------------
 ; $8648 Load byte from pointer 1 and shift high nibble to low sub
 LoadHiNibblePointer1:
 		lda (pointer1),y
@@ -669,10 +671,11 @@ LoadHiNibblePointer1:
 		lsr
 		lsr
 		rts
-; ----------------------------------------------------------------------------
+; -------------------------------------------------------------------------------------------------
+; $864f
 l864f:	ldy state
 		bne +
-		jmp l8715
+		jmp SetSpritePositions
 +		cpy #$01
 		bne l8698
 		jsr InitMenu
@@ -705,6 +708,8 @@ l8683:	txa
 		bne l8683
 l8695:	inc state
 l8697:	rts
+; -------------------------------------------------------------------------------------------------
+; $8698
 l8698:	cpy #$02
 		bne l86a4
 		lda jiffy_start
@@ -761,27 +766,30 @@ l870b:	lda $9e4f,x
 		dex
 		bpl l870b
 		rts
-l8715:	ldx #$04
-		ldy #$08
-l8719:	lda $02d0,x
+; -------------------------------------------------------------------------------------------------
+; $8715 set sprite positions 0-4
+SetSpritePositions:
+		ldx #$04						; start with sprite 4
+		ldy #$08						; x-position reg of sprite 4
+spposlp:lda sprite_x,x						; load x
 		sec
-		sbc #$2c
+		sbc #$2c						; calc sprite x postion
 		asl
-		sta $d000,y
-		lda $d010
-		bcc l872d
-		ora $9f04,x
-		bne l8730
-l872d:	and $9f09,x
-l8730:	sta $d010
-		lda $41,x
+		sta $d000,y						; set VIC sprite x
+		lda $d010						; load sprite x MSB register from VIC
+		bcc spnomsb						; skip if x-value <= $ff
+		ora SpriteSetMSBMask,x			; set bit with bit-set-table
+		bne spnoclr						; skip nextx instruction
+spnomsb:and SpriteClearMSBMask,x		; clear bit with bit-clear-table
+spnoclr:sta $d010						; store new X-MSB-byte to VIC
+		lda sprite_y,x						; load y
 		clc
-		adc #$1b
-		sta $d001,y
+		adc #$1b						; calc sprite y postion
+		sta $d001,y						; set VIC sprite y
 		dey
 		dey
 		dex
-		bpl l8719
+		bpl spposlp						; next sprite
 		ldx #$04
 		lda #$c4
 l8744:	sta $07f8,x
@@ -802,7 +810,7 @@ l8758:	lda ($c0),y
 		dey
 		cpy #$02
 		bne l8758
-		lda $41
+		lda sprite_y
 		jsr l8801
 l876a:	lda ($c0),y
 		sta $3000,x
@@ -876,6 +884,8 @@ l87ed:	lda $0f
 		lda $10
 		bne l880a
 l87f5:	rts
+; -------------------------------------------------------------------------------------------------
+; $87f6
 l87f6:	inc $10
 		lda #$00
 		sta $03
@@ -886,6 +896,8 @@ l8801:	sta $c0
 l8805:	ldy #$0c
 		ldx #$22
 		rts
+; -------------------------------------------------------------------------------------------------
+; $880a
 l880a:	lda jiffy
 		and #$03
 		bne l87f5
@@ -893,11 +905,11 @@ l880a:	lda jiffy
 		cpx #$40
 		beq l8830
 		lda $9c9c,x
-		sta $d401
+		sta $d401						; SID voice 1 frequency hi
 		lda $9cdc,x
-		sta $d400
+		sta $d400						; SID voice 1 frequency lo
 		lda #$21
-		sta $d404
+		sta $d404						; SID voice 1 control
 		inc $5f
 		cpx #$28
 		bne l87f5
@@ -918,6 +930,8 @@ l8837:	lda $12
 		lda #$40
 		sta $13
 		rts
+; -------------------------------------------------------------------------------------------------
+; $8851
 l8851:	lda $13
 		beq l8858
 		dec $13
@@ -938,11 +952,11 @@ l8875:	jsr l967e
 		jsr l93e9
 		lda $14
 		bne l88c6
-		lda $d01e
+		lda $d01e						; load VIC sprite-sprite collision reg
 		sta $bf
 		and #$10
 		beq l88c6
-		ldx #$00
+		ldx #$00						; start with sprite/ghost 0
 		ldy #$01
 l888c:	lda $8a,x
 		asl
@@ -961,21 +975,21 @@ l88a4:	sbc $46,x
 l88a6:	cmp #$04
 		bcs l88be
 		lda $45
-		cmp $41,x
+		cmp sprite_y,x
 		bcs l88b8
 		sec
-		lda $41,x
+		lda sprite_y,x
 		sbc $45
 		jmp l88ba
-l88b8:	sbc $41,x
+l88b8:	sbc sprite_y,x
 l88ba:	cmp #$05
 		bcc l88c9
 l88be:	tya
 		asl
 		tay
 		inx
-		cpx #$04
-		bne l888c
+		cpx #$04						; check if last ghost
+		bne l888c						; next ghost
 l88c6:	jmp l897b
 l88c9:	lda $8a,x
 		bmi l88d0
@@ -995,12 +1009,12 @@ l88e3:	adc #$02
 		dey
 		bpl l88e3
 		adc #$02
-		sta $02d0,x
-		lda #$01
+		sta sprite_x,x
+		lda #WHITE
 		sta $02c7
-		sta $d027,x
+		sta $d027,x						; set VIC sprite color = white (ghost)
 		lda $45
-		cmp $41,x
+		cmp sprite_y,x
 		beq l8909
 		bcc l8904
 		lda #$fe
@@ -1033,7 +1047,7 @@ l892a:	lda (pointer1),y
 		dey
 		bpl l892a
 		lda #$00
-		sta $d40b
+		sta $d40b						; SID voice 2 control = off
 		inc $a4
 		lda #$84
 		sta $a6
@@ -1116,6 +1130,8 @@ l89ca:	asl
 l89da:	lda $ac
 		beq l89df
 l89de:	rts
+; -------------------------------------------------------------------------------------------------
+; $89df
 l89df:	jsr l8f9b
 		lda $a4
 		bne l89de
@@ -1160,7 +1176,7 @@ l8a34:	lda $8a,x
 		lda $8a,x
 		asl
 		bmi l8a74
-		lda $41,x
+		lda sprite_y,x
 		cmp #$74
 		bne l8a4f
 		lda $46,x
@@ -1188,6 +1204,8 @@ l8a71:	jsr l9845
 l8a74:	dex
 		bpl l8a22
 l8a77:	rts
+; -------------------------------------------------------------------------------------------------
+; $8a78
 l8a78:	jsr l95aa
 		lda $11
 		beq l8ae8
@@ -1195,6 +1213,8 @@ l8a78:	jsr l95aa
 		beq l8a86
 		dec $13
 		rts
+; -------------------------------------------------------------------------------------------------
+; $8a86
 l8a86:	cmp #$01
 		bne l8ab0
 		ldx #$00
@@ -1236,6 +1256,8 @@ l8ada:	jsr l95aa
 l8ae3:	lda #$03
 l8ae5:	sta $11
 		rts
+; -------------------------------------------------------------------------------------------------
+; $8ae8
 l8ae8:	lda players
 		beq l8b2b
 		lda $19
@@ -1269,6 +1291,8 @@ l8b1f:	jsr BackupGameScreen2			; copies game screen to $4800
 		lda #$01
 		sta $11
 l8b2a:	rts
+; -------------------------------------------------------------------------------------------------
+; $8b2b
 l8b2b:	ldx $19
 		lda lives1,x
 		beq l8b3a
@@ -1283,9 +1307,9 @@ l8b3e:	sta $063d,x
 		inx
 		cpx #$0e
 		bne l8b3e
-		lda #$02
+		lda #RED
 		sta $02c7
-		sta $d02b
+		sta $d02b						; set VIC sprite 4 color = red (pacman)
 		lda $11
 		bne l8b2a
 		ldx #$2a
@@ -1311,6 +1335,8 @@ l8b7f:	inx
 		cpy #$06
 		bne l8b73
 		rts
+; -------------------------------------------------------------------------------------------------
+; $8b86
 l8b86:	lda $0400,x
 		sta $0439,y
 		inx
@@ -1318,14 +1344,18 @@ l8b86:	lda $0400,x
 		cpy #$06
 		bne l8b86
 l8b92:	rts
+; -------------------------------------------------------------------------------------------------
+; $8b93
 l8b93:	ldx #$04
-l8b95:	lda $41,x
+l8b95:	lda sprite_y,x
 		cmp #$74
 		bne l8b9e
 		jsr l8ba2
 l8b9e:	dex
 		bpl l8b95
 		rts
+; -------------------------------------------------------------------------------------------------
+; $8ba2
 l8ba2:	sta $32
 		txa
 		cmp #$04
@@ -1381,6 +1411,8 @@ l8be6:	lda #$38
 		lda #$07
 l8c0a:	sta $3c
 l8c0c:	rts
+; -------------------------------------------------------------------------------------------------
+; $8c0d
 l8c0d:	ldx $b6
 		beq l8c48
 		lda $b7
@@ -1406,12 +1438,14 @@ l8c32:	clc
 		lda #$00
 		sta $b6
 		tay
-		beq l8c40
+		beq l8c40						; voice 1 = off
 l8c3e:	adc #$01
 l8c40:	sta $b7
-		sta $d401
-		sty $d404
+		sta $d401						; set SID voice 1 frequency hi
+		sty $d404						; SID voice 1 control
 l8c48:	rts
+; -------------------------------------------------------------------------------------------------
+; $8c49
 l8c49:	lda jiffy
 		and #$0f
 		bne l8c5b
@@ -1422,6 +1456,8 @@ l8c49:	lda jiffy
 		beq l8c5b
 l8c59:	inc $6b
 l8c5b:	rts
+; -------------------------------------------------------------------------------------------------
+; $8c5c
 l8c5c:	lda $15
 		bne l8c6d
 		jsr SoundOff
@@ -1430,23 +1466,27 @@ l8c5c:	lda $15
 l8c68:	sta $16
 l8c6a:	inc $15
 		rts
+; -------------------------------------------------------------------------------------------------
+; $l8c6
 l8c6d:	cmp #$01
 		bne l8c8f
 		lda $16
 		bne l8c8c
 		lda #$00
 		ldx #$03
-l8c79:	sta $02d0,x
+l8c79:	sta sprite_x,x
 		dex
 		bpl l8c79
-		lda #$0e
-		sta $d022
+		lda #LIGHTBLUE
+		sta $d022						; set VIC backgroundcolor 1 = lightblue					
 		lda #$07
 		sta $17
 		lda #$10
 		bne l8c68
 l8c8c:	dec $16
 		rts
+; -------------------------------------------------------------------------------------------------
+; $8c8f
 l8c8f:	cmp #$02
 		bne l8caf
 		lda $16
@@ -1459,16 +1499,20 @@ l8c8f:	cmp #$02
 		bcc l8ca5
 		lda #$0e
 		bne l8ca7
-l8ca5:	lda #$01
-l8ca7:	sta $d022
+l8ca5:	lda #WHITE
+l8ca7:	sta $d022						; set VIC backgroundcolor 1 = white
 		lda #$10
 		sta $16
 		rts
+; -------------------------------------------------------------------------------------------------
+; $8caf
 l8caf:	cmp #$03
 		bne l8cb9
 		jsr InitNewGame
 		inc $15
 		rts
+; -------------------------------------------------------------------------------------------------
+; $8cb9
 l8cb9:	jsr l8e49
 		ldx $19
 		inc lives1,x
@@ -1483,6 +1527,8 @@ l8cb9:	jsr l8e49
 		lda #$40
 		sta $13
 		rts
+; -------------------------------------------------------------------------------------------------
+; $8cd7
 l8cd7:	lda #$22
 		ldx #$00
 l8cdb:	sta $063f,x
@@ -1548,7 +1594,7 @@ l8d3f:	lda (pointer1),y
 		cpy #$07
 		bne l8d3f
 l8d51:	rts
-; ----------------------------------------------------------------------------
+; -------------------------------------------------------------------------------------------------
 ; $8d52
 PlayerDead:
 		jsr l8d8d
@@ -1566,8 +1612,8 @@ UpdateLivesDisplay:
 l8d68:	sty $07c6
 l8d6b:	sty $07c4
 		rts
-; ----------------------------------------------------------------------------
-; $
+; -------------------------------------------------------------------------------------------------
+; $8d6f
 l8d6f:	cmp #$02
 		bne l8d79
 		jsr l8d89
@@ -1580,6 +1626,8 @@ l8d83:	stx $07c4
 l8d86:	stx $07c6
 l8d89:	stx $07c8
 		rts
+; -------------------------------------------------------------------------------------------------
+; $8d8d
 l8d8d:	lda #$01
 		sta $6a
 		ldx #$03
@@ -1596,6 +1644,8 @@ l8da6:	sta $063d,x
 		dex
 		bpl l8da6
 		rts
+; -------------------------------------------------------------------------------------------------
+; $8dad
 l8dad:	lda jiffy
 		and #$0f
 		bne l8df2
@@ -1631,7 +1681,7 @@ l8de9:	sta $0404
 		stx $0405
 		sty $0406
 l8df2:	rts
-; ----------------------------------------------------------------------------
+; -------------------------------------------------------------------------------------------------
 ; $8df3 init new game
 InitNewGame:
 		jsr ClearGameRAM				; clear RAM at $3000, $5300
@@ -1667,7 +1717,7 @@ InitNewGame:
 		lda $d01e						; VIC clear sprite-sprite collision
 		lda $d01f						; VIC clear sprite-foreground collision
 		rts
-; ----------------------------------------------------------------------------
+; -------------------------------------------------------------------------------------------------
 ; $8e38 Init game variables - lives, score...
 InitGameVariables:
 		lda #LIVES						; start with 3 lives
@@ -1698,7 +1748,7 @@ inzersc:lda #$0f						; zero score
 		sta $22,x
 		sta $24,x
 		rts
-; ----------------------------------------------------------------------------
+; -------------------------------------------------------------------------------------------------
 ; $8e72 copies data from table to $87-$89
 Init87_89:
 		cpy #$03
@@ -1711,8 +1761,8 @@ Init87_89:
 		dex
 		bpl -
 		rts
-; ----------------------------------------------------------------------------
-; $
+; -------------------------------------------------------------------------------------------------
+; $8e84
 l8e84:	lda $ac
 		cmp #$01
 		bne l8ea2
@@ -1726,13 +1776,15 @@ l8e93:	lda $4b,x
 		bpl l8e93
 		dec $ad
 		rts
+; -------------------------------------------------------------------------------------------------
+; $8e9e
 l8e9e:	inc $ac
 		lda $ac
 l8ea2:	cmp #$02
 		bne l8ec9
 		ldx #$03
 		lda #$00
-l8eaa:	sta $02d0,x
+l8eaa:	sta sprite_x,x
 		dex
 		bpl l8eaa
 		lda #$25
@@ -1756,9 +1808,9 @@ l8ec9:	cmp #$03
 		cmp #$06
 		beq l8f34
 l8ed9:	lda #$21
-		sta $d404
+		sta $d404						; SID voice 1 control = sawtooth, on
 		lda $af
-		sta $d401
+		sta $d401						; set SID voice 1 frequency hi
 		sec
 		sbc #$02
 		sta $af
@@ -1768,9 +1820,9 @@ l8ed9:	lda #$21
 		bne l8f33
 		beq l8f14
 l8ef2:	lda #$21
-		sta $d404
+		sta $d404						; SID voice 1 control = sawtooth, on
 		lda $af
-		sta $d401
+		sta $d401						; set SID voice 1 frequency hi
 		clc
 		adc #$02
 		sta $af
@@ -1786,10 +1838,12 @@ l8ef2:	lda #$21
 		lda #$03
 l8f14:	sta $ac
 		rts
+; -------------------------------------------------------------------------------------------------
+; $8f17
 l8f17:	lda #$21
-		sta $d404
+		sta $d404						; SID voice 1 control = sawtooth, on
 		lda $ae
-		sta $d401
+		sta $d401						; set SID voice 1 frequency hi
 		clc
 		adc #$02
 		sta $ae
@@ -1800,12 +1854,18 @@ l8f17:	lda #$21
 		sta $b0
 l8f31:	inc $ac
 l8f33:	rts
+; -------------------------------------------------------------------------------------------------
+; $8f34
 l8f34:	lda $b0
 		bne l8f3b
 		inc $12
 		rts
+; -------------------------------------------------------------------------------------------------
+; $8f3b
 l8f3b:	dec $b0
 		rts
+; -------------------------------------------------------------------------------------------------
+; $8f3e
 l8f3e:	lda $a9
 		beq l8f9a
 		lda $45
@@ -1834,6 +1894,8 @@ l8f5e:	lda $aa
 		lda $9ba7,x
 		sta (pointer2),y
 		rts
+; -------------------------------------------------------------------------------------------------
+; $8f73
 l8f73:	ldy #$0c
 		ldx #$09
 l8f77:	lda $9b88,x
@@ -1842,6 +1904,8 @@ l8f77:	lda $9b88,x
 		dex
 		bpl l8f77
 		rts
+; -------------------------------------------------------------------------------------------------
+; $8f81
 l8f81:	ldy #$0f
 		ldx #$0f
 l8f85:	lda $9c53,x
@@ -1850,6 +1914,8 @@ l8f85:	lda $9c53,x
 		dex
 		bpl l8f85
 		rts
+; -------------------------------------------------------------------------------------------------
+; $8f8f
 l8f8f:	ldy #$0f
 		lda #$00
 l8f93:	sta (pointer2),y
@@ -1857,6 +1923,8 @@ l8f93:	sta (pointer2),y
 		bpl l8f93
 		sta $a9
 l8f9a:	rts
+; -------------------------------------------------------------------------------------------------
+; $8f9b
 l8f9b:	lda $bb
 		beq l8faf
 		lda $b1
@@ -1875,11 +1943,11 @@ l8fb6:	ldx $19
 		lda $4c72,x
 		cmp $bb
 		bne l8ff9
-		ldx #$03
+		ldx #$03						; 3-0 ghosts
 l8fc4:	lda $8a,x
 		bpl l8fce
-		lda $9c32,x
-		sta $d027,x
+		lda SpriteColors,x
+		sta $d027,x						; set VIC sprite color from table
 l8fce:	dex
 		bpl l8fc4
 		ldx #$03
@@ -1903,6 +1971,8 @@ l8fe9:	dex
 		lda #$a0
 		sta $69
 		rts
+; -------------------------------------------------------------------------------------------------
+; $8ff9
 l8ff9:	lda $ba
 		bne l9003
 		inc $bb
@@ -1914,15 +1984,17 @@ l9005:	lda $bb
 		bcc l900e
 		ldy #$06
 		bne l9010
-l900e:	ldy #$01
-l9010:	ldx #$03
+l900e:	ldy #WHITE
+l9010:	ldx #$03						; 3-0 ghosts
 l9012:	lda $8a,x
 		bpl l901a
 		tya
-		sta $d027,x
+		sta $d027,x						; set VIC sprites color 3-0 (ghosts)
 l901a:	dex
 		bpl l9012
 		rts
+; -------------------------------------------------------------------------------------------------
+; $901e
 l901e:	lda $a3
 		bne l9030
 		lda #$05
@@ -1961,10 +2033,12 @@ l9061:	clc
 		lda $9d
 		adc #$03
 l9066:	sta $9d
-		sta $d408
+		sta $d408						; SID voice 2 frequency hi
 		lda #$21
-l906d:	sta $d40b
+l906d:	sta $d40b						; SID voice 2 control = sawtooth, on
 		rts
+; -------------------------------------------------------------------------------------------------
+; $9071
 l9071:	lda $b2
 		bne l9079
 		lda #$97
@@ -1975,7 +2049,7 @@ l9079:	cmp #$64
 l907f:	sec
 		sbc #$03
 		sta $b2
-		sta $d408
+		sta $d408						; SID voice 2 frequency hi
 		lda #$21
 		bne l906d
 l908b:	dec $a5
@@ -1986,8 +2060,8 @@ l908b:	dec $a5
 		sta $a6
 		cmp #$10
 		beq l90bc
-		sta $d401
-		sta $d408
+		sta $d401						; SID voice 1 frequency hi
+		sta $d408						; SID voice 2 frequency hi
 		lda #$21
 		bne l90b7
 l90a4:	lda #$02
@@ -1996,10 +2070,10 @@ l90a4:	lda #$02
 		lda $a6
 		sbc #$03
 		sta $a6
-		sta $d401
-		sta $d408
+		sta $d401						; SID voice 1 frequency hi
+		sta $d408						; SID voice 2 frequency hi
 		lda #$21
-l90b7:	sta $d40b
+l90b7:	sta $d40b						; SID voice 2 control = sawtooth, on
 		bne l9109
 l90bc:	jsr SoundOff
 		sta $a4
@@ -2007,13 +2081,15 @@ l90bc:	jsr SoundOff
 		sty $a7
 		lda #$0f
 		sta $02c7
-		ldx #$03
-l90cc:	lda $d027,x
+		ldx #$03						; 3-0 ghosts
+l90cc:	lda $d027,x						; load VIC sprites color 3-0 (ghosts)
 		cmp #$f1
 		beq l90d7
 		dex
 		bpl l90cc
 		rts
+; -------------------------------------------------------------------------------------------------
+; $90d7
 l90d7:	lda #$00
 		sta $63
 		jsr l91bd
@@ -2034,21 +2110,21 @@ l90f5:	lda $b5
 		jmp l9102
 l90ff:	lda $9d2b,x
 l9102:	inc $b4
-		sta $d401
+		sta $d401						; SID voice 1 frequency hi
 		lda #$21
-l9109:	sta $d404
+l9109:	sta $d404						; SID voice 1 control = sawtooth, on
 l910c:	rts
-; ----------------------------------------------------------------------------
+; -------------------------------------------------------------------------------------------------
 ; $910d Stop SID sound
 SoundOff:
 		lda #$88
-		sta $d418						; set SID mode to 3OFF, Volume = 8
+		sta $d418						; SID mode to 3OFF, Volume = 8
 		lda #$00
-		sta $d404						; set SID voice 1 control = off
-		sta $d40b						; set SID voice 2 control = off
+		sta $d404						; SID voice 1 control = off
+		sta $d40b						; SID voice 2 control = off
 		ldy #$ff
 		rts
-; ----------------------------------------------------------------------------
+; -------------------------------------------------------------------------------------------------
 ; $911d clear RAM areas $3000-$31ff and $5300-$57ff
 ClearGameRAM:
 		ldx #$00
@@ -2064,7 +2140,7 @@ clramlp:sta $3000,x
 		bne clramlp
 		txa
 		rts
-; ----------------------------------------------------------------------------
+; -------------------------------------------------------------------------------------------------
 ; $913a Init color RAM + Sprite colors
 ColorInit:
 		ldx #$00
@@ -2080,13 +2156,13 @@ coinlp1:sta ColorRAM64,x				; init color RAM with gray3
 coinlp2:sta ColorRAM64,x				; init lines 0-1 with white
 		dex
 		bpl coinlp2
-		ldx #7
+		ldx #7							; sprite 7-0
 coinlp3:lda SpriteColors,x
 		sta $d027,x						; init VIC Sprite colors from table
 		dex
 		bpl coinlp3
 		rts
-; ----------------------------------------------------------------------------
+; -------------------------------------------------------------------------------------------------
 ; $9163 init Screen
 InitGameScreen:
 		ldx #$00
@@ -2101,7 +2177,7 @@ scrinlp:lda MapData,x					; load decompressed Screen Data
 		inx
 		bne scrinlp
 		rts
-; ----------------------------------------------------------------------------
+; -------------------------------------------------------------------------------------------------
 ; $9181 backup game screen to $4400
 BackupGameScreen1:
 		ldx #$00
@@ -2116,7 +2192,7 @@ bscr1lp:lda GameScreen+$50,x
 		inx
 		bne bscr1lp
 		rts
-; ----------------------------------------------------------------------------
+; -------------------------------------------------------------------------------------------------
 ; $919f backup game screen to $4800
 BackupGameScreen2:
 		ldx #$00
@@ -2131,8 +2207,8 @@ bscr2lp:lda GameScreen+$50,x
 		inx
 		bne bscr2lp
 l91bc:	rts
-; ----------------------------------------------------------------------------
-; $
+; -------------------------------------------------------------------------------------------------
+; $91bd
 l91bd:	lda $66
 		bmi l91bc
 		ldx #$04
@@ -2364,6 +2440,8 @@ l937c:	lda (pointer1),y
 		dey
 		bpl l937c
 l9383:	rts
+; -------------------------------------------------------------------------------------------------
+; $9384
 l9384:	lda $3e
 		bne l93e8
 		lda $62
@@ -2387,6 +2465,8 @@ l9398:	lda $45
 		tya
 		sta ($3c),y
 		rts
+; -------------------------------------------------------------------------------------------------
+; $93b0
 l93b0:	sta $54
 		jsr l946d
 		lda #$01
@@ -2416,6 +2496,8 @@ l93d8:	ldx $19
 		lda #$01
 		sta $14
 l93e8:	rts
+; -------------------------------------------------------------------------------------------------
+; $93e9
 l93e9:	ldx $19
 		lda $20,x
 		sta temp
@@ -2537,6 +2619,8 @@ l94b9:	sta $50,x
 		cmp #$90
 		bne l94d7
 l94cf:	rts
+; -------------------------------------------------------------------------------------------------
+; $94d0
 l94d0:	lda $0448
 		cmp #$90
 		beq l94cf
@@ -2545,7 +2629,7 @@ l94d7:	inc $1c,x
 		jmp UpdateLivesDisplay
 l94de:	lda $46,x
 		sta $61
-		lda $41,x
+		lda sprite_y,x
 		stx temp
 		ldx #$09
 l94e8:	cmp $9bd3,x
@@ -2590,7 +2674,7 @@ l9523:	ldx temp
 		lda temp
 		and $4dc6,y
 		sta temp
-		lda $41,x
+		lda sprite_y,x
 		cmp #$64
 		bne l9554
 		lda $46,x
@@ -2608,6 +2692,8 @@ l9552:	sta temp
 l9554:	lda temp
 		plp
 		rts
+; -------------------------------------------------------------------------------------------------
+; $9558
 l9558:	lda #$00
 		sta $a3
 		lda $9c
@@ -2640,16 +2726,20 @@ l958f:	sec
 		lda $9a
 		sbc $58
 l9594:	sta $9a
-		sta $d408
+		sta $d408						; SID voice 2 frequency hi
 		lda #$11
-		sta $d40b
+		sta $d40b						; SID voice 2 control = triangle, on
 		rts
+; -------------------------------------------------------------------------------------------------
+; $959f
 l959f:	lda jiffy
 		and #$0f
 		beq l95aa
 		cmp #$08
 		beq l95d1
 		rts
+; -------------------------------------------------------------------------------------------------
+; $95aa
 l95aa:	ldy #$02
 		ldx $19
 		lda $20,x
@@ -2670,16 +2760,22 @@ l95cb:	asl
 		bit temp
 		bne l95dc
 		rts
+; -------------------------------------------------------------------------------------------------
+; $95d1
 l95d1:	ldy #$00
 		sty $04cb
 		sty $04ec
 		sty $06d3
 l95dc:	sty $06f4
 		rts
+; -------------------------------------------------------------------------------------------------
+; $95e0
 l95e0:	dec $71,x
 		beq l95e7
 		lda #$ff
 		rts
+; -------------------------------------------------------------------------------------------------
+; $95e7
 l95e7:	lda $6c,x
 		cmp #$03
 		bne l95f1
@@ -2704,6 +2800,8 @@ l960b:	clc
 		sta $71,x
 		lda #$00
 		rts
+; -------------------------------------------------------------------------------------------------
+; $9617
 l9617:	lda jiffy
 		and #$07
 		bne l9623
@@ -2743,6 +2841,8 @@ l965f:	jsr l9a69
 l9662:	dex
 		bpl l9653
 		rts
+; -------------------------------------------------------------------------------------------------
+; $9666
 l9666:	lda $8a,x
 		cmp #$08
 		beq l9674
@@ -2756,6 +2856,8 @@ l9678:	dex
 		bpl l9666
 		stx $69
 		rts
+; -------------------------------------------------------------------------------------------------
+; $967e
 l967e:	lda $5d
 		beq l9696
 		lda $5e
@@ -2767,8 +2869,12 @@ l968c:	sta $0641,x
 		dex
 		bpl l968c
 		rts
+; -------------------------------------------------------------------------------------------------
+; $9693
 l9693:	dec $5e
 l9695:	rts
+; -------------------------------------------------------------------------------------------------
+; $9696
 l9696:	lda $5b
 		bne l96d4
 		ldx $19
@@ -2779,6 +2885,8 @@ l9696:	lda $5b
 		cmp #$01
 		beq l96ac
 		rts
+; -------------------------------------------------------------------------------------------------
+; $96a8
 l96a8:	cpy #$50
 		beq l96b0
 l96ac:	cpy #$a0
@@ -2801,6 +2909,8 @@ l96ba:	tax
 		lda #$02
 		sta $5a
 		rts
+; -------------------------------------------------------------------------------------------------
+; $96d4
 l96d4:	lda $5a
 		bne l96e7
 		lda $59
@@ -2810,10 +2920,14 @@ l96d4:	lda $5a
 		sta $0644
 		sta $5b
 		rts
+; -------------------------------------------------------------------------------------------------
+; $96e7
 l96e7:	dec $59
 		bne l96ed
 		dec $5a
 l96ed:	rts
+; -------------------------------------------------------------------------------------------------
+; $96ee
 l96ee:	lda #$00
 		sta $b1
 		ldx #$03
@@ -2827,7 +2941,7 @@ l96f4:	lda $8a,x
 		inc $b1
 		lda $46,x
 		tay
-		lda $41,x
+		lda sprite_y,x
 		cpy #$7c
 		bne l9728
 		cmp #$64
@@ -2837,7 +2951,7 @@ l96f4:	lda $8a,x
 		bne l971e
 		lda #$04
 		sta $4b,x
-		lda $41,x
+		lda sprite_y,x
 		bne l9728
 l971e:	lda #$44
 		sta $8a,x
@@ -2891,7 +3005,9 @@ l9781:	jsr l9788
 l9784:	dex
 		bpl l9754
 		rts
-l9788:	lda $41,x
+; -------------------------------------------------------------------------------------------------
+; $9788
+l9788:	lda sprite_y,x
 		cmp #$64
 		bne l97a9
 		lda $8a,x
@@ -2908,15 +3024,19 @@ l97a2:	ldy #$04
 l97a4:	sty $4b,x
 		sta $8a,x
 		rts
+; -------------------------------------------------------------------------------------------------
+; $97a9
 l97a9:	lda #$01
 l97ab:	sta $4b,x
 		jmp l9952
 l97b0:	lda $8a,x
 		and #$0f
 		sta $8a,x
-		lda $9c32,x
-		sta $d027,x
+		lda SpriteColors,x
+		sta $d027,x						; set VIC sprite color from table
 		rts
+; -------------------------------------------------------------------------------------------------
+; $97bd
 l97bd:	lda $46,x
 		cmp #$7c
 		beq l9788
@@ -2927,7 +3047,7 @@ l97c7:	lda $46,x
 		beq l9788
 l97cd:	lda #$04
 		bne l97ab
-l97d1:	lda $41,x
+l97d1:	lda sprite_y,x
 		cmp #$74
 		bne l97e1
 		cpx #$02
@@ -2967,15 +3087,17 @@ l9820:	inx
 		cpx #$04
 		bne l97f7
 		rts
+; -------------------------------------------------------------------------------------------------
+; $9826
 l9826:	lda $4b,x
 		cmp #$01
 		bne l9836
-		lda $41,x
+		lda sprite_y,x
 		cmp #$70
 		bne l9840
 		lda #$02
 		bne l983e
-l9836:	lda $41,x
+l9836:	lda sprite_y,x
 		cmp #$78
 		bne l9840
 		lda #$01
@@ -2989,6 +3111,8 @@ l9845:	lda $8a,x
 		lsr
 		bcc l985e
 		rts
+; -------------------------------------------------------------------------------------------------
+; $984f
 l984f:	cmp #$01
 		beq l9877
 		cmp #$02
@@ -3007,6 +3131,8 @@ l986f:	cmp #$20
 		bne l9876
 		jmp l9915
 l9876:	rts
+; -------------------------------------------------------------------------------------------------
+; $9877
 l9877:	jsr l94de
 		bcc l987f
 		clc
@@ -3033,8 +3159,8 @@ l98a1:	lda #$08
 		sta $8a,x
 		lda #$00
 		sta $7a,x
-		lda $d41b
-		and #$0f
+		lda $d41b						; load random value SID register $1b
+		and #$0f						; calc random value from $0-$f
 		sta $76,x
 		asl
 		tay
@@ -3119,16 +3245,16 @@ l9952:	cmp #$01
 		bne l9962
 		ldy $6a
 		bne l995e
-		dec $41,x
-		dec $41,x
+		dec sprite_y,x
+		dec sprite_y,x
 l995e:	lda #$00
 		beq l998f
 l9962:	cmp #$02
 		bne l9972
 		ldy $6a
 		bne l996e
-		inc $41,x
-		inc $41,x
+		inc sprite_y,x
+		inc sprite_y,x
 l996e:	lda #$0a
 		bne l998f
 l9972:	cmp #$04
@@ -3146,6 +3272,8 @@ l9980:	cmp #$08
 l998a:	lda #$1e
 		bne l998f
 l998e:	rts
+; -------------------------------------------------------------------------------------------------
+; $998f
 l998f:	ldy $8a,x
 		bpl l9995
 		lda #$28
@@ -3179,8 +3307,8 @@ l99bc:	lda (pointer1),y
 		lda #$58
 		sta pointer1+1
 		lda $46,x
-		sta $02d0,x
-		lda $41,x
+		sta sprite_x,x
+		lda sprite_y,x
 		sta pointer2
 		lda #$54
 		sta pointer2+1
@@ -3194,7 +3322,9 @@ l99e1:	lda (pointer1),y
 		dey
 		bpl l99e1
 		rts
-l99e9:	lda $41,x
+; -------------------------------------------------------------------------------------------------
+; $99e9
+l99e9:	lda sprite_y,x
 		cmp $82,x
 		beq l9a01
 		bcc l99f9
@@ -3230,7 +3360,7 @@ l9a1f:	sta $96,x
 		beq l9a36
 		bit temp
 		beq l9a36
-		lda $d41b
+		lda $d41b						; load random value SID register $1b
 		bmi l9a3a
 l9a36:	lda $92,x
 		bne l9a64
@@ -3239,7 +3369,7 @@ l9a3a:	lda $96,x
 l9a3e:	lda $96,x
 		bit temp
 		bne l9a3a
-		lda $d41b
+		lda $d41b						; load random value SID register $1b
 		and temp
 		bne l9a4d
 		lda temp
@@ -3259,13 +3389,17 @@ l9a62:	lda #$08
 l9a64:	sta $4b,x
 		lda $4b,x
 		rts
-l9a69:	lda $41,x
+; -------------------------------------------------------------------------------------------------
+; $9a69
+l9a69:	lda sprite_y,x
 		cmp $45
 		beq l9a76
 		lda $46,x
 		cmp $4a
 		beq l9abb
 		rts
+; -------------------------------------------------------------------------------------------------
+; $9a76
 l9a76:	ldy #$09
 l9a78:	lda $9bd3,y
 		cmp $45
@@ -3273,6 +3407,8 @@ l9a78:	lda $9bd3,y
 		dey
 		bpl l9a78
 l9a82:	rts
+; -------------------------------------------------------------------------------------------------
+; $9a83
 l9a83:	lda $46,x
 		cmp $4a
 		bcs l9aa2
@@ -3289,6 +3425,8 @@ l9a8f:	lda $9c08,y
 l9a9d:	cmp $4a
 		bcs l9aff
 		rts
+; -------------------------------------------------------------------------------------------------
+; $9aa2
 l9aa2:	lda $4b,x
 		cmp #$04
 		bne l9a82
@@ -3302,6 +3440,8 @@ l9aa8:	lda $9c08,y
 l9ab6:	cmp $46,x
 		bcs l9aff
 		rts
+; -------------------------------------------------------------------------------------------------
+; $9abb
 l9abb:	ldy #$09
 l9abd:	lda $9bdd,y
 		cmp $4a
@@ -3309,7 +3449,9 @@ l9abd:	lda $9bdd,y
 		dey
 		bpl l9abd
 l9ac7:	rts
-l9ac8:	lda $41,x
+; -------------------------------------------------------------------------------------------------
+; $9ac8
+l9ac8:	lda sprite_y,x
 		cmp $45
 		bcc l9ae7
 		lda $4b,x
@@ -3322,16 +3464,18 @@ l9ad4:	lda $9c28,y
 		bcs l9ae2
 		iny
 		bne l9ad4
-l9ae2:	cmp $41,x
+l9ae2:	cmp sprite_y,x
 		bcs l9aff
 		rts
+; -------------------------------------------------------------------------------------------------
+; $9ae7
 l9ae7:	lda $4b,x
 		cmp #$02
 		bne l9ac7
 l9aed:	lda $9c28,y
 		cmp #$ff
 		beq l9aff
-		cmp $41,x
+		cmp sprite_y,x
 		bcs l9afb
 		iny
 		bne l9aed
@@ -3387,12 +3531,12 @@ l9b0f:	rts
 		!byte $9c, $bc, $ff, $4c, $74, $8c, $ac, $ff
 		!byte $00, $03, $0a, $0c, $11, $11, $0c, $0a
 		!byte $03, $00
-; ----------------------------------------------------------------------------
-; $9c32 Sprite color table
+; -------------------------------------------------------------------------------------------------
+; SpriteColors Sprite color table
 SpriteColors:
 		!byte RED, LIGHTRED, GREEN, ORANGE
 		!byte YELLOW, BROWN, ORANGE, GRAY3
-; ----------------------------------------------------------------------------
+; -------------------------------------------------------------------------------------------------
 ; 		
 		!byte $0f, $0a, $0f, $0d, $90, $60
 		!byte $30, $04, $00, $00, $ff, $c0, $80, $40
@@ -3444,7 +3588,7 @@ SpriteColors:
 		!byte $5b, $5e, $5f, $60, $5c, $5d, $5e, $5f
 		!byte $60, $00, $05, $0a, $0a, $0f, $0f, $14
 		!byte $14, $19, $19, $1e, $1e, $23
-; ----------------------------------------------------------------------------
+; -------------------------------------------------------------------------------------------------
 ; $9dc6 User font tiles 0 - $3f
 UserFontTiles:
 		!byte $00, $01, $02, $03, $04, $05, $08, $0a
@@ -3455,7 +3599,7 @@ UserFontTiles:
 		!byte $cf, $e0, $e8, $f0, $f3, $fc, $ff, $3f
 		!byte $0c, $fe, $fb, $c1, $f8, $1f, $0e, $8f
 		!byte $df, $81, $70, $9f, $87, $07, $bc, $08
-; ----------------------------------------------------------------------------
+; -------------------------------------------------------------------------------------------------
 
 		!byte $08, $08
 		!byte $0c, $10, $14, $14, $00, $04, $08, $08
@@ -3474,7 +3618,7 @@ UserFontTiles:
 		!byte $b5, $ac, $b4, $b9, $3a, $3c, $3e, $3e
 		!byte $40, $40, $44, $44, $48, $48, $4a, $4a
 		!byte $4c, $4c
-; ----------------------------------------------------------------------------
+; -------------------------------------------------------------------------------------------------
 ; $9e82 compressed menu user font (bytes 0-$3f from FontData, bit 6+7 = count)
 cUserFontMenu:
 		!byte $40, $31, $ae, $32, $2e, $80, $1f, $25
@@ -3490,18 +3634,21 @@ cUserFontMenu:
 		!byte $25, $29, $2b, $34, $2d, $34, $29, $00
 		!byte $58, $c0, $40, $c9, $89, $00, $ee, $ae
 		!byte $00, $ff
-; ----------------------------------------------------------------------------
+; -------------------------------------------------------------------------------------------------
 ; $9ee4 
 UserCharMenu:
 		!byte $81, $83, $83, $87, $87, $8f, $8f, $00
 		!byte $fc, $de, $fe, $ff, $ff, $ff, $ff, $00
 		!byte $0f, $0f, $0f, $0f, $0f, $8f, $8f, $00
 		!byte $ff, $ff, $ff, $ff, $ff, $ff, $ff, $00
-; ----------------------------------------------------------------------------
-; $9f04
-		!byte $01, $02, $04, $08, $10, $fe, $fd, $fb
-		!byte $f7, $ef
-; ----------------------------------------------------------------------------
+; -------------------------------------------------------------------------------------------------
+; $9f04 sprite 0-4 MSB bit set table
+SpriteSetMSBMask:
+		!byte $01, $02, $04, $08, $10
+; $9f09 sprite 0-4 MSB bit clear table
+SpriteClearMSBMask:
+		!byte $fe, $fd, $fb, $f7, $ef
+; -------------------------------------------------------------------------------------------------
 ; $9f0e LookUp Table
 cLookUpTable:
 		!byte $67, $78, $88, $99, $9a, $ab, $ab, $ac
@@ -3573,7 +3720,7 @@ InitP500:
 		sta $ffff						; set IRQ vector to $8583
 
 		rts
-; ----------------------------------------------------------------------------
+; -------------------------------------------------------------------------------------------------
 ; p500 irq sub
 Irqp500:
 		pha
@@ -3618,7 +3765,7 @@ inoraster:
 		tax
 		pla
 		rti
-; ----------------------------------------------------------------------------
+; -------------------------------------------------------------------------------------------------
 Test:	lda #SYSTEMBANK
 		sta IndirectBank				; select bank 15
 		lda #BLACK						; color
