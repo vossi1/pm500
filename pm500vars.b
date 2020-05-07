@@ -36,15 +36,22 @@
 !addr lives2			= $1b		; lives player 2 (starts with 3)
 !addr difficulty1		= $1e		; difficulty player 1
 !addr difficulty2		= $1f		; difficulty player 2
+; $20,21 score
 !addr score1			= $22		; score player 1 (lowbyte, last digit always zero)
 !addr score2			= $23		; score player 1 (lowbyte, last digit always zero)
-; score also 20,21-45,25-2e,2f
+; $24,25 score
+; $26
+; $28
 !addr pointer1			= $2a		; source pointer
 !addr pointer2			= $2c		; target pointer
+; $2e,2f score
+!addr data_tb1			= $3c		; 20 bytes from $9bbf
 !addr sprite_y			= $41		; -$45 sprite y postion 
 !addr jiffy				= $a2		; jiffy clock 20ms counter from raster interrupt = Vsync
 !addr spritedata_pointer= $c0		; 16bit pointer for sprite data copy
 !addr pressed_key		= $c5		; pressed key from interrupt
+; ***************************************** VARIABLES *********************************************
+!addr sprite_x			= $02d0		; -$02d4 sprite x positions (>>1 +$2c)
 
 ; -------------------------------------------------------------------------------------------------
 ; $

@@ -4,8 +4,8 @@
 ; Converted for P500 by Vossi 05/2020
 !cpu 6502
 ; switches
-;P500 = 1		; P500 bank 0 file
-;CRT = 1			; CRT header for VICE
+P500 = 1		; P500 bank 0 file
+;CRT = 1		; CRT header for VICE
 !ifdef 	P500{!to "pm500.prg", cbm
 } else	{ !ifdef CRT {!to "pm500.crt", plain
 		} else{ !to "pm500.rom", plain }}
@@ -55,13 +55,13 @@ VR_EIRQ					= $1a
 !addr CodeBank			= $00		; code bank register
 !addr IndirectBank		= $01		; indirect bank register
 !addr CharROMbase		= $c000		; Character ROM
-!addr ScreenRAM			= $d000		; Screen RAM
 !addr ColorRAMbase		= $d400		; Color RAM
 !addr VICbase			= $d800		; VIC
 !addr SIDbase			= $da00		; SID
 !addr CIAbase			= $dc00		; CIA
 !addr TPI1base			= $de00		; TPI1
 !addr TPI2base			= $df00		; TPI2
+!addr HW_IRQ			= $fffe		; System IRQ Vector
 ; *************************************** C64 ADDRESSES *******************************************
 !addr CPUPort64			= $01		; 6510 CPU port
 !addr CharROM64			= $d000		; Character RAM
@@ -89,17 +89,21 @@ VR_EIRQ					= $1a
 !addr state				= $07		; 0 = game, 3 = menu
 !addr players			= $08		; 0 = 1 player, 1 = 2 players
 !addr difficulty		= $09		; 0, 1, 2, 4, 6, 8, a, c
-!addr jiffy_start		= $0b		; jiffy-1 at start
+!addr delay_menu		= $0b		; jiffy-1 at start for 5s menu delay
 !addr temp				= $18		; temp byte
 !addr lives1			= $1a		; lives player 1 (starts with 3)
 !addr lives2			= $1b		; lives player 2 (starts with 3)
 !addr difficulty1		= $1e		; difficulty player 1
 !addr difficulty2		= $1f		; difficulty player 2
+; $20,21 score
 !addr score1			= $22		; score player 1 (lowbyte, last digit always zero)
 !addr score2			= $23		; score player 1 (lowbyte, last digit always zero)
-; score also 20,21-45,25-2e,2f
+; $24,25 score
+; $26
+; $28
 !addr pointer1			= $2a		; source pointer
 !addr pointer2			= $2c		; target pointer
+; $2e,2f score
 !addr data_tb1			= $3c		; 20 bytes from $9bbf
 !addr sprite_y			= $41		; -$45 sprite y postion 
 !addr jiffy				= $a2		; jiffy clock 20ms counter from raster interrupt = Vsync
@@ -118,6 +122,7 @@ VR_EIRQ					= $1a
 !addr CharROM1			= $fe
 ; ****************************************** MACROS ***********************************************
 ; **************************************** CRT HEADER *********************************************
+!zone crt
 !ifdef 	CRT{
 *= $7fb0
 		!byte $43, $36, $34, $20, $43, $41, $52, $54
@@ -131,11 +136,13 @@ VR_EIRQ					= $1a
 		!byte $43, $48, $49, $50, $00, $00, $20, $10
 		!byte $00, $00, $00, $00, $80, $00, $20, $00
 }
-; ***************************************** ZONE MAIN *********************************************
-!zone main
+; ***************************************** ZONE INIT *********************************************
+!zone init
 !initmem FILL
 *= $8000
 !ifdef 	P500{
+		sei
+		cld
 		jsr InitP500
 		jmp Start
 } else{ 	
@@ -146,7 +153,7 @@ VR_EIRQ					= $1a
 ; ***************************************** ZONE DATA1 ********************************************
 !zone data1
 *= $8008
-; table
+; $8008 table unused
 		!byte $30, $02, $bb, $5a, $30, $5f, $ee, $3d
 		!byte $a8
 ; -------------------------------------------------------------------------------------------------
@@ -273,15 +280,9 @@ cMapData:
 *= $8394 ; game code
 Start:
 !ifdef 	P500{ 
-		jsr Test
-		nop
-		nop
-		nop
-		nop
-		nop
 		lda #GAMEBANK
 		sta IndirectBank				; select bank 0
-} else{ ; 12 bytes
+} else{
 		jsr ioinit 						; IRQ init
 		jsr ramtas 						; RAM init
 		jsr restor 						; hardware I/O vector init
@@ -294,9 +295,9 @@ clrzplp:sta $02,x						; clear zero page $03 - $c4
 		dex
 		bne clrzplp						; next byte
 		inc state						; increase state to 1 to start in menu mode
-		ldx jiffy						; load jiffy clock low byte
+		ldx jiffy						; load jiffy = $00 (cleared at ZP clear loop)
 		dex
-		stx jiffy_start					; store jiffy - 1 in $0b
+		stx delay_menu					; remember jiffy-1 for 255 x 20ms = 5s menu delay
 ; $83b3 Copy and uncompress map
 		lda #<MapData
 		sta pointer2
@@ -351,8 +352,8 @@ ludeclp:jsr LoadHiNibblePointer1		; load and shift high nibble 4 bits right
 		jsr StoreIncPointer2			; store low nibble
 		inx
 		bne ludeclp						; next byte
-; $8426 Copy chars $00-$7f of the first (graphic) fontset to $80 of the custom fonts
-!ifdef 	P500{ ; 25 bytes
+!ifdef 	P500{
+; P500 Copy chars $00-$7f of the first (graphic) fontset to $80 of the custom fonts
 		lda #SYSTEMBANK					; select bank 15 to get font from char ROM
 		sta IndirectBank
 fntcplp:lda (CharROM1),y				; load from character ROM - Y already $00	
@@ -364,8 +365,8 @@ fntcplp:lda (CharROM1),y				; load from character ROM - Y already $00
 		dey
 		bne fntcplp
 		sty IndirectBank				; select bank 0 - Y already $00
-!fill 26, NOPCODE
-} else{ ; 51 bytes
+} else{
+; $8426 C64
 		lda $dc0e						; stop CIA1 timer A to prevent problems when switching CharROM 
 		and #$fe
 		sta $dc0e
@@ -427,8 +428,8 @@ uccplp2:lda CharGame+$1cf,x
 		sta CharMenu+$1cf,x
 		dex
 		bne uccplp2
-; $84a8 Interrupt vector setup
-!ifdef 	P500{ ; 27 bytes
+!ifdef 	P500{
+; P500 Hardware interrupt vector setup, enable VIC raster IRQ
 		lda #SYSTEMBANK
 		sta IndirectBank				; select bank 15
 		ldy #VR_EIRQ
@@ -443,7 +444,8 @@ uccplp2:lda CharGame+$1cf,x
 		lda #GAMEBANK
 		sta IndirectBank				; select bank 15
 		cli								; enable interrupts
-} else{ ; 27 bytes
+} else{
+; $84a8 C64 Kernal interrupt vector setup
 		sei								; disable interrrupts
 		lda #<Interrupt
 		sta $0314
@@ -466,10 +468,25 @@ clvarlp:sta $0e,x						; clear game variables $0e-$2d
 		bpl clvarlp
 		txs								; init stack with $ff
 		jsr SoundOff					; SID sound off
+!ifdef 	P500{
+		ldy #SYSTEMBANK
+		sty IndirectBank				; select bank 15
+		ldy #$20
+		sta (VIC),y						; VIC exterior color = black
+		iny
+		sta (VIC),y						; VIC background color0 = black
+		lda #LIGHTBLUE
+		iny
+		sta (VIC),y						; VIC background color1 = lightblue
+		ldy #GAMEBANK
+		sty IndirectBank				; select bank 15
+		ldy #$ff			; ste Y = $ff because its set to this value after SoundOff
+} else{
 		sta $d020						; VIC exterior color = black
 		sta $d021						; VIC background color0 = black
 		lda #LIGHTBLUE
 		sta $d022						; VIC background color1 = lightblue
+}
 		jsr ColorInit					; init color RAM and VIC Sprite colors
 		jsr InitGameScreen				; copy game screen to screen RAM
 		jsr BackupGameScreen1			; init game screen player1 $4400
@@ -559,8 +576,53 @@ idiff0c:lda #$00
 		sta difficulty					; after $c reset difficulty to 0
 		beq SetStateMenu				; return in menu state
 ; -------------------------------------------------------------------------------------------------
-; $8583 interrupt 
 Interrupt:
+!ifdef 	P500{
+; p500 Interrupt routine
+		pha
+		txa
+		pha
+		tya
+		pha
+		lda #SYSTEMBANK
+		sta IndirectBank				; select bank 15
+		ldy #$19
+		lda (VIC),y						; load VIC interrupt reg and mask bit 1
+		and #$01
+		beq inoraster					; skip if source is not raster interrupt
+		inc jiffy						; increase jiffy
+		ldy #$12
+		lda #$32
+		sta (VIC),y						; set VIC raster reg again to $32 (start)
+		ldy #$19
+		lda #$81
+		sta (VIC),y						; clear VIC raster interrupt
+		dec $30							;
+		lda #GAMEBANK
+		sta IndirectBank				; select bank 15
+		jsr l864f				; draw screen
+;		lda $a4
+;		bne iskpspr						; skip if $a4 is not 0
+;		jsr l8b93				; sprite direction compare loop
+;iskpspr:ldx #$ff
+;		stx $dc02						; set CIA1 port A for output
+;		dex
+;		stx $dc00				; ignore all columns
+;idebkey:lda $dc01						; load CIA1 port B
+;		cmp $dc01
+;		bne idebkey						; debounce key
+;		sta pressed_key					; store pressed key
+;		ldx #$00
+;		stx $dc02						; reset CIA1 port B to input
+inoraster:
+		pla
+		tay
+		pla
+		tax
+		pla
+		rti
+} else{	
+; $8583 C64 interrupt routine
 		lda $d019						; load VIC interrupt reg and mask bit 1
 		and #$01
 		beq inorast						; skip if source is not raster interrupt
@@ -585,6 +647,7 @@ idebkey:lda $dc01						; load CIA1 port B = keyboard row
 		ldx #$00
 		stx $dc02						; reset CIA1 port B to input
 inorast:jmp $ea7e						; jump to kernal interrupt
+}
 ; -------------------------------------------------------------------------------------------------
 ; $85bd
 InitMenu:
@@ -723,10 +786,11 @@ l8697:	rts
 ; $8698
 l8698:	cpy #$02
 		bne l86a4
-		lda jiffy_start
+		lda delay_menu
 		cmp jiffy
 		bne l8697
 		beq l8695
+; $86a4
 l86a4:	ldx players
 		inx
 		txa
@@ -1058,7 +1122,7 @@ l8909:	sta $26
 		ldy #$0f
 l892a:	lda (pointer1),y
 		sta ($26),y
-		lda Table2,y
+		lda Table02,y
 		sta ($28),y
 		dey
 		bpl l892a
@@ -1725,7 +1789,7 @@ InitNewGame:
 		dex
 		bpl -
 		ldx #$13
--		lda Table1,x
+-		lda Table01,x
 		sta $3c,x
 		dex
 		bpl -
@@ -1772,7 +1836,7 @@ Init87_89:
 		bcc +
 		ldy #$03
 +		ldx #$02
--		lda Tablea,y
+-		lda Table03,y
 		sta $87,x
 		iny
 		dex
@@ -1915,7 +1979,7 @@ l8f5e:	lda $aa
 ; $8f73
 l8f73:	ldy #$0c
 		ldx #$09
-l8f77:	lda SpriteDataPacmanDies,x
+l8f77:	lda SpriteDataTable+$78,x
 		sta (pointer2),y
 		dey
 		dex
@@ -1925,7 +1989,7 @@ l8f77:	lda SpriteDataPacmanDies,x
 ; $8f81
 l8f81:	ldy #$0f
 		ldx #$0f
-l8f85:	lda Table9,x
+l8f85:	lda Table09,x
 		sta (pointer2),y
 		dey
 		dex
@@ -2134,6 +2198,22 @@ l910c:	rts
 ; -------------------------------------------------------------------------------------------------
 ; $910d Stop SID sound
 SoundOff:
+!ifdef 	P500{
+		lda #SYSTEMBANK
+		sta IndirectBank				; select bank 15
+		lda #$88
+		ldy #$18
+		sta (SID),y						; SID mode to 3OFF, Volume = 8
+		lda #$00
+		ldy #$04
+		sta (SID),y						; SID voice 1 control = off
+		ldy #$0b
+		sta (SID),y						; SID voice 2 control = off
+		lda #GAMEBANK
+		sta IndirectBank				; select bank 15
+		ldy #$ff
+		rts
+} else{
 		lda #$88
 		sta $d418						; SID mode to 3OFF, Volume = 8
 		lda #$00
@@ -2141,6 +2221,7 @@ SoundOff:
 		sta $d40b						; SID voice 2 control = off
 		ldy #$ff
 		rts
+}
 ; -------------------------------------------------------------------------------------------------
 ; $911d clear RAM areas $3000-$31ff (Sprite data) and $5300-$57ff (sprite data source RAM)
 ClearSpriteRAM:
@@ -2649,19 +2730,19 @@ l94de:	lda $46,x
 		lda sprite_y,x
 		stx temp
 		ldx #$09
-l94e8:	cmp Table4,x
+l94e8:	cmp Table04,x
 		beq l94fc
 		dex
 		bpl l94e8
 		lda $61
 		ldy #$09
-l94f4:	cmp Table5,y
+l94f4:	cmp Table05,y
 		beq l950d
 		dey
 		bpl l94f4
 l94fc:	ldy #$09
 		lda $61
-l9500:	cmp Table5,y
+l9500:	cmp Table05,y
 		beq l9512
 		dey
 		bpl l9500
@@ -3181,10 +3262,10 @@ l98a1:	lda #$08
 		sta $76,x
 		asl
 		tay
-		lda Tabled,y
+		lda Table10,y
 		sta $7e,x
 		iny
-		lda Tabled,y
+		lda Table10,y
 		sta $82,x
 		lda #$96
 		sta $86,x
@@ -3215,7 +3296,7 @@ l98ea:	lda $86,x
 		inc $7a,x
 l98f6:	lda $76,x
 		tay
-		lda Tableb,y
+		lda Table06,y
 		adc $7a,x
 		tay
 		lda $4cae,y
@@ -3223,7 +3304,7 @@ l98f6:	lda $76,x
 		sta $7a,x
 		lda $76,x
 		tay
-		lda Tableb,y
+		lda Table06,y
 		tay
 		lda $4cae,y
 l9910:	sta $4b,x
@@ -3233,10 +3314,10 @@ l9915:	lda #$20
 		txa
 		asl
 		tay
-		lda Tablee,y
+		lda Table11,y
 		sta $7e,x
 		iny
-		lda Tablee,y
+		lda Table11,y
 		sta $82,x
 		jsr l94de
 		bcc l9950
@@ -3418,7 +3499,7 @@ l9a69:	lda sprite_y,x
 ; -------------------------------------------------------------------------------------------------
 ; $9a76
 l9a76:	ldy #$09
-l9a78:	lda Table4,y
+l9a78:	lda Table04,y
 		cmp $45
 		beq l9a83
 		dey
@@ -3432,7 +3513,7 @@ l9a83:	lda $46,x
 		lda $4b,x
 		cmp #$08
 		bne l9a82
-l9a8f:	lda Table7,y
+l9a8f:	lda Table07,y
 		cmp #$ff
 		beq l9aff
 		cmp $46,x
@@ -3447,7 +3528,7 @@ l9a9d:	cmp $4a
 l9aa2:	lda $4b,x
 		cmp #$04
 		bne l9a82
-l9aa8:	lda Table7,y
+l9aa8:	lda Table07,y
 		cmp #$ff
 		beq l9aff
 		cmp $4a
@@ -3460,7 +3541,7 @@ l9ab6:	cmp $46,x
 ; -------------------------------------------------------------------------------------------------
 ; $9abb
 l9abb:	ldy #$09
-l9abd:	lda Table5,y
+l9abd:	lda Table05,y
 		cmp $4a
 		beq l9ac8
 		dey
@@ -3474,7 +3555,7 @@ l9ac8:	lda sprite_y,x
 		lda $4b,x
 		cmp #$01
 		bne l9ac7
-l9ad4:	lda Table8,y
+l9ad4:	lda Table08,y
 		cmp #$ff
 		beq l9aff
 		cmp $45
@@ -3489,7 +3570,7 @@ l9ae2:	cmp sprite_y,x
 l9ae7:	lda $4b,x
 		cmp #$02
 		bne l9ac7
-l9aed:	lda Table8,y
+l9aed:	lda Table08,y
 		cmp #$ff
 		beq l9aff
 		cmp sprite_y,x
@@ -3509,7 +3590,7 @@ l9b07:	lda #$02
 l9b0f:	rts
 ; ***************************************** ZONE DATA2 ********************************************
 !zone data2
-*= $9b10
+;*= $9b10
 ; $9b10 Sprite data
 SpriteDataTable:
 		!byte $38, $7c, $d6, $d6, $d6, $fe, $fe, $fe
@@ -3527,8 +3608,6 @@ SpriteDataTable:
 		!byte $3e, $fe, $7c, $38, $38, $7c, $3e, $1e
 		!byte $0e, $0e, $1e, $3e, $7c, $38, $00, $44
 		!byte $c6, $c6, $ee, $ee, $fe, $fe, $7c, $38
-; $9b88 Sprite data pacman dies
-SpriteDataPacmanDies:
 		!byte $00, $00, $82, $c6, $ee, $ee, $fe, $fe
 		!byte $7c, $38, $38, $7c, $fe, $fe, $ee, $ee
 		!byte $c6, $c6, $44, $00, $38, $7c, $fe, $fe
@@ -3549,16 +3628,16 @@ SpriteDataTablePointer:
 		!byte <(SpriteDataTable+$6e), >(SpriteDataTable+$6e)
 		!byte <(SpriteDataTable+$82), >(SpriteDataTable+$82)
 ; $9bbf
-Table1:
+Table01:
 		!byte $e3, $06, $02, $a6, $7a, $64, $74, $74
 		!byte $74, $a4, $7c, $7c, $70, $88, $7c, $04
 		!byte $02, $01, $01, $04
 ; $9bd3
-Table4:
+Table04:
 		!byte $2c, $44, $54, $64, $74, $84, $94, $a4
 		!byte $b4, $c4
 ; $9bdd
-Table5:
+Table05:
 		!byte $3a, $46, $52, $62, $76, $82, $96, $a6
 		!byte $b2, $be
 ; $9be7
@@ -3570,13 +3649,13 @@ PointerTable2:
 		!byte $7c, $ff, $58, $7c, $9e, $ff, $58, $9e
 		!byte $ff, $3c, $ac, $ff, $ff
 ; $9c08
-Table7:
+Table07:
 		!byte $00, $0c, $02, $06, $00, $06, $00, $09
 		!byte $02, $0c, $64, $84, $ff, $38, $4c, $64
 		!byte $84, $9c, $bc, $ff, $3c, $ff, $38, $5c
 		!byte $9c, $bc, $ff, $4c, $74, $8c, $ac, $ff
 ; $9C28
-Table8:
+Table08:
 		!byte $00, $03, $0a, $0c, $11, $11, $0c, $0a
 		!byte $03, $00
 ; -------------------------------------------------------------------------------------------------
@@ -3588,7 +3667,7 @@ SpriteColors:
 ; $9c3a		
 		!byte $0f, $0a, $0f, $0d
 ; $9c3e from offset +3 copied to $87-$89
-Tablea:
+Table03:
 		!byte $90, $60, $30, $04, $00, $00
 ; $9c44
 DifficultyTable4:
@@ -3597,11 +3676,11 @@ DifficultyTable4:
 ; $9c51
 		!byte $40, $00
 ; $9c53
-Table9:
+Table09:
 		!byte $00, $00, $00, $00, $00, $92, $54, $00
 		!byte $c6, $00, $54, $92
 ; $9c5f
-Table2:
+Table02:
 		!byte $00, $00, $00, $00, $c6, $29, $29, $29
 		!byte $29, $29, $c6, $00, $00, $00, $00, $00
 		!byte $38, $45, $05, $19, $21, $41, $7c, $00
@@ -3632,10 +3711,10 @@ FrequencyLo:
 		!byte $00, $9c, $31, $df, $00, $87, $87, $00
 ; $9d1c
 PointerTable3:
-		!byte <(Table2+$0c), >(Table2+$0c)
-		!byte <(Table2+$18), >(Table2+$18)
-		!byte <(Table2+$24), >(Table2+$24)
-		!byte <(Table2+$30), >(Table2+$30)
+		!byte <(Table02+$0c), >(Table02+$0c)
+		!byte <(Table02+$18), >(Table02+$18)
+		!byte <(Table02+$24), >(Table02+$24)
+		!byte <(Table02+$30), >(Table02+$30)
 ; $9d24
 
 		!byte $19, $1a, $1c, $1d, $20, $23, $00
@@ -3646,16 +3725,16 @@ PointerTable3:
 PointerTable4:
 		!byte $86, $4c, $93, $4c, $9b, $4c, $a3, $4c
 ; $9d3a
-Tabled:
+Table10:
 		!byte $96, $a4, $62, $74, $82, $64, $62, $64
 		!byte $62, $94, $52, $74, $96, $94, $a6, $74
 		!byte $96, $54, $52, $b4, $be, $c4, $82, $44
 		!byte $52, $a4, $b2, $b4, $82, $44, $52, $44
 ; $9d5a
-Tablee:
+Table11:
 		!byte $be, $2c, $3a, $2c, $be, $c4, $3a, $c4
 ; $9d62
-Tableb:
+Table06:
 		!byte $00, $0b, $16, $21, $2c, $33, $3a, $41
 		!byte $48, $53, $60, $6d, $80, $99, $b6, $c9
 ; $9d72
@@ -3796,95 +3875,23 @@ cLookUpTable:
 		!byte $9b, $4c
 ; ***************************************** ZONE P500 *********************************************
 !zone p500
-*= $a000
-; P500 I/O pointer init
 !ifdef 	P500{
+; P500 I/O pointer init
 InitP500:
-		lda #$00
-		sta ColorRAM
-		sta VIC
-		sta SID
-		sta CIA
-		sta TPI1
-		sta TPI2
-		sta CharROM0
-		sta CharROM1
-		lda #>ColorRAMbase
-		sta ColorRAM+1
-		lda #>VICbase
-		sta VIC+1
-		lda #>SIDbase
-		sta SID+1
-		lda #>CIAbase
-		sta CIA+1
-		lda #>TPI1base
-		sta TPI1+1
-		lda #>TPI2base
-		sta TPI2+1
-		ldx #>CharROMbase
-		stx CharROM0+1
+		ldx #$00
+iniiolp:lda IOPointerTable,x			; copy 8 IO pointer to ZP
+		sta ColorRAM,x
 		inx
-		stx CharROM1+1
-
-		lda #<Irqp500
-		sta $fffe
-		lda #>Irqp500
-		sta $ffff						; set IRQ vector to $8583
-
-		rts
-; -------------------------------------------------------------------------------------------------
-; p500 irq sub
-Irqp500:
-		pha
-		txa
-		pha
-		tya
-		pha
+		cpx #$10
+		bne iniiolp
+		
+		lda #<Interrupt					; set IRQ vector to interrupt routine
+		sta HW_IRQ
+		lda #>Interrupt
+		sta HW_IRQ+1
+		
 		lda #SYSTEMBANK
 		sta IndirectBank				; select bank 15
-		ldy #$19
-		lda (VIC),y						; load VIC interrupt reg and mask bit 1
-		and #$01
-		beq inoraster						; skip if source is not raster interrupt
-		inc jiffy						; increase jiffy
-		ldy #$12
-		lda #$32
-		sta (VIC),y						; set VIC raster reg again to $32 (start)
-		ldy #$19
-		lda #$81
-		sta (VIC),y						; clear VIC raster interrupt
-		dec $30							;
-		lda #GAMEBANK
-		sta IndirectBank				; select bank 15
-		jsr l864f				; draw screen
-;		lda $a4
-;		bne iskpspr						; skip if $a4 is not 0
-;		jsr l8b93				; sprite direction compare loop
-;iskpspr:ldx #$ff
-;		stx $dc02						; set CIA1 port A for output
-;		dex
-;		stx $dc00				; ignore all columns
-;idebkey:lda $dc01						; load CIA1 port B
-;		cmp $dc01
-;		bne idebkey						; debounce key
-;		sta pressed_key					; store pressed key
-;		ldx #$00
-;		stx $dc02						; reset CIA1 port B to input
-inoraster:
-		pla
-		tay
-		pla
-		tax
-		pla
-		rti
-; -------------------------------------------------------------------------------------------------
-Test:	lda #SYSTEMBANK
-		sta IndirectBank				; select bank 15
-		lda #BLACK						; color
-		ldy #$20						
-		sta (VIC),y						; set VIC exterior color
-		ldy #$21
-		sta (VIC),y						; set VIC background color
 		ldy #$06
 		lda (TPI1),y					; load TRI1 control register
 		and #$0f						; clear CA, CB control bits#4-7 vic bank 0/15 select 
@@ -3897,13 +3904,22 @@ Test:	lda #SYSTEMBANK
 		lda #$3a
 		ldy #$18						; VIC reg $18 memory pointers
 		sta (VIC),y						; set VM13-10=$3 screen at $0a00, CB13,12,11,x=1010 char at $2800
-
 		lda #$7f						; bit#7=0 clears/mask out all 5 irq sources with bit#0-4 = 1
 		ldy #$0d						; CIA interrupt control register
 		sta (CIA),y						; disable all hardware interrupts
 		lda #$00
 		ldy #$05
 		sta (TPI1),y					; set TPI1 reg $5 interrupt mask reg = $00 - disable all irq
-
 		rts
+; -------------------------------------------------------------------------------------------------
+; I/O pointer table
+IOPointerTable:
+		!word ColorRAMbase
+		!word VICbase
+		!word SIDbase
+		!word CIAbase
+		!word TPI1base
+		!word TPI2base
+		!word CharROMbase
+		!word CharROMbase+$100
 }
