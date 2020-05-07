@@ -12,12 +12,14 @@
 ; ########################################### TODO ################################################
 ;
 ; VIC, CIA, SID, Color RAM indirect access
+; add highscore text above score
+; add extra fruits in one color for menu difficulty
 ;
 ; #################################################################################################
 ; ******************************************* INFO ************************************************
 ; Menu screen is at $0a00, menu font at $2800
 ; Game screen is at $0400, game font at $2000, multicolor
-; Sprites 0-3 are ghosts, sprite 4 is pacman, sprites are 10 px heigh, 6px wide + xpanded -> 12px
+; Sprites 0-3 are ghosts, sprite 4 is pacman, sprites are 10/11 px heigh, 6px wide + xpanded -> 12px
 ; Sprite data pointer are static $c0-$c4 -> $3000-$3100, sprites are not multicolor
 ; Sprite source data is at $5300,$5400-$57ff and will copied in each cycle to the VIC sprite data
 ; First half of char ROM copied to lower half of user fonts
@@ -54,7 +56,7 @@ VR_EIRQ					= $1a
 !addr IndirectBank		= $01		; indirect bank register
 !addr CharROMbase		= $c000		; Character ROM
 !addr ScreenRAM			= $d000		; Screen RAM
-!addr ColorRAMbase		= $d400						; set SID voice 1 frequency lo		; Color RAM
+!addr ColorRAMbase		= $d400		; Color RAM
 !addr VICbase			= $d800		; VIC
 !addr SIDbase			= $da00		; SID
 !addr CIAbase			= $dc00		; CIA
@@ -98,6 +100,7 @@ VR_EIRQ					= $1a
 ; score also 20,21-45,25-2e,2f
 !addr pointer1			= $2a		; source pointer
 !addr pointer2			= $2c		; target pointer
+!addr data_tb1			= $3c		; 20 bytes from $9bbf
 !addr sprite_y			= $41		; -$45 sprite y postion 
 !addr jiffy				= $a2		; jiffy clock 20ms counter from raster interrupt = Vsync
 !addr spritedata_pointer= $c0		; 16bit pointer for sprite data copy
@@ -917,9 +920,9 @@ l880a:	lda jiffy
 		ldx $5f
 		cpx #$40
 		beq l8830
-		lda $9c9c,x
+		lda FrequencyHi,x
 		sta $d401						; SID voice 1 frequency hi
-		lda $9cdc,x
+		lda FrequencyLo,x
 		sta $d400						; SID voice 1 frequency lo
 		lda #$21
 		sta $d404						; SID voice 1 control
@@ -1047,15 +1050,15 @@ l8909:	sta $26
 		lda $a8
 		asl
 		tay
-		lda $9d1c,y
+		lda PointerTable3,y
 		sta pointer1
 		iny
-		lda $9d1c,y
+		lda PointerTable3,y
 		sta pointer1+1
 		ldy #$0f
 l892a:	lda (pointer1),y
 		sta ($26),y
-		lda $9c5f,y
+		lda Tablec,y
 		sta ($28),y
 		dey
 		bpl l892a
@@ -1106,10 +1109,10 @@ l897b:	lda $5b
 		bcc l8995
 		lda #$0c
 l8995:	tax
-		lda $9db9,x
+		lda DifficultyTable7,x
 		tax
 		ldy #$00
-l899c:	lda $9d91,x
+l899c:	lda DifficultyTable6,x
 		sta $0641,y
 		inx
 		iny
@@ -1562,14 +1565,14 @@ l8cf6:	ldy #$0a
 l8cf8:	sty $5c
 		ldy #$00
 		cmp #$06
-		bcs l8d25
+		bcs l8d25						; branch if A >= $06
 		sta temp
 		lda #$e2
 		sta pointer2
 		lda #$07
 		sta pointer2+1
 		ldx #$00
-l8d0c:	lda $9d72,x
+l8d0c:	lda DifficultyTable5,x
 		sta (pointer2),y
 		inc pointer2
 		clc
@@ -1584,15 +1587,15 @@ l8d0c:	lda $9d72,x
 		bne l8d0c
 l8d25:	cmp #$12
 		bcc l8d2b
-		lda #$12
+		lda #$12						; A = max $12
 l8d2b:	sec
-		sbc #$06
+		sbc #$06						; substract $06 -> value 0 - $0c
 		sta temp
 		sec
-		lda #$8a
+		lda #<DifficultyTable5+$18				; = $8a
 		sbc temp
 		sta pointer1
-		lda #$9d
+		lda #>DifficultyTable5					; pointer to end of table $9d8a (min -$0c)
 		sbc #$00
 		sta pointer1+1
 		ldx #$00
@@ -1722,7 +1725,7 @@ InitNewGame:
 		dex
 		bpl -
 		ldx #$13
--		lda $9bbf,x
+-		lda Table1,x
 		sta $3c,x
 		dex
 		bpl -
@@ -1769,7 +1772,7 @@ Init87_89:
 		bcc +
 		ldy #$03
 +		ldx #$02
--		lda $9c3e,y
+-		lda Tablea,y
 		sta $87,x
 		iny
 		dex
@@ -1905,14 +1908,14 @@ l8f5e:	lda $aa
 		lda LookUpTable,x
 		tay
 		dey
-		lda $9ba7,x
+		lda SpriteData2,x
 		sta (pointer2),y
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $8f73
 l8f73:	ldy #$0c
 		ldx #$09
-l8f77:	lda $9b88,x
+l8f77:	lda SpriteDataPacmanDies,x
 		sta (pointer2),y
 		dey
 		dex
@@ -1922,7 +1925,7 @@ l8f77:	lda $9b88,x
 ; $8f81
 l8f81:	ldy #$0f
 		ldx #$0f
-l8f85:	lda $9c53,x
+l8f85:	lda Table9,x
 		sta (pointer2),y
 		dey
 		dex
@@ -2407,17 +2410,17 @@ l931d:	ldx $67
 		inc $67
 		bne l9318
 l9325:	dex
-		lda $9ba5,x
+		lda SpriteData3,x
 		cpx #$02
 		bne l9331
 		ldx #$ff
 		stx $67
 l9331:	inc $67
 l9333:	tax
-		lda $9bb5,y
+		lda PointerTable1,y
 		sta pointer1
 		iny
-		lda $9bb5,y
+		lda PointerTable1,y
 		sta pointer1+1
 		txa
 		clc
@@ -2559,7 +2562,7 @@ l9428:	eor #$0f
 		ldx $19
 		lda difficulty1,x
 		tax
-		lda $9c44,x
+		lda DifficultyTable4,x
 		sta $bc
 		ldx #$03
 l944b:	lda $8a,x
@@ -2646,19 +2649,19 @@ l94de:	lda $46,x
 		lda sprite_y,x
 		stx temp
 		ldx #$09
-l94e8:	cmp $9bd3,x
+l94e8:	cmp Table4,x
 		beq l94fc
 		dex
 		bpl l94e8
 		lda $61
 		ldy #$09
-l94f4:	cmp $9bdd,y
+l94f4:	cmp Table5,y
 		beq l950d
 		dey
 		bpl l94f4
 l94fc:	ldy #$09
 		lda $61
-l9500:	cmp $9bdd,y
+l9500:	cmp Table5,y
 		beq l9512
 		dey
 		bpl l9500
@@ -2671,10 +2674,10 @@ l950d:	lda #$03
 l9512:	txa
 		asl
 		tax
-		lda $9be7,x
+		lda PointerTable2,x
 		sta pointer1
 		inx
-		lda $9be7,x
+		lda PointerTable2,x
 		sta pointer1+1
 		lda (pointer1),y
 		sec
@@ -2909,9 +2912,9 @@ l96b0:	inc $2e,x
 		lda difficulty1,x
 		cmp #$0c
 		bcc l96ba
-		lda #$0c
+		lda #$0c						; max difficulty = $0c
 l96ba:	tax
-		lda $9d72,x
+		lda DifficultyTable5,x
 		sta $0643
 		clc
 		adc #$01
@@ -3154,10 +3157,10 @@ l9877:	jsr l94de
 l987f:	txa
 		asl
 		tay
-		lda $9d32,y
+		lda PointerTable4,y
 		sta pointer1
 		iny
-		lda $9d32,y
+		lda PointerTable4,y
 		sta pointer1+1
 		lda $8e,x
 		tay
@@ -3178,10 +3181,10 @@ l98a1:	lda #$08
 		sta $76,x
 		asl
 		tay
-		lda $9d3a,y
+		lda Tabled,y
 		sta $7e,x
 		iny
-		lda $9d3a,y
+		lda Tabled,y
 		sta $82,x
 		lda #$96
 		sta $86,x
@@ -3212,7 +3215,7 @@ l98ea:	lda $86,x
 		inc $7a,x
 l98f6:	lda $76,x
 		tay
-		lda $9d62,y
+		lda Tableb,y
 		adc $7a,x
 		tay
 		lda $4cae,y
@@ -3220,7 +3223,7 @@ l98f6:	lda $76,x
 		sta $7a,x
 		lda $76,x
 		tay
-		lda $9d62,y
+		lda Tableb,y
 		tay
 		lda $4cae,y
 l9910:	sta $4b,x
@@ -3230,10 +3233,10 @@ l9915:	lda #$20
 		txa
 		asl
 		tay
-		lda $9d5a,y
+		lda Tablee,y
 		sta $7e,x
 		iny
-		lda $9d5a,y
+		lda Tablee,y
 		sta $82,x
 		jsr l94de
 		bcc l9950
@@ -3306,10 +3309,10 @@ l99a8:	lda #$32
 		ldy #$00
 l99ac:	sty $581c
 		clc
-		adc #$10
+		adc #<SpriteDataTable
 		sta pointer1
 		lda #$00
-		adc #$9b
+		adc #>SpriteDataTable			; pointer to table at $9b10
 		sta pointer1+1
 		ldy #$09
 l99bc:	lda (pointer1),y
@@ -3415,7 +3418,7 @@ l9a69:	lda sprite_y,x
 ; -------------------------------------------------------------------------------------------------
 ; $9a76
 l9a76:	ldy #$09
-l9a78:	lda $9bd3,y
+l9a78:	lda Table4,y
 		cmp $45
 		beq l9a83
 		dey
@@ -3429,7 +3432,7 @@ l9a83:	lda $46,x
 		lda $4b,x
 		cmp #$08
 		bne l9a82
-l9a8f:	lda $9c08,y
+l9a8f:	lda Table7,y
 		cmp #$ff
 		beq l9aff
 		cmp $46,x
@@ -3444,7 +3447,7 @@ l9a9d:	cmp $4a
 l9aa2:	lda $4b,x
 		cmp #$04
 		bne l9a82
-l9aa8:	lda $9c08,y
+l9aa8:	lda Table7,y
 		cmp #$ff
 		beq l9aff
 		cmp $4a
@@ -3457,7 +3460,7 @@ l9ab6:	cmp $46,x
 ; -------------------------------------------------------------------------------------------------
 ; $9abb
 l9abb:	ldy #$09
-l9abd:	lda $9bdd,y
+l9abd:	lda Table5,y
 		cmp $4a
 		beq l9ac8
 		dey
@@ -3471,7 +3474,7 @@ l9ac8:	lda sprite_y,x
 		lda $4b,x
 		cmp #$01
 		bne l9ac7
-l9ad4:	lda $9c28,y
+l9ad4:	lda Table8,y
 		cmp #$ff
 		beq l9aff
 		cmp $45
@@ -3486,7 +3489,7 @@ l9ae2:	cmp sprite_y,x
 l9ae7:	lda $4b,x
 		cmp #$02
 		bne l9ac7
-l9aed:	lda $9c28,y
+l9aed:	lda Table8,y
 		cmp #$ff
 		beq l9aff
 		cmp sprite_y,x
@@ -3507,7 +3510,8 @@ l9b0f:	rts
 ; ***************************************** ZONE DATA2 ********************************************
 !zone data2
 *= $9b10
-; Sprite data
+; $9b10 Sprite data
+SpriteDataTable:
 		!byte $38, $7c, $d6, $d6, $d6, $fe, $fe, $fe
 		!byte $fe, $fe, $38, $7c, $fe, $fe, $fe, $fe
 		!byte $d6, $d6, $d6, $fe, $38, $7c, $fe, $fe
@@ -3523,85 +3527,155 @@ l9b0f:	rts
 		!byte $3e, $fe, $7c, $38, $38, $7c, $3e, $1e
 		!byte $0e, $0e, $1e, $3e, $7c, $38, $00, $44
 		!byte $c6, $c6, $ee, $ee, $fe, $fe, $7c, $38
+; $9b88 Sprite data pacman dies
+SpriteDataPacmanDies:
 		!byte $00, $00, $82, $c6, $ee, $ee, $fe, $fe
 		!byte $7c, $38, $38, $7c, $fe, $fe, $ee, $ee
 		!byte $c6, $c6, $44, $00, $38, $7c, $fe, $fe
-		!byte $ee, $ee, $c6, $82, $00, $00, $0a, $00
+		!byte $ee, $ee, $c6, $82, $00
+; $9ba5
+SpriteData3:
+		!byte $00, $0a
+; $9ba7
+SpriteData2:
+		!byte $00
 		!byte $82, $00, $c6, $82, $00, $7c, $38, $10
-		!byte $7c, $38, $38, $10, $10, $4c, $9b, $56
-		!byte $9b, $6a, $9b, $7e, $9b, $92, $9b, $e3
-		!byte $06, $02, $a6, $7a, $64, $74, $74, $74
-		!byte $a4, $7c, $7c, $70, $88, $7c, $04, $02
-		!byte $01, $01, $04, $2c, $44, $54, $64, $74
-		!byte $84, $94, $a4, $b4, $c4, $3a, $46, $52
-		!byte $62, $76, $82, $96, $a6, $b2, $be, $0e
-		!byte $4c, $18, $4c, $22, $4c, $2c, $4c, $36
-		!byte $4c, $40, $4c, $4a, $4c, $54, $4c, $5e
-		!byte $4c, $68, $4c, $7c, $ff, $58, $7c, $9e
+		!byte $7c, $38, $38, $10, $10
+; $9bb5
+PointerTable1:
+		!byte $4c, $9b, $56
+		!byte $9b, $6a, $9b, $7e, $9b, $92, $9b
+; $9bbf
+Table1:
+		!byte $e3, $06, $02, $a6, $7a, $64, $74, $74
+		!byte $74, $a4, $7c, $7c, $70, $88, $7c, $04
+		!byte $02, $01, $01, $04
+; $9bd3
+Table4:
+		!byte $2c, $44, $54, $64, $74, $84, $94, $a4
+		!byte $b4, $c4
+; $9bdd
+Table5:
+		!byte $3a, $46, $52, $62, $76, $82, $96, $a6
+		!byte $b2, $be
+; $9be7
+PointerTable2:
+		!byte $0e, $4c, $18, $4c, $22, $4c, $2c, $4c
+		!byte $36, $4c, $40, $4c, $4a, $4c, $54, $4c
+		!byte $5e, $4c, $68, $4c
+; $9bfb
+		!byte $7c, $ff, $58, $7c, $9e
 		!byte $ff, $58, $9e, $ff, $3c, $ac, $ff, $ff
+; $9c08
+Table7:
 		!byte $00, $0c, $02, $06, $00, $06, $00, $09
 		!byte $02, $0c, $64, $84, $ff, $38, $4c, $64
 		!byte $84, $9c, $bc, $ff, $3c, $ff, $38, $5c
 		!byte $9c, $bc, $ff, $4c, $74, $8c, $ac, $ff
+; $9C28
+Table8:
 		!byte $00, $03, $0a, $0c, $11, $11, $0c, $0a
 		!byte $03, $00
 ; -------------------------------------------------------------------------------------------------
-; SpriteColors Sprite color table
+; $9c32 SpriteColors Sprite color table
 SpriteColors:
 		!byte RED, LIGHTRED, GREEN, ORANGE
 		!byte YELLOW, BROWN, ORANGE, GRAY3
 ; -------------------------------------------------------------------------------------------------
-; 		
-		!byte $0f, $0a, $0f, $0d, $90, $60
-		!byte $30, $04, $00, $00, $ff, $c0, $80, $40
-		!byte $00, $c0, $00, $00, $00, $c0, $00, $00
-		!byte $00, $40, $00, $00, $00, $00, $00, $00
-		!byte $92, $54, $00, $c6, $00, $54, $92, $00
-		!byte $00, $00, $00, $c6, $29, $29, $29, $29
-		!byte $29, $c6, $00, $00, $00, $00, $00, $38
-		!byte $45, $05, $19, $21, $41, $7c, $00, $00
-		!byte $00, $00, $00, $08, $19, $29, $49, $7d
-		!byte $09, $08, $00, $00, $00, $00, $00, $38
-		!byte $45, $45, $39, $45, $45, $38, $00, $00
-		!byte $00, $00, $00, $8c, $91, $a1, $b9, $a5
-		!byte $a5, $98, $00, $00, $0c, $08, $08, $21
-		!byte $00, $19, $00, $15, $0c, $21, $19, $08
-		!byte $00, $15, $15, $00, $0d, $08, $08, $23
-		!byte $00, $1a, $00, $16, $0d, $23, $1a, $08
-		!byte $00, $16, $16, $00, $0c, $08, $08, $21
-		!byte $00, $19, $00, $15, $0c, $21, $19, $08
-		!byte $00, $15, $15, $00, $0c, $15, $16, $17
-		!byte $00, $17, $19, $1a, $00, $1a, $1c, $1d
-		!byte $00, $21, $21, $00, $8f, $61, $61, $87
-		!byte $00, $1e, $00, $1f, $8f, $87, $1e, $61
-		!byte $00, $1f, $1f, $00, $4e, $e1, $e1, $86
-		!byte $00, $9c, $00, $60, $4e, $86, $9c, $e1
-		!byte $00, $60, $60, $00, $8f, $61, $61, $87
-		!byte $00, $1e, $00, $1f, $8f, $87, $1e, $61
-		!byte $00, $1f, $1f, $00, $8f, $1f, $60, $b5
-		!byte $00, $b5, $1e, $9c, $00, $9c, $31, $df
-		!byte $00, $87, $87, $00, $6b, $9c, $77, $9c
-		!byte $83, $9c, $8f, $9c, $19, $1a, $1c, $1d
-		!byte $20, $23, $00, $23, $1d, $1a, $17, $15
-		!byte $12, $00, $86, $4c, $93, $4c, $9b, $4c
-		!byte $a3, $4c, $96, $a4, $62, $74, $82, $64
-		!byte $62, $64, $62, $94, $52, $74, $96, $94
-		!byte $a6, $74, $96, $54, $52, $b4, $be, $c4
-		!byte $82, $44, $52, $a4, $b2, $b4, $82, $44
-		!byte $52, $44, $be, $2c, $3a, $2c, $be, $c4
-		!byte $3a, $c4, $00, $0b, $16, $21, $2c, $33
-		!byte $3a, $41, $48, $53, $60, $6d, $80, $99
-		!byte $b6, $c9, $3a, $3c, $3e, $3e, $40, $40
-		!byte $42, $42, $46, $46, $4a, $4a, $4c, $4c
-		!byte $4c, $4c, $4c, $4c, $4c, $4a, $4a, $48
-		!byte $48, $44, $44, $40, $40, $3e, $3e, $3c
-		!byte $3a, $00, $4e, $4f, $5f, $60, $00, $50
-		!byte $51, $5f, $60, $00, $52, $53, $5f, $60
-		!byte $00, $54, $55, $5f, $60, $56, $57, $5e
-		!byte $5f, $60, $58, $59, $5e, $5f, $60, $5a
-		!byte $5b, $5e, $5f, $60, $5c, $5d, $5e, $5f
-		!byte $60, $00, $05, $0a, $0a, $0f, $0f, $14
-		!byte $14, $19, $19, $1e, $1e, $23
+; $9c3a		
+		!byte $0f, $0a, $0f, $0d
+; $9c3e from offset +3 copied to $87-$89
+Tablea:
+		!byte $90, $60, $30, $04, $00, $00
+; $9c44
+DifficultyTable4:
+		!byte $ff, $c0, $80, $40, $00, $c0, $00, $00
+		!byte $00, $c0, $00, $00, $00
+; $9c51
+		!byte $40, $00
+; $9c53
+Table9:
+		!byte $00, $00, $00, $00, $00, $92, $54, $00
+		!byte $c6, $00, $54, $92
+; $9c5f
+Tablec:
+		!byte $00, $00, $00, $00, $c6, $29, $29, $29
+		!byte $29, $29, $c6, $00, $00, $00, $00, $00
+; $9c6f
+		!byte $38, $45, $05, $19, $21, $41, $7c, $00
+		!byte $00, $00, $00, $00, $08, $19, $29, $49
+		!byte $7d, $09, $08, $00, $00, $00, $00, $00
+		!byte $38, $45, $45, $39, $45, $45, $38, $00
+		!byte $00, $00, $00, $00, $8c, $91, $a1, $b9
+		!byte $a5, $a5, $98, $00, $00
+; $9c9c
+FrequencyHi:
+		!byte $0c, $08, $08, $21, $00, $19, $00, $15
+		!byte $0c, $21, $19, $08, $00, $15, $15, $00
+		!byte $0d, $08, $08, $23, $00, $1a, $00, $16
+		!byte $0d, $23, $1a, $08, $00, $16, $16, $00
+		!byte $0c, $08, $08, $21, $00, $19, $00, $15
+		!byte $0c, $21, $19, $08, $00, $15, $15, $00
+		!byte $0c, $15, $16, $17, $00, $17, $19, $1a
+		!byte $00, $1a, $1c, $1d, $00, $21, $21, $00
+; $9cdc
+FrequencyLo:
+		!byte $8f, $61, $61, $87, $00, $1e, $00, $1f
+		!byte $8f, $87, $1e, $61, $00, $1f, $1f, $00
+		!byte $4e, $e1, $e1, $86, $00, $9c, $00, $60
+		!byte $4e, $86, $9c, $e1, $00, $60, $60, $00
+		!byte $8f, $61, $61, $87, $00, $1e, $00, $1f
+		!byte $8f, $87, $1e, $61, $00, $1f, $1f, $00
+		!byte $8f, $1f, $60, $b5, $00, $b5, $1e, $9c
+		!byte $00, $9c, $31, $df, $00, $87, $87, $00
+; $9d1c
+PointerTable3:
+		!byte $6b, $9c, $77, $9c, $83, $9c, $8f, $9c
+; $9d24
+
+		!byte $19, $1a, $1c, $1d, $20, $23, $00
+; $9d2b
+
+		!byte $23, $1d, $1a, $17, $15, $12, $00
+; $9d32
+PointerTable4:
+		!byte $86, $4c, $93, $4c, $9b, $4c, $a3, $4c
+; $9d3a
+Tabled:
+		!byte $96, $a4, $62, $74, $82, $64, $62, $64
+		!byte $62, $94, $52, $74, $96, $94, $a6, $74
+		!byte $96, $54, $52, $b4, $be, $c4, $82, $44
+		!byte $52, $a4, $b2, $b4, $82, $44, $52, $44
+; $9d5a
+Tablee:
+		!byte $be, $2c, $3a, $2c, $be, $c4, $3a, $c4
+; $9d62
+Tableb:
+		!byte $00, $0b, $16, $21, $2c, $33, $3a, $41
+		!byte $48, $53, $60, $6d, $80, $99, $b6, $c9
+; $9d72
+DifficultyTable5:
+		!byte $3a, $3c, $3e, $3e, $40, $40, $42, $42
+		!byte $46, $46, $4a, $4a, $4c, $4c, $4c, $4c
+		!byte $4c, $4c, $4c, $4a, $4a, $48, $48, $44
+		!byte $44
+; $9d8b
+
+		!byte $40, $40, $3e, $3e, $3c
+		!byte $3a
+; $9d91
+DifficultyTable6:
+		!byte $00, $4e, $4f, $5f, $60, $00, $50, $51
+		!byte $5f, $60, $00, $52, $53
+; $9d9e
+		!byte $5f, $60, $00, $54, $55, $5f, $60, $56
+		!byte $57, $5e, $5f, $60, $58, $59, $5e, $5f
+		!byte $60, $5a, $5b, $5e, $5f, $60, $5c, $5d
+		!byte $5e, $5f, $60
+; $9db9 
+DifficultyTable7:
+		!byte $00, $05, $0a, $0a, $0f, $0f, $14, $14
+		!byte $19, $19, $1e, $1e, $23
 ; -------------------------------------------------------------------------------------------------
 ; $9dc6 User font tiles 0 - $3e
 UserFontTiles:
