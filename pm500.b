@@ -745,18 +745,18 @@ l86bc:	cpy #$03
 l86c3:	lda #$91
 l86c5:	sta $0d4f
 		ldx #$0a
-l86ca:	lda $9e58,x
+l86ca:	lda Text_PlayerGame,x
 		sta $0d51,x
 		sta $0cd9,x
 		dex
 		bpl l86ca
 		jsr InitMenu
 		ldx #$0b
-l86db:	lda $9e37,x
+l86db:	lda Text_PressF3To,x
 		sta $0d27,x
-		lda $9e43,x
+		lda Text_PressF5To,x
 		sta $0e40,x
-		lda $9e2b,x
+		lda Text_PressF1To,x
 		sta $0ee0,x
 		dex
 		bpl l86db
@@ -767,12 +767,12 @@ l86db:	lda $9e37,x
 		adc #$01
 		sta $0dcd
 		ldx #$10
-l8700:	lda $9e63,x
+l8700:	lda Text_ChangeDifficulty,x
 		sta $0e65,x
 		dex
 		bpl l8700
 		ldx #$08
-l870b:	lda $9e4f,x
+l870b:	lda Text_PlayGame,x
 		sta $0f09,x
 		dex
 		bpl l870b
