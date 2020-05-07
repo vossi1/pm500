@@ -633,13 +633,13 @@ Interrupt:
 		lda #$81
 		sta (VIC),y						; clear VIC raster interrupt
 		dec $30							;
-		pla
-		sta IndirectBank				; restore indirect bank
 		jsr l864f				; draw screen
-;		lda $a4
-;		bne iskpspr						; skip if $a4 is not 0
-;		jsr l8b93				; sprite direction compare loop
-;iskpspr:ldx #$ff
+
+		lda $a4
+		bne iskpspr						; skip if $a4 is not 0
+		jsr l8b93				; sprite direction compare loop
+iskpspr:
+;		ldx #$ff
 ;		stx $dc02						; set CIA1 port A for output
 ;		dex
 ;		stx $dc00				; ignore all columns
@@ -650,6 +650,8 @@ Interrupt:
 ;		ldx #$00
 ;		stx $dc02						; reset CIA1 port B to input
 inorast:pla
+		sta IndirectBank				; restore indirect bank
+		pla
 		tay
 		pla
 		tax
@@ -685,6 +687,7 @@ inorast:jmp $ea7e						; jump to kernal interrupt
 ; -------------------------------------------------------------------------------------------------
 ; $85bd
 InitMenu:
+!ifdef 	P500{
 		lda IndirectBank
 		pha
 		lda #SYSTEMBANK					; remember indirect bank 
@@ -705,6 +708,20 @@ InitMenu:
 		sta (VIC),y						; VIC disable sprites
 		pla
 		sta IndirectBank				; restore indirect bank
+		rts
+} else{
+}
+		lda #$00
+		ldx #$07
+-		sta sprite_x,x
+		dex
+		bpl -
+		lda #$3a						; VM13-10=$3 screen $0a00, CB13,12,11,x=1010 char $2800						; VIC memory pointers
+		sta $d018						; set VIC memory pointers
+		lda #$c8
+		sta $d016						; set VIC Multicolor mode off, 40 Columns
+		jsr SoundOff					; returns with A=$00
+		sta $d015						; VIC disable sprites
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $85d8
