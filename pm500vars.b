@@ -11,26 +11,11 @@
 ; compreessed font data are 2bit count + 6bit tile numbers of table at $9dc6
 ; Only SID voices 1+2 are used with sawtooth+triangle
 ; SID voice 3 with noise and reg $1b used for random number generation 
-; ************************************** USER ADDRESSES *******************************************
-!addr GameScreen		= $0400		; Game screen page
-!addr SpriteDataPointer	= $07f8		; 5 Pointer to sprite 0-4
-!addr Playfield			= GameScreen + 2*40	; Line 2 of game screen
-!addr MenuScreen		= $0a00		; game screen page
-!addr CharGame			= $2000		; User character game
-!addr CharMenu			= $2800		; User character menu
-!addr SpriteData		= $3000		; Sprite data 5x $40
-!addr MapData			= $4000		; Map data
-!addr ScreenBackup1		= $4400		; Game screen backup player 1
-!addr ScreenBackup2		= $4800		; Game screen backup player 2
-!addr MapData			= $4000		; Map data
-!addr LookUpTable		= $4c00		; LookUp Table 484 nibbles
-!addr SpriteRAM			= $5300		; 5x Sprite RAM -$57ff
-
 ; ***************************************** ZERO PAGE *********************************************
 !addr state				= $07		; 0 = game, 3 = menu
 !addr players			= $08		; 0 = 1 player, 1 = 2 players
 !addr difficulty		= $09		; 0, 1, 2, 4, 6, 8, a, c
-!addr jiffy_start		= $0b		; jiffy-1 at start
+!addr delay_menu		= $0b		; jiffy-1 at start for 5s menu delay
 !addr temp				= $18		; temp byte
 !addr lives1			= $1a		; lives player 1 (starts with 3)
 !addr lives2			= $1b		; lives player 2 (starts with 3)
@@ -53,5 +38,14 @@
 ; ***************************************** VARIABLES *********************************************
 !addr sprite_x			= $02d0		; -$02d4 sprite x positions (>>1 +$2c)
 
-; -------------------------------------------------------------------------------------------------
-; $
+!ifdef 	P500{
+		lda #SYSTEMBANK
+		sta IndirectBank				; select bank 15
+		ldy #$
+		sta (VIC),y						; VIC exterior color = black
+		lda #GAMEBANK
+		sta IndirectBank				; select bank 0
+} else{
+}
+
+

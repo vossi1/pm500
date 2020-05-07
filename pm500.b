@@ -112,8 +112,13 @@ VR_EIRQ					= $1a
 ; ***************************************** VARIABLES *********************************************
 !addr sprite_x			= $02d0		; -$02d4 sprite x positions (>>1 +$2c)
 ; ************************************** P500 ZERO PAGE *******************************************
-!addr ColorRAM			= $f0
-!addr VIC				= $f2
+!addr ColorRAM0			= $e6
+!addr ColorRAM1			= $e8
+!addr ColorRAM2			= $ea
+!addr ColorRAM3			= $ec
+!addr VIC				= $ee
+!addr VIC01				= $f0
+!addr VIC10				= $f2
 !addr SID				= $f4
 !addr CIA				= $f6
 !addr TPI1				= $f8
@@ -493,10 +498,26 @@ clvarlp:sta $0e,x						; clear game variables $0e-$2d
 		jsr BackupGameScreen2			; init game screen player2 $4800
 		lda state						; state at startup = 1
 		bne notgame						; branch if not game state = 0
-; start new game
 		lda jiffy
 waitlp :cmp jiffy
 		beq waitlp						; wait one jiffy = 20ms
+!ifdef 	P500{
+		ldy #SYSTEMBANK
+		sty IndirectBank				; select bank 15
+		lda #$18						; VM13-10=$1 screen at $0400, CB13,12,11,x=1000 char at $2000
+		ldy #$18
+		sta (VIC),y						; set VIC memory pointers
+		lda #$d8
+		ldy #$16
+		sta (VIC),y						; VIC multicolormode MCM=1, 40 columns
+		lda #$1f
+		ldy #$15
+		sta (VIC),y						; VIC enable spritess 0-4
+		ldy #$1d
+		sta (VIC),y						; VIC x-expand sprites 0-4
+		ldy #GAMEBANK
+		sty IndirectBank				; select bank 0
+} else{
 		lda #$18						; VM13-10=$1 screen at $0400, CB13,12,11,x=1000 char at $2000
 		sta $d018						; set VIC memory pointers
 		lda #$d8
@@ -504,6 +525,7 @@ waitlp :cmp jiffy
 		lda #$1f
 		sta $d015						; VIC enable spritess 0-4
 		sta $d01d						; VIC x-expand sprites 0-4
+}
 		jsr InitNewGame
 		jsr InitGameVariables
 		lda players
@@ -522,9 +544,20 @@ notgame:lda state
 		bne checkey
 		lda #$04
 		bne SetState4					; set state to 4
+!ifdef 	P500{
+checkey:lda #SYSTEMBANK
+		sta IndirectBank				; select bank 15
+		ldy #$00
+		lda (CIA),y						; load CIA Port A
+		sty IndirectBank				; select bank 0 - Y already $00
+		ora #$3f						; ignore bit#0-5
+		cmp #$ff						; check if bit#6 or 7 = 0 -> joystick button pressed
+		bne mnewgam
+} else{
 checkey:lda #$10
 		bit $dc00						; check CIA1 Porta column 4 = Joy 2 button
 		beq mnewgam
+}
 chkfkey:lda pressed_key
 		cmp #$ff
 		beq notgame						; no key pressed
@@ -584,12 +617,14 @@ Interrupt:
 		pha
 		tya
 		pha
+		lda IndirectBank
+		pha								; remember active indirect bank on stack
 		lda #SYSTEMBANK
 		sta IndirectBank				; select bank 15
 		ldy #$19
 		lda (VIC),y						; load VIC interrupt reg and mask bit 1
 		and #$01
-		beq inoraster					; skip if source is not raster interrupt
+		beq inorast						; skip if source is not raster interrupt
 		inc jiffy						; increase jiffy
 		ldy #$12
 		lda #$32
@@ -598,8 +633,8 @@ Interrupt:
 		lda #$81
 		sta (VIC),y						; clear VIC raster interrupt
 		dec $30							;
-		lda #GAMEBANK
-		sta IndirectBank				; select bank 15
+		pla
+		sta IndirectBank				; restore indirect bank
 		jsr l864f				; draw screen
 ;		lda $a4
 ;		bne iskpspr						; skip if $a4 is not 0
@@ -614,8 +649,7 @@ Interrupt:
 ;		sta pressed_key					; store pressed key
 ;		ldx #$00
 ;		stx $dc02						; reset CIA1 port B to input
-inoraster:
-		pla
+inorast:pla
 		tay
 		pla
 		tax
@@ -651,17 +685,26 @@ inorast:jmp $ea7e						; jump to kernal interrupt
 ; -------------------------------------------------------------------------------------------------
 ; $85bd
 InitMenu:
+		lda IndirectBank
+		pha
+		lda #SYSTEMBANK					; remember indirect bank 
+		sta IndirectBank
 		lda #$00
 		ldx #$07
 -		sta sprite_x,x
 		dex
 		bpl -
 		lda #$3a						; VM13-10=$3 screen $0a00, CB13,12,11,x=1010 char $2800						; VIC memory pointers
-		sta $d018						; set VIC memory pointers
+		ldy #$18
+		sta (VIC),y						; set VIC memory pointers
 		lda #$c8
-		sta $d016						; set VIC Multicolor mode off, 40 Columns
+		ldy #$16
+		sta (VIC),y						; set VIC Multicolor mode off, 40 Columns
 		jsr SoundOff					; returns with A=$00
-		sta $d015						; VIC disable sprites
+		ldy #$15
+		sta (VIC),y						; VIC disable sprites
+		pla
+		sta IndirectBank				; restore indirect bank
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $85d8
@@ -843,7 +886,30 @@ l870b:	lda Text_PlayGame,x
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $8715 set sprite positions 0-4
-SetSpritePositions:
+SetSpritePositions:	
+!ifdef 	P500{			; already in systembank from interrupt routine
+		ldx #$04						; start with sprite 4
+		ldy #$08						; x-position reg of sprite 4
+spposlp:lda sprite_x,x						; load x
+		sec
+		sbc #$2c						; calc sprite x postion
+		asl
+		sta (VIC),y						; set VIC sprite x
+;		lda $d010						; load sprite x MSB register from VIC
+		bcc spnomsb						; skip if x-value <= $ff
+		ora SpriteSetMSBMask,x			; set bit with bit-set-table
+		bne spnoclr						; skip nextx instruction
+spnomsb:and SpriteClearMSBMask,x		; clear bit with bit-clear-table
+spnoclr:;sta $d010						; store new X-MSB-byte to VIC
+		lda sprite_y,x					; load y
+		clc
+		adc #$1b						; calc sprite y postion
+		sta (VIC01),y					; set VIC sprite y
+		dey
+		dey
+		dex
+		bpl spposlp						; next sprite
+} else{
 		ldx #$04						; start with sprite 4
 		ldy #$08						; x-position reg of sprite 4
 spposlp:lda sprite_x,x						; load x
@@ -865,6 +931,7 @@ spnoclr:sta $d010						; store new X-MSB-byte to VIC
 		dey
 		dex
 		bpl spposlp						; next sprite
+}
 		ldx #$04
 		lda #$c4
 sppntlp:sta SpriteDataPointer,x			; copy sprite data pointer for all 5 sprites
@@ -877,6 +944,10 @@ sppntlp:sta SpriteDataPointer,x			; copy sprite data pointer for all 5 sprites
 		lda #$53
 		sta spritedata_pointer+1
 		jsr SetPacmanDataEnd
+!ifdef 	P500{
+		lda #GAMEBANK
+		sta IndirectBank				; select bank 0 for $cx access
+}
 spmcplp:lda ($c0),y						; copy pacman sprite data
 		sta SpriteData+$100,x
 		dex
@@ -925,6 +996,10 @@ sg3cplp:lda ($c0),y						; copy ghost 3 sprite data
 		dey
 		cpy #$01						; reach last byte
 		bne sg3cplp
+!ifdef 	P500{
+		lda #SYSTEMBANK
+		sta IndirectBank				; restore to bank 15
+}
 		lda jiffy
 		and #$0f
 		bne l87c6
@@ -2241,6 +2316,33 @@ clramlp:sta SpriteData,x
 ; -------------------------------------------------------------------------------------------------
 ; $913a Init color RAM + Sprite colors
 ColorInit:
+!ifdef 	P500{
+		lda #SYSTEMBANK
+		sta IndirectBank				; select bank 15
+		lda #GRAY3
+		ldy #$00
+coinlp1:sta (ColorRAM0),y				; init color RAM with gray3
+		sta (ColorRAM1),y
+		sta (ColorRAM2),y
+		sta (ColorRAM3),y
+		dey
+		bne coinlp1
+		ldy #40*2 - 1
+		lda #WHITE
+coinlp2:sta (ColorRAM0),y				; init lines 0-1 with white
+		dey
+		bpl coinlp2
+		ldx #7							; sprite 7-0
+		ldy #$27+7
+coinlp3:lda SpriteColors,x
+		sta (VIC),y						; init VIC Sprite colors from table
+		dey
+		dex
+		bpl coinlp3
+		lda #GAMEBANK
+		sta IndirectBank				; select bank 15
+		rts
+} else{
 		ldx #$00
 		lda #GRAY3
 coinlp1:sta ColorRAM64,x				; init color RAM with gray3
@@ -2260,6 +2362,7 @@ coinlp3:lda SpriteColors,x
 		dex
 		bpl coinlp3
 		rts
+}
 ; -------------------------------------------------------------------------------------------------
 ; $9163 init Screen
 InitGameScreen:
@@ -3880,9 +3983,9 @@ cLookUpTable:
 InitP500:
 		ldx #$00
 iniiolp:lda IOPointerTable,x			; copy 8 IO pointer to ZP
-		sta ColorRAM,x
+		sta ColorRAM0,x
 		inx
-		cpx #$10
+		cpx #$1a
 		bne iniiolp
 		
 		lda #<Interrupt					; set IRQ vector to interrupt routine
@@ -3915,7 +4018,12 @@ iniiolp:lda IOPointerTable,x			; copy 8 IO pointer to ZP
 ; I/O pointer table
 IOPointerTable:
 		!word ColorRAMbase
+		!word ColorRAMbase+$100
+		!word ColorRAMbase+$200
+		!word ColorRAMbase+$300
 		!word VICbase
+		!word VICbase+1
+		!word VICbase+$10
 		!word SIDbase
 		!word CIAbase
 		!word TPI1base
