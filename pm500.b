@@ -1058,7 +1058,7 @@ l8909:	sta $26
 		ldy #$0f
 l892a:	lda (pointer1),y
 		sta ($26),y
-		lda Tablec,y
+		lda Table2,y
 		sta ($28),y
 		dey
 		bpl l892a
@@ -2417,10 +2417,10 @@ l9325:	dex
 		stx $67
 l9331:	inc $67
 l9333:	tax
-		lda PointerTable1,y
+		lda SpriteDataTablePointer,y
 		sta pointer1
 		iny
-		lda PointerTable1,y
+		lda SpriteDataTablePointer,y
 		sta pointer1+1
 		txa
 		clc
@@ -3542,9 +3542,12 @@ SpriteData2:
 		!byte $82, $00, $c6, $82, $00, $7c, $38, $10
 		!byte $7c, $38, $38, $10, $10
 ; $9bb5
-PointerTable1:
-		!byte $4c, $9b, $56
-		!byte $9b, $6a, $9b, $7e, $9b, $92, $9b
+SpriteDataTablePointer:
+		!byte <(SpriteDataTable+$3c), >(SpriteDataTable+$3c)
+		!byte <(SpriteDataTable+$46), >(SpriteDataTable+$46)
+		!byte <(SpriteDataTable+$5a), >(SpriteDataTable+$5a)
+		!byte <(SpriteDataTable+$6e), >(SpriteDataTable+$6e)
+		!byte <(SpriteDataTable+$82), >(SpriteDataTable+$82)
 ; $9bbf
 Table1:
 		!byte $e3, $06, $02, $a6, $7a, $64, $74, $74
@@ -3564,8 +3567,8 @@ PointerTable2:
 		!byte $36, $4c, $40, $4c, $4a, $4c, $54, $4c
 		!byte $5e, $4c, $68, $4c
 ; $9bfb
-		!byte $7c, $ff, $58, $7c, $9e
-		!byte $ff, $58, $9e, $ff, $3c, $ac, $ff, $ff
+		!byte $7c, $ff, $58, $7c, $9e, $ff, $58, $9e
+		!byte $ff, $3c, $ac, $ff, $ff
 ; $9c08
 Table7:
 		!byte $00, $0c, $02, $06, $00, $06, $00, $09
@@ -3598,10 +3601,9 @@ Table9:
 		!byte $00, $00, $00, $00, $00, $92, $54, $00
 		!byte $c6, $00, $54, $92
 ; $9c5f
-Tablec:
+Table2:
 		!byte $00, $00, $00, $00, $c6, $29, $29, $29
 		!byte $29, $29, $c6, $00, $00, $00, $00, $00
-; $9c6f
 		!byte $38, $45, $05, $19, $21, $41, $7c, $00
 		!byte $00, $00, $00, $00, $08, $19, $29, $49
 		!byte $7d, $09, $08, $00, $00, $00, $00, $00
@@ -3630,7 +3632,10 @@ FrequencyLo:
 		!byte $00, $9c, $31, $df, $00, $87, $87, $00
 ; $9d1c
 PointerTable3:
-		!byte $6b, $9c, $77, $9c, $83, $9c, $8f, $9c
+		!byte <(Table2+$0c), >(Table2+$0c)
+		!byte <(Table2+$18), >(Table2+$18)
+		!byte <(Table2+$24), >(Table2+$24)
+		!byte <(Table2+$30), >(Table2+$30)
 ; $9d24
 
 		!byte $19, $1a, $1c, $1d, $20, $23, $00
