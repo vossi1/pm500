@@ -558,11 +558,26 @@ checkey:ldy #$00
 		ora #$3f						; ignore bit#0-5
 		cmp #$ff						; check if bit#6 or 7 = 0 -> joystick button pressed
 		bne mnewgam
+chkfkey:lda pressed_key
+		cmp #$07
+		beq notgame						; no key pressed
+keydebo:cmp pressed_key
+		beq keydebo						; debounce key
+		cmp #$03
+		beq mnewgam						; F1 -> start new game
+		ldx state
+		cpx #$03
+		bcc SetStateMenu				; set state to 3 = menu (at startup its 1)
+		cmp #$06
+		beq IncreaseDifficulty			; F5 -> increase difficulty
+		cmp #$05
+		beq TogglePlayers				; F3 -> toggle players
+		bne notgame
+
 } else{
 checkey:lda #$10
 		bit $dc00						; check CIA1 Porta column 4 = Joy 2 button
 		beq mnewgam
-}
 chkfkey:lda pressed_key
 		cmp #$ff
 		beq notgame						; no key pressed
@@ -578,6 +593,7 @@ keydebo:cmp pressed_key
 		cmp #$df
 		beq TogglePlayers				; F3 -> toggle players
 		bne notgame
+}
 ; start new game
 mnewgam:lda #$00						; start new game
 		sta $0e
@@ -626,6 +642,7 @@ Interrupt:
 		pha								; remember on stack
 		lda #SYSTEMBANK
 		sta IndirectBank				; select bank 15
+
 		ldy #$19
 		lda (VIC),y						; load VIC interrupt reg and mask bit 1
 		and #$01
@@ -643,17 +660,43 @@ Interrupt:
 		lda $a4
 		bne iskpspr						; skip if $a4 is not 0
 		jsr l8b93				; sprite direction compare loop
-iskpspr:
-;		ldx #$ff
-;		stx $dc02						; set CIA1 port A for output
-;		dex
-;		stx $dc00				; ignore all columns
-;idebkey:lda $dc01						; load CIA1 port B
-;		cmp $dc01
-;		bne idebkey						; debounce key
-;		sta pressed_key					; store pressed key
-;		ldx #$00
-;		stx $dc02						; reset CIA1 port B to input
+
+iskpspr:ldy #$00
+		sty pressed_key					; clear key variable
+		lda #$fe
+		iny
+		sta (TPI2),y					; set TPI2 port B keyboard out 0 for F1 column
+		iny
+if1deb:	lda (TPI2),y					; load TPI2 port C
+		sta $e0
+		lda (TPI2),y
+		cmp $e0
+		bne if1deb						; debounce
+		lsr								; shift bit#0 in carry
+		rol pressed_key					; shift bit in key variable
+		lda #$fb
+		dey
+		sta (TPI2),y					; set TPI2 port B keyboard out 2 for F3 column
+		iny
+if3deb:	lda (TPI2),y					; load TPI2 port C
+		sta $e0
+		lda (TPI2),y
+		cmp $e0
+		bne if3deb						; debounce
+		lsr								; shift bit#0 in carry
+		rol pressed_key					; shift bit in key variable
+		lda #$ef
+		dey
+		sta (TPI2),y					; set TPI2 port B keyboard out 4 for F5 column
+		iny
+if5deb:	lda (TPI2),y					; load TPI2 port C
+		sta $e0
+		lda (TPI2),y
+		cmp $e0
+		bne if5deb						; debounce
+		lsr								; shift bit#0 in carry
+		rol pressed_key					; shift bit in key variable
+
 inorast:pla
 		sta IndirectBank				; restore indirect bank before interrupt
 		pla
@@ -4010,9 +4053,9 @@ iniiolp:lda IOPointerTable,x			; copy 8 IO pointer to ZP
 		ora #$a0						; set bit#5,4=10 CA=low -> Video matrix in bank 0
 		sta (TPI1),y					; set bit#7,6=10 CB=high -> Characterset in bank 0 
 		ldy #$02
-		lda (TPI2),y					; load TRI2 port c
+		lda (TPI2),y					; load TPI2 port c
 		and #$3f						; clear bit#6,7 vic 16k select bank $0000-$3fff
-		sta (TPI2),y					; store to TRI2 port c
+		sta (TPI2),y					; store to TPI2 port c
 		lda #$3a
 		ldy #$18						; VIC reg $18 memory pointers
 		sta (VIC),y						; set VM13-10=$3 screen at $0a00, CB13,12,11,x=1010 char at $2800
@@ -4022,6 +4065,9 @@ iniiolp:lda IOPointerTable,x			; copy 8 IO pointer to ZP
 		lda #$00
 		ldy #$05
 		sta (TPI1),y					; set TPI1 reg $5 interrupt mask reg = $00 - disable all irq
+		lda #$ff
+		ldy #$00
+		sta (TPI2),y					; reset TPI2 port a to no column
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; I/O pointer table
