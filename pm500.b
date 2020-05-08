@@ -11,11 +11,14 @@ P500 = 1		; P500 bank 0 file
 		} else{ !to "pm500.rom", plain }}
 ; ########################################### TODO ################################################
 ;
-; VIC, CIA, SID, Color RAM indirect access
 ; add highscore text above score
 ; add extra fruits in one color for menu difficulty
 ;
-; #################################################################################################
+; ########################################### BUGS ################################################
+;
+; Fruits in menu are not in multicolor so they look like zebra ;)
+; Background color 2 for multicolor is not set to 2 but works on C64 because its VIC reset value
+;
 ; ******************************************* INFO ************************************************
 ; Menu screen is at $0a00, menu font at $2800
 ; Game screen is at $0400, game font at $2000, multicolor
@@ -130,12 +133,13 @@ SR_RANDOM				= $1b
 ; ***************************************** VARIABLES *********************************************
 !addr sprite_x			= $02d0		; -$02d4 sprite x positions (>>1 +$2c)
 ; ************************************** P500 ZERO PAGE *******************************************
-!addr ColorRAM0			= $e8
-!addr ColorRAM1			= $ea
-!addr ColorRAM2			= $ec
-!addr ColorRAM3			= $ee
-!addr VIC				= $f0
-!addr VIC01				= $f2
+!addr ColorRAM0			= $e6
+!addr ColorRAM1			= $e8
+!addr ColorRAM2			= $ea
+!addr ColorRAM3			= $ec
+!addr VIC				= $ee
+!addr VIC01				= $f0
+!addr VIC27				= $f2
 !addr SID				= $f4
 !addr CIA				= $f6
 !addr TPI1				= $f8
@@ -430,9 +434,9 @@ fntcplp:lda CharROM64+$100,x			; load from character ROM
 		sta pointer1
 		lda #>cUserFontMenu
 		sta pointer1+1					; pointer1 = $9e82
-		lda #<CharMenu+$08
+		lda #<(CharMenu+$08)
 		sta pointer2
-		lda #>CharMenu
+		lda #>(CharMenu+$08)
 		sta pointer2+1					; pointer2 = $2808
 		jsr UncompressUserFont			; copy menu user font
 ; $847f Copy user chars to menu user font
@@ -519,6 +523,9 @@ clvarlp:sta $0e,x						; clear game variables $0e-$2d
 		lda #LIGHTBLUE
 		iny
 		sta (VIC),y						; VIC background color1 = lightblue
+		lda #RED
+		iny
+		sta (VIC),y						; VIC background color2 = red
 		ldy #$ff			; set Y = $ff because its set to this value after SoundOff
 } else{
 		sta $d020						; VIC exterior color = black
@@ -1088,8 +1095,8 @@ sg3cplp:lda ($c0),y						; copy ghost 3 sprite data
 		and #$0f
 		bne l87c6
 !ifdef 	P500{
-		ldy #$00
-		lda (CIA),y						; load CIA Port A
+		ldy #$00						
+		lda (CIA),y						; load CIA Port A - joystick button = pause
 		ora #$3f						; ignore bit#0-5
 		cmp #$ff						; check if bit#6 and 7 = 1 -> no joystick button pressed
 		beq l87c0
@@ -1132,7 +1139,7 @@ l87f6:	inc $10
 		lda #$00
 		sta $03
 		sta $0a
-		jmp l8cd7
+		jmp Ready
 ; -------------------------------------------------------------------------------------------------
 ; $8801 calc new ghost data pointer
 SetGhostDataEnd:
@@ -1278,7 +1285,7 @@ l88e3:	adc #$02
 !ifdef 	P500{
 		stx temp
 		ldy temp
-		sta (VIC),y						; set VIC sprite color = white (ghost)
+		sta (VIC27),y						; set VIC sprite color = white (ghost)
 } else{
 		sta $d027,x						; set VIC sprite color = white (ghost)
 }
@@ -1370,16 +1377,16 @@ l897b:	lda $5b
 		cmp #$84
 		bne l89da
 		ldx $19
-		lda difficulty1,x
+		lda difficulty1,x				; load player difficulty
 		cmp #$0c
 		bcc l8995
-		lda #$0c
+		lda #$0c						; limit to $0c
 l8995:	tax
-		lda DifficultyTable7,x
+		lda DifficultyTable7,x			; load index from table
 		tax
 		ldy #$00
 l899c:	lda DifficultyTable6,x
-		sta $0641,y
+		sta $0641,y						; fruit middle of screen
 		inx
 		iny
 		cpy #$05
@@ -1579,7 +1586,7 @@ l8b2b:	ldx $19
 		lda lives1,x
 		beq l8b3a
 		jsr InitNewGame
-		jsr l8cd7
+		jsr Ready
 		jmp PlayerDead
 l8b3a:	lda #$2c
 		ldx #$00
@@ -1824,7 +1831,7 @@ l8cb9:	jsr l8e49
 		ldx $19
 		inc lives1,x
 		inc difficulty1,x
-		jsr l8cd7
+		jsr Ready
 		jsr PlayerDead
 		lda #$00
 		sta $14
@@ -1835,20 +1842,20 @@ l8cb9:	jsr l8e49
 		sta $13
 		rts
 ; -------------------------------------------------------------------------------------------------
-; $8cd7
-l8cd7:	lda #$22
+; $8cd7 print READY: and difficulty fruits
+Ready:	lda #$22						; first READY: char ( $22-$2b )
 		ldx #$00
 !ifdef 	P500{				; X already $00
 		stx IndirectBank				; select bank 0 for pointer operations
 }
-l8cdb:	sta $063f,x
+readylp:sta $063f,x						; screen position for READY:
 		clc
 		adc #$01
 		inx
-		cpx #$0a
-		bne l8cdb
+		cpx #$0a						; 10 chars
+		bne readylp
 		ldx $19
-		lda difficulty1,x
+		lda difficulty1,x				; load player difficulty
 		cmp #$06
 		bcc l8cf6
 		cmp #$0a
@@ -1863,19 +1870,19 @@ l8cf8:	sty $5c
 		sta temp
 		lda #$e2
 		sta pointer2
-		lda #$07
+		lda #$07						; pointer2 = fruit screen position $07e2
 		sta pointer2+1
 		ldx #$00
-l8d0c:	lda DifficultyTable5,x
-		sta (pointer2),y
-		inc pointer2
+l8d0c:	lda DifficultyTable5,x			; load fruit char from table
+		sta (pointer2),y				; store fruit code to screen
+		inc pointer2					; screen pointer to second char
 		clc
-		adc #$01
+		adc #$01						; add 1 to char code for second fruit char
 		sta (pointer2),y
 		cpx temp
 		beq l8d51
 		inx
-		dec pointer2
+		dec pointer2					; next fruit position to the left
 		dec pointer2
 		dec pointer2
 		bne l8d0c
@@ -1886,10 +1893,10 @@ l8d2b:	sec
 		sbc #$06						; substract $06 -> value 0 - $0c
 		sta temp
 		sec
-		lda #<DifficultyTable5+$18				; = $8a
+		lda #<(DifficultyTable5+$18)			; = $8a
 		sbc temp
 		sta pointer1
-		lda #>DifficultyTable5					; pointer to end of table $9d8a (min -$0c)
+		lda #>(DifficultyTable5+$18)			; pointer to end of table = $9d8a (min -$0c)
 		sbc #$00
 		sta pointer1+1
 		ldx #$00
@@ -1903,11 +1910,12 @@ l8d3f:	lda (pointer1),y
 		iny
 		cpy #$07
 		bne l8d3f
+l8d51:
 !ifdef 	P500{
 		lda #SYSTEMBANK
 		sta IndirectBank				; switch back to bank 15
 }
-l8d51:	rts
+		rts
 ; -------------------------------------------------------------------------------------------------
 ; $8d52
 PlayerDead:
@@ -2591,12 +2599,10 @@ coinlp1:sta (ColorRAM0),y				; init color RAM with gray3
 coinlp2:sta (ColorRAM0),y				; init lines 0-1 with white
 		dey
 		bpl coinlp2
-		ldx #7							; sprite 7-0
-		ldy #$27+7
-coinlp3:lda SpriteColors,x
-		sta (VIC),y						; init VIC Sprite colors from table
+		ldy #7							; sprite 7-0
+coinlp3:lda SpriteColors,y
+		sta (VIC27),y						; init VIC Sprite colors from table
 		dey
-		dex
 		bpl coinlp3
 		rts
 } else{
@@ -4189,15 +4195,16 @@ DifficultyTable5:
 		!byte $3a
 ; $9d91
 DifficultyTable6:
-		!byte $00, $4e, $4f, $5f, $60, $00, $50, $51
-		!byte $5f, $60, $00, $52, $53
-; $9d9e
-		!byte $5f, $60, $00, $54, $55, $5f, $60, $56
-		!byte $57, $5e, $5f, $60, $58, $59, $5e, $5f
-		!byte $60, $5a, $5b, $5e, $5f, $60, $5c, $5d
-		!byte $5e, $5f, $60
+		!byte $00, $4e, $4f, $5f, $60	; $00
+		!byte $00, $50, $51, $5f, $60	; $05
+		!byte $00, $52, $53, $5f, $60	; $0a
+		!byte $00, $54, $55, $5f, $60	; $0f
+		!byte $56, $57, $5e, $5f, $60	; $14
+		!byte $58, $59, $5e, $5f, $60	; $19
+		!byte $5a, $5b, $5e, $5f, $60	; $1e
+		!byte $5c, $5d, $5e, $5f, $60	; $23
 ; $9db9 
-DifficultyTable7:
+DifficultyTable7:	; 0-$c difficulty indexes for Difficultytable 6 (for fruit-pos of Screen $0641)
 		!byte $00, $05, $0a, $0a, $0f, $0f, $14, $14
 		!byte $19, $19, $1e, $1e, $23
 ; -------------------------------------------------------------------------------------------------
@@ -4322,7 +4329,7 @@ InitP500:
 iniiolp:lda IOPointerTable,x			; copy 8 IO pointer to ZP
 		sta ColorRAM0,x
 		inx
-		cpx #$18						; number of IO pointers
+		cpx #$1a						; number of IO pointers
 		bne iniiolp
 		
 		lda #<Cold	 					; set NMI vector to Cold start
@@ -4365,6 +4372,7 @@ IOPointerTable:
 		!word ColorRAMbase+$300
 		!word VICbase
 		!word VICbase+1
+		!word VICbase+$27
 		!word SIDbase
 		!word CIAbase
 		!word TPI1base
