@@ -20,13 +20,15 @@ P500 = 1		; P500 bank 0 file
 ; Menu screen is at $0a00, menu font at $2800
 ; Game screen is at $0400, game font at $2000, multicolor
 ; Sprites 0-3 are ghosts, sprite 4 is pacman, sprites are 10/11 px heigh, 6px wide + xpanded -> 12px
-; Sprite data pointer are static $c0-$c4 -> $3000-$3100, sprites are not multicolor
+; Sprite data pointer are static = $c0-$c4 -> $3000-$3100, sprites are not multicolor
 ; Sprite source data is at $5300,$5400-$57ff and will copied in each cycle to the VIC sprite data
 ; First half of char ROM copied to lower half of user fonts
 ; Game screen is compressed at $81ef -> decompressed to $4000
 ; Game font is compressed at $8011 -> decompressed to $2000 
 ; Menu font is compressed at $9e82-> decompressed to $2800
-; compreessed font data are 2bit count + 6bit tile numbers of table at $9dc6
+; 512 Nibble table lo+hi decoded -> $4c00
+; compressed font data are 2bit count + 6bit tile numbers of table at $9dc6
+; - 00-7f char, 80-bf next char repeated 0-3f, c0-fe low nib - next byte high-low nib, ff end
 ; Only SID voices 1+2 are used with sawtooth+triangle
 ; SID voice 3 with noise and reg $1b used for random number generation 
 ; ***************************************** CONSTANTS *********************************************
