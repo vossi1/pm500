@@ -39,6 +39,7 @@ BLACK					= $00
 WHITE					= $01
 RED						= $02
 GREEN					= $05
+BLUE					= $06
 YELLOW					= $07
 ORANGE					= $08
 BROWN					= $09
@@ -50,7 +51,11 @@ LIVES					= 3			; start lives
 ; ************************************** P500 REGISTER ********************************************
 VR_MODEY				= $11
 VR_RASTER				= $12
+VR_MOBMOB				= $1e
 VR_EIRQ					= $1a
+VR_EXTCOL				= $20
+VR_BGRCOL				= $21
+VR_MOBCOL				= $27
 ; ************************************** P500 ADDRESSES *******************************************
 !addr CodeBank			= $00		; code bank register
 !addr IndirectBank		= $01		; indirect bank register
@@ -62,6 +67,7 @@ VR_EIRQ					= $1a
 !addr TPI1base			= $de00		; TPI1
 !addr TPI2base			= $df00		; TPI2
 !addr HW_IRQ			= $fffe		; System IRQ Vector
+!addr HW_NMI			= $fffa		; System NMI Vector
 ; *************************************** C64 ADDRESSES *******************************************
 !addr CPUPort64			= $01		; 6510 CPU port
 !addr CharROM64			= $d000		; Character RAM
@@ -112,13 +118,12 @@ VR_EIRQ					= $1a
 ; ***************************************** VARIABLES *********************************************
 !addr sprite_x			= $02d0		; -$02d4 sprite x positions (>>1 +$2c)
 ; ************************************** P500 ZERO PAGE *******************************************
-!addr ColorRAM0			= $e6
-!addr ColorRAM1			= $e8
-!addr ColorRAM2			= $ea
-!addr ColorRAM3			= $ec
-!addr VIC				= $ee
-!addr VIC01				= $f0
-!addr VIC10				= $f2
+!addr ColorRAM0			= $e8
+!addr ColorRAM1			= $ea
+!addr ColorRAM2			= $ec
+!addr ColorRAM3			= $ee
+!addr VIC				= $f0
+!addr VIC01				= $f2
 !addr SID				= $f4
 !addr CIA				= $f6
 !addr TPI1				= $f8
@@ -146,9 +151,11 @@ VR_EIRQ					= $1a
 !initmem FILL
 *= $8000
 !ifdef 	P500{
+Cold:
 		sei
 		cld
-		jsr InitP500
+		ldx #$ff
+		txs
 		jmp Start
 } else{ 	
 ; ROM ident
@@ -285,6 +292,9 @@ cMapData:
 *= $8394 ; game code
 Start:
 !ifdef 	P500{ 
+		lda #SYSTEMBANK
+		sta IndirectBank				; select bank 15
+		jsr InitP500
 		lda #GAMEBANK
 		sta IndirectBank				; select bank 0 for data copy and init
 } else{
@@ -490,7 +500,7 @@ clvarlp:sta $0e,x						; clear game variables $0e-$2d
 		txs								; init stack with $ff
 		jsr SoundOff					; SID sound off
 !ifdef 	P500{
-		ldy #$20
+		ldy #VR_EXTCOL
 		sta (VIC),y						; VIC exterior color = black
 		iny
 		sta (VIC),y						; VIC background color0 = black
@@ -556,7 +566,7 @@ notgame:lda state
 checkey:ldy #$00
 		lda (CIA),y						; load CIA Port A
 		ora #$3f						; ignore bit#0-5
-		cmp #$ff						; check if bit#6 or 7 = 0 -> joystick button pressed
+		cmp #$ff						; check if bit#6 and 7 = 1 -> no joystick button pressed
 		bne mnewgam
 chkfkey:lda pressed_key
 		cmp #$07
@@ -668,9 +678,9 @@ iskpspr:ldy #$00
 		sta (TPI2),y					; set TPI2 port B keyboard out 0 for F1 column
 		iny
 if1deb:	lda (TPI2),y					; load TPI2 port C
-		sta $e0
+		sta temp
 		lda (TPI2),y
-		cmp $e0
+		cmp temp
 		bne if1deb						; debounce
 		lsr								; shift bit#0 in carry
 		rol pressed_key					; shift bit in key variable
@@ -679,9 +689,9 @@ if1deb:	lda (TPI2),y					; load TPI2 port C
 		sta (TPI2),y					; set TPI2 port B keyboard out 2 for F3 column
 		iny
 if3deb:	lda (TPI2),y					; load TPI2 port C
-		sta $e0
+		sta temp
 		lda (TPI2),y
-		cmp $e0
+		cmp temp
 		bne if3deb						; debounce
 		lsr								; shift bit#0 in carry
 		rol pressed_key					; shift bit in key variable
@@ -690,9 +700,9 @@ if3deb:	lda (TPI2),y					; load TPI2 port C
 		sta (TPI2),y					; set TPI2 port B keyboard out 4 for F5 column
 		iny
 if5deb:	lda (TPI2),y					; load TPI2 port C
-		sta $e0
+		sta temp
 		lda (TPI2),y
-		cmp $e0
+		cmp temp
 		bne if5deb						; debounce
 		lsr								; shift bit#0 in carry
 		rol pressed_key					; shift bit in key variable
@@ -949,17 +959,20 @@ SetSpritePositions:
 !ifdef 	P500{			; already in systembank from interrupt routine
 		ldx #$04						; start with sprite 4
 		ldy #$08						; x-position reg of sprite 4
-spposlp:lda sprite_x,x						; load x
+spposlp:lda sprite_x,x					; load x
 		sec
 		sbc #$2c						; calc sprite x postion
 		asl
 		sta (VIC),y						; set VIC sprite x
-;		lda $d010						; load sprite x MSB register from VIC
+		sty temp						; remember Y
+		ldy #$10
+		lda (VIC),y						; load sprite x MSB register from VIC
 		bcc spnomsb						; skip if x-value <= $ff
 		ora SpriteSetMSBMask,x			; set bit with bit-set-table
 		bne spnoclr						; skip nextx instruction
 spnomsb:and SpriteClearMSBMask,x		; clear bit with bit-clear-table
-spnoclr:;sta $d010						; store new X-MSB-byte to VIC
+spnoclr:sta (VIC),y						; store new X-MSB-byte to VIC
+		ldy temp						; restore Y
 		lda sprite_y,x					; load y
 		clc
 		adc #$1b						; calc sprite y postion
@@ -1062,9 +1075,17 @@ sg3cplp:lda ($c0),y						; copy ghost 3 sprite data
 		lda jiffy
 		and #$0f
 		bne l87c6
+!ifdef 	P500{
+		ldy #$00
+		lda (CIA),y						; load CIA Port A
+		ora #$3f						; ignore bit#0-5
+		cmp #$ff						; check if bit#6 and 7 = 1 -> no joystick button pressed
+		beq l87c0
+} else{
 		lda $dc00
 		and #$10
 		bne l87c0
+}
 		lda $57
 		eor #$80
 		sta $57
@@ -1166,7 +1187,12 @@ l8875:	jsr l967e
 		jsr l93e9
 		lda $14
 		bne l88c6
+!ifdef 	P500{
+		ldy #VR_MOBMOB
+		lda (VIC),y						; load VIC sprite-sprite collision reg
+} else{
 		lda $d01e						; load VIC sprite-sprite collision reg
+}
 		sta $bf
 		and #$10
 		beq l88c6
@@ -1226,7 +1252,13 @@ l88e3:	adc #$02
 		sta sprite_x,x
 		lda #WHITE
 		sta $02c7
+!ifdef 	P500{
+		stx temp
+		ldy temp
+		sta (VIC),y						; set VIC sprite color = white (ghost)
+} else{
 		sta $d027,x						; set VIC sprite color = white (ghost)
+}
 		lda $45
 		cmp sprite_y,x
 		beq l8909
@@ -1536,7 +1568,12 @@ l8b3e:	sta $063d,x
 		bne l8b3e
 		lda #RED
 		sta $02c7
+!ifdef 	P500{
+		ldy #VR_MOBCOL+4
+		sta (VIC),y						; set VIC sprite 4 color = red (pacman)
+} else{
 		sta $d02b						; set VIC sprite 4 color = red (pacman)
+}
 		lda $11
 		bne l8b2a
 		ldx #$2a
@@ -1705,7 +1742,12 @@ l8c79:	sta sprite_x,x
 		dex
 		bpl l8c79
 		lda #LIGHTBLUE
+!ifdef 	P500{
+		ldy #VR_BGRCOL+1
+		sta (VIC),y						; set VIC backgroundcolor 1 = lightblue					
+} else{
 		sta $d022						; set VIC backgroundcolor 1 = lightblue					
+}
 		lda #$07
 		sta $17
 		lda #$10
@@ -1727,7 +1769,13 @@ l8c8f:	cmp #$02
 		lda #$0e
 		bne l8ca7
 l8ca5:	lda #WHITE
-l8ca7:	sta $d022						; set VIC backgroundcolor 1 = white
+l8ca7:
+!ifdef 	P500{
+		ldy #VR_BGRCOL+1
+		sta (VIC),y						; set VIC backgroundcolor 1 = white					
+} else{
+		sta $d022						; set VIC backgroundcolor 1 = white
+}
 		lda #$10
 		sta $16
 		rts
@@ -1949,8 +1997,15 @@ InitNewGame:
 		bpl -
 		ldy #$00
 		jsr Init87_89
+!ifdef 	P500{
+		ldy #VR_MOBMOB
+		lda (VIC),y						; VIC clear sprite-sprite collision
+		iny
+		lda (VIC),y						; VIC clear sprite-foreground collision
+} else{
 		lda $d01e						; VIC clear sprite-sprite collision
 		lda $d01f						; VIC clear sprite-foreground collision
+}
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $8e38 Init game variables - lives, score...
@@ -2188,10 +2243,19 @@ l8fb6:	ldx $19
 		cmp $bb
 		bne l8ff9
 		ldx #$03						; 3-0 ghosts
+!ifdef 	P500{
+		ldy #VR_MOBCOL+3
+l8fc4:	lda $8a,x
+		bpl l8fce
+		lda SpriteColors,x
+		sta (VIC),y						; set VIC sprite color from table
+		dey
+} else{
 l8fc4:	lda $8a,x
 		bpl l8fce
 		lda SpriteColors,x
 		sta $d027,x						; set VIC sprite color from table
+}
 l8fce:	dex
 		bpl l8fc4
 		ldx #$03
@@ -2226,15 +2290,26 @@ l9003:	dec $ba
 l9005:	lda $bb
 		lsr
 		bcc l900e
-		ldy #$06
-		bne l9010
+		ldy #BLUE
+		bne l9010						; branch always
 l900e:	ldy #WHITE
 l9010:	ldx #$03						; 3-0 ghosts
+!ifdef 	P500{
+		sty temp
+		ldy #VR_MOBCOL+3
+l9012:	lda $8a,x
+		bpl l901a
+		lda temp
+		sta (VIC),y						; set VIC sprites color 3-0 (ghosts)
+l901a:	dey
+		dex
+} else{
 l9012:	lda $8a,x
 		bpl l901a
 		tya
 		sta $d027,x						; set VIC sprites color 3-0 (ghosts)
 l901a:	dex
+}
 		bpl l9012
 		rts
 ; -------------------------------------------------------------------------------------------------
@@ -2325,11 +2400,19 @@ l90bc:	jsr SoundOff
 		sty $a7
 		lda #$0f
 		sta $02c7
+!ifdef 	P500{
+		ldy #VR_MOBCOL+3				; 3-0 ghosts
+l90cc:	lda (VIC),y						; load VIC sprites color 3-0 (ghosts)
+		cmp #$f1
+		beq l90d7
+		dey
+} else{
 		ldx #$03						; 3-0 ghosts
 l90cc:	lda $d027,x						; load VIC sprites color 3-0 (ghosts)
 		cmp #$f1
 		beq l90d7
 		dex
+}
 		bpl l90cc
 		rts
 ; -------------------------------------------------------------------------------------------------
@@ -2511,7 +2594,12 @@ l91bd:	lda $66
 l91df:	lda $68
 		sta $4f
 l91e3:	ldx $19
-		lda $dc00
+!ifdef 	P500{
+		ldy #$01
+		lda (CIA),y						; load CIA port b bit#0-3 = joystick 1 movement
+} else{
+		lda $dc00						; load CIA port a bit#0-3 = joystick 2 movement
+}
 		and #$0f
 		eor #$0f
 		beq l920a
@@ -3340,8 +3428,17 @@ l97ab:	sta $4b,x
 l97b0:	lda $8a,x
 		and #$0f
 		sta $8a,x
+!ifdef 	P500{
+		txa
+		clc
+		adc #VR_MOBCOL
+		tay
+		lda SpriteColors,x
+		sta (VIC),y						; set VIC sprite color from table
+} else{
 		lda SpriteColors,x
 		sta $d027,x						; set VIC sprite color from table
+}
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $97bd
@@ -4104,16 +4201,17 @@ cLookUpTable:
 !ifdef 	P500{
 ; P500 I/O pointer init
 InitP500:
-		lda #SYSTEMBANK
-		sta IndirectBank				; select bank 15
-
 		ldx #$00
 iniiolp:lda IOPointerTable,x			; copy 8 IO pointer to ZP
 		sta ColorRAM0,x
 		inx
-		cpx #$1a
+		cpx #$18						; number of IO pointers
 		bne iniiolp
 		
+		lda #<Cold	 					; set NMI vector to Cold start
+		sta HW_NMI
+		lda #>Cold
+		sta HW_NMI+1
 		lda #<Interrupt					; set IRQ vector to interrupt routine
 		sta HW_IRQ
 		lda #>Interrupt
@@ -4150,7 +4248,6 @@ IOPointerTable:
 		!word ColorRAMbase+$300
 		!word VICbase
 		!word VICbase+1
-		!word VICbase+$10
 		!word SIDbase
 		!word CIAbase
 		!word TPI1base
