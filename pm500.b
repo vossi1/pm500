@@ -4,7 +4,7 @@
 ; Converted for P500 by Vossi 05/2020
 !cpu 6502
 ; switches
-P500 = 1		; P500 bank 0 file
+;P500 = 1		; P500 bank 0 file
 ;CRT = 1		; CRT header for VICE
 !ifdef 	P500{!to "pm500.prg", cbm
 } else	{ !ifdef CRT {!to "pm500.crt", plain
@@ -1253,15 +1253,28 @@ l8909:	sta $26
 		iny
 		lda PointerTable3,y
 		sta pointer1+1
+!ifdef 	P500{
+		lda #GAMEBANK
+		sta IndirectBank				; select bank 0 for pointer operations
+}
 		ldy #$0f
-l892a:	lda (pointer1),y
+-		lda (pointer1),y
 		sta ($26),y
 		lda Table02,y
 		sta ($28),y
 		dey
-		bpl l892a
+		bpl -
+!ifdef 	P500{
+		lda #SYSTEMBANK
+		sta IndirectBank				; switch back to bank 15
+}
 		lda #$00
+!ifdef 	P500{
+		ldy #$0b
+		sta (SID),y						; SID voice 2 control = off
+} else{
 		sta $d40b						; SID voice 2 control = off
+}
 		inc $a4
 		lda #$84
 		sta $a6
@@ -1745,6 +1758,9 @@ l8cb9:	jsr l8e49
 ; $8cd7
 l8cd7:	lda #$22
 		ldx #$00
+!ifdef 	P500{				; X already $00
+		stx IndirectBank				; select bank 0 for pointer operations
+}
 l8cdb:	sta $063f,x
 		clc
 		adc #$01
@@ -1807,6 +1823,10 @@ l8d3f:	lda (pointer1),y
 		iny
 		cpy #$07
 		bne l8d3f
+!ifdef 	P500{
+		lda #SYSTEMBANK
+		sta IndirectBank				; switch back to bank 15
+}
 l8d51:	rts
 ; -------------------------------------------------------------------------------------------------
 ; $8d52
@@ -2081,7 +2101,12 @@ l8f3b:	dec $b0
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $8f3e
-l8f3e:	lda $a9
+l8f3e:	
+!ifdef 	P500{
+		lda #GAMEBANK
+		sta IndirectBank				; select bank 0 for pointer operations
+}
+		lda $a9
 		beq l8f9a
 		lda $45
 		sta pointer2
@@ -2108,10 +2133,14 @@ l8f5e:	lda $aa
 		dey
 		lda SpriteData2,x
 		sta (pointer2),y
+!ifdef 	P500{
+		lda #SYSTEMBANK
+		sta IndirectBank				; switch back to bank 15
+}
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $8f73
-l8f73:	ldy #$0c
+l8f73:	ldy #$0c			; already bank 0 selected
 		ldx #$09
 l8f77:	lda SpriteDataTable+$78,x
 		sta (pointer2),y
@@ -2121,7 +2150,7 @@ l8f77:	lda SpriteDataTable+$78,x
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $8f81
-l8f81:	ldy #$0f
+l8f81:	ldy #$0f			; already bank 0 selected
 		ldx #$0f
 l8f85:	lda Table09,x
 		sta (pointer2),y
@@ -2131,7 +2160,7 @@ l8f85:	lda Table09,x
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $8f8f
-l8f8f:	ldy #$0f
+l8f8f:	ldy #$0f			; already bank 0 selected
 		lda #$00
 l8f93:	sta (pointer2),y
 		dey
@@ -2664,6 +2693,10 @@ l9333:	tax
 		lda #$00
 		adc pointer1+1
 		sta pointer1+1
+!ifdef 	P500{
+		lda #GAMEBANK
+		sta IndirectBank				; select bank 0 for pointer operations
+}
 		ldy #$09
 l934d:	lda (pointer1),y
 		sta $5803,y
@@ -2691,6 +2724,10 @@ l937c:	lda (pointer1),y
 		sta (pointer2),y
 		dey
 		bpl l937c
+!ifdef 	P500{
+		lda #SYSTEMBANK
+		sta IndirectBank				; switch back to bank 15
+}
 l9383:	rts
 ; -------------------------------------------------------------------------------------------------
 ; $9384
@@ -2709,6 +2746,9 @@ l9398:	lda $45
 		lda $4a
 		sta $40
 		ldy #$00
+!ifdef 	P500{				; Y already $00
+		sty IndirectBank				; select bank 0 for pointer operations
+}
 		lda ($3c),y
 		cmp #$01
 		beq l93b0
@@ -2716,6 +2756,9 @@ l9398:	lda $45
 		bne l93e8
 		tya
 		sta ($3c),y
+!ifdef 	P500{				; X already $0f
+		stx IndirectBank				; switch back to bank 15
+}
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $93b0
@@ -2747,7 +2790,12 @@ l93d8:	ldx $19
 		bne l93e8
 		lda #$01
 		sta $14
-l93e8:	rts
+l93e8:	
+!ifdef 	P500{
+		lda #SYSTEMBANK
+		sta IndirectBank				; switch back to bank 15
+}
+		rts
 ; -------------------------------------------------------------------------------------------------
 ; $93e9
 l93e9:	ldx $19
@@ -2914,7 +2962,15 @@ l9512:	txa
 		inx
 		lda PointerTable2,x
 		sta pointer1+1
+!ifdef 	P500{
+		lda #GAMEBANK
+		sta IndirectBank				; select bank 0 for pointer operations
+}
 		lda (pointer1),y
+!ifdef 	P500{
+		ldx #SYSTEMBANK
+		stx IndirectBank				; switch back to bank 15
+}
 		sec
 l9523:	ldx temp
 		sta temp
@@ -3399,7 +3455,15 @@ l987f:	txa
 		sta pointer1+1
 		lda $8e,x
 		tay
+!ifdef 	P500{
+		lda #GAMEBANK
+		sta IndirectBank				; select bank 0 for pointer operations
+}
 		lda (pointer1),y
+!ifdef 	P500{
+		ldy #SYSTEMBANK
+		sty IndirectBank				; switch back to bank 15
+}
 		cmp #$0f
 		bne l98c3
 		cpx #$00
@@ -3550,6 +3614,10 @@ l99ac:	sty $581c
 		adc #>SpriteDataTable			; pointer to table at $9b10
 		sta pointer1+1
 		ldy #$09
+!ifdef 	P500{
+		lda #GAMEBANK
+		sta IndirectBank				; select bank 0 for pointer operations
+}	
 l99bc:	lda (pointer1),y
 		sta $5812,y
 		dey
@@ -3573,6 +3641,10 @@ l99e1:	lda (pointer1),y
 		sta (pointer2),y
 		dey
 		bpl l99e1
+!ifdef 	P500{
+		lda #SYSTEMBANK
+		sta IndirectBank				; switch back to bank 15
+}
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $99e9

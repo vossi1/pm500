@@ -39,6 +39,17 @@
 !addr sprite_x			= $02d0		; -$02d4 sprite x positions (>>1 +$2c)
 
 !ifdef 	P500{
+		lda #GAMEBANK
+		sta IndirectBank				; select bank 0 for pointer operations
+}
+
+!ifdef 	P500{
+		lda #SYSTEMBANK
+		sta IndirectBank				; switch back to bank 15
+}
+
+
+!ifdef 	P500{
 		lda #SYSTEMBANK
 		sta IndirectBank				; select bank 15
 		ldy #$
