@@ -286,7 +286,7 @@ cMapData:
 Start:
 !ifdef 	P500{ 
 		lda #GAMEBANK
-		sta IndirectBank				; select bank 0
+		sta IndirectBank				; select bank 0 for data copy and init
 } else{
 		jsr ioinit 						; IRQ init
 		jsr ramtas 						; RAM init
@@ -419,6 +419,25 @@ uccplp1:lda UserCharMenu,x				; copy 32 bytes to menu user font
 		sta CharMenu+$a8,x
 		dex
 		bpl uccplp1						; next byte
+!ifdef 	P500{
+; P500 SID init							; x already $ff
+		lda #SYSTEMBANK
+		sta IndirectBank	; select bank 15 - now as STANDARD
+		txa
+		ldy #$0e
+		sta (SID),y						; SID voice 3 frequency lo to $ff 
+		iny
+		sta (SID),y						; SID voice 3 frequency hi to $ff 
+		ldy #$12
+		lda #$80
+		sta (SID),y						; SID voice 3 to $80 = noise for random generation
+		lda #$f0
+		ldy #$06
+		sta (SID),y						; SID voice 1 SR to $f0
+		ldy #$0d
+		sta (SID),y						; SID voice 2 SR To $f0
+							; stay in bank 15 for VIC interrupt setup
+} else{
 ; $848a SID init						; x already $ff
 		stx $d40e						; SID voice 3 frequency lo to $ff 
 		stx $d40f						; SID voice 3 frequency hi to $ff 
@@ -427,6 +446,7 @@ uccplp1:lda UserCharMenu,x				; copy 32 bytes to menu user font
 		lda #$f0
 		sta $d406						; SID voice 1 SR to $f0
 		sta $d40d						; SID voice 2 SR To $f0
+}
 ; $849d Copy user chars from game to menu user font
 		ldx #$a1						; copy $a1 bytes
 uccplp2:lda CharGame+$1cf,x
@@ -435,8 +455,6 @@ uccplp2:lda CharGame+$1cf,x
 		bne uccplp2
 !ifdef 	P500{
 ; P500 Hardware interrupt vector setup, enable VIC raster IRQ
-		lda #SYSTEMBANK
-		sta IndirectBank				; select bank 15
 		ldy #VR_EIRQ
 		lda #$01
 		sta (VIC),y						; VIC enable raster interrupt
@@ -446,8 +464,6 @@ uccplp2:lda CharGame+$1cf,x
 		ldy #VR_RASTER
 		lda #$32
 		sta (VIC),y						; VIC raster reg = $032 (start visible screen)
-		lda #GAMEBANK
-		sta IndirectBank				; select bank 15
 		cli								; enable interrupts
 } else{
 ; $84a8 C64 Kernal interrupt vector setup
@@ -474,8 +490,6 @@ clvarlp:sta $0e,x						; clear game variables $0e-$2d
 		txs								; init stack with $ff
 		jsr SoundOff					; SID sound off
 !ifdef 	P500{
-		ldy #SYSTEMBANK
-		sty IndirectBank				; select bank 15
 		ldy #$20
 		sta (VIC),y						; VIC exterior color = black
 		iny
@@ -483,9 +497,7 @@ clvarlp:sta $0e,x						; clear game variables $0e-$2d
 		lda #LIGHTBLUE
 		iny
 		sta (VIC),y						; VIC background color1 = lightblue
-		ldy #GAMEBANK
-		sty IndirectBank				; select bank 15
-		ldy #$ff			; ste Y = $ff because its set to this value after SoundOff
+		ldy #$ff			; set Y = $ff because its set to this value after SoundOff
 } else{
 		sta $d020						; VIC exterior color = black
 		sta $d021						; VIC background color0 = black
@@ -502,8 +514,6 @@ clvarlp:sta $0e,x						; clear game variables $0e-$2d
 waitlp :cmp jiffy
 		beq waitlp						; wait one jiffy = 20ms
 !ifdef 	P500{
-		ldy #SYSTEMBANK
-		sty IndirectBank				; select bank 15
 		lda #$18						; VM13-10=$1 screen at $0400, CB13,12,11,x=1000 char at $2000
 		ldy #$18
 		sta (VIC),y						; set VIC memory pointers
@@ -515,8 +525,6 @@ waitlp :cmp jiffy
 		sta (VIC),y						; VIC enable spritess 0-4
 		ldy #$1d
 		sta (VIC),y						; VIC x-expand sprites 0-4
-		ldy #GAMEBANK
-		sty IndirectBank				; select bank 0
 } else{
 		lda #$18						; VM13-10=$1 screen at $0400, CB13,12,11,x=1000 char at $2000
 		sta $d018						; set VIC memory pointers
@@ -545,11 +553,8 @@ notgame:lda state
 		lda #$04
 		bne SetState4					; set state to 4
 !ifdef 	P500{
-checkey:lda #SYSTEMBANK
-		sta IndirectBank				; select bank 15
-		ldy #$00
+checkey:ldy #$00
 		lda (CIA),y						; load CIA Port A
-		sty IndirectBank				; select bank 0 - Y already $00
 		ora #$3f						; ignore bit#0-5
 		cmp #$ff						; check if bit#6 or 7 = 0 -> joystick button pressed
 		bne mnewgam
@@ -617,8 +622,8 @@ Interrupt:
 		pha
 		tya
 		pha
-		lda IndirectBank
-		pha								; remember active indirect bank on stack
+		lda IndirectBank				; load actibe indirct bank
+		pha								; remember on stack
 		lda #SYSTEMBANK
 		sta IndirectBank				; select bank 15
 		ldy #$19
@@ -650,7 +655,7 @@ iskpspr:
 ;		ldx #$00
 ;		stx $dc02						; reset CIA1 port B to input
 inorast:pla
-		sta IndirectBank				; restore indirect bank
+		sta IndirectBank				; restore indirect bank before interrupt
 		pla
 		tay
 		pla
@@ -688,10 +693,6 @@ inorast:jmp $ea7e						; jump to kernal interrupt
 ; $85bd
 InitMenu:
 !ifdef 	P500{
-		lda IndirectBank
-		pha
-		lda #SYSTEMBANK					; remember indirect bank 
-		sta IndirectBank
 		lda #$00
 		ldx #$07
 -		sta sprite_x,x
@@ -706,8 +707,6 @@ InitMenu:
 		jsr SoundOff					; returns with A=$00
 		ldy #$15
 		sta (VIC),y						; VIC disable sprites
-		pla
-		sta IndirectBank				; restore indirect bank
 		rts
 } else{
 }
@@ -2291,8 +2290,6 @@ l910c:	rts
 ; $910d Stop SID sound
 SoundOff:
 !ifdef 	P500{
-		lda #SYSTEMBANK
-		sta IndirectBank				; select bank 15
 		lda #$88
 		ldy #$18
 		sta (SID),y						; SID mode to 3OFF, Volume = 8
@@ -2301,8 +2298,6 @@ SoundOff:
 		sta (SID),y						; SID voice 1 control = off
 		ldy #$0b
 		sta (SID),y						; SID voice 2 control = off
-		lda #GAMEBANK
-		sta IndirectBank				; select bank 15
 		ldy #$ff
 		rts
 } else{
@@ -2334,8 +2329,6 @@ clramlp:sta SpriteData,x
 ; $913a Init color RAM + Sprite colors
 ColorInit:
 !ifdef 	P500{
-		lda #SYSTEMBANK
-		sta IndirectBank				; select bank 15
 		lda #GRAY3
 		ldy #$00
 coinlp1:sta (ColorRAM0),y				; init color RAM with gray3
@@ -2356,8 +2349,6 @@ coinlp3:lda SpriteColors,x
 		dey
 		dex
 		bpl coinlp3
-		lda #GAMEBANK
-		sta IndirectBank				; select bank 15
 		rts
 } else{
 		ldx #$00
@@ -3998,6 +3989,9 @@ cLookUpTable:
 !ifdef 	P500{
 ; P500 I/O pointer init
 InitP500:
+		lda #SYSTEMBANK
+		sta IndirectBank				; select bank 15
+
 		ldx #$00
 iniiolp:lda IOPointerTable,x			; copy 8 IO pointer to ZP
 		sta ColorRAM0,x
@@ -4010,8 +4004,6 @@ iniiolp:lda IOPointerTable,x			; copy 8 IO pointer to ZP
 		lda #>Interrupt
 		sta HW_IRQ+1
 		
-		lda #SYSTEMBANK
-		sta IndirectBank				; select bank 15
 		ldy #$06
 		lda (TPI1),y					; load TRI1 control register
 		and #$0f						; clear CA, CB control bits#4-7 vic bank 0/15 select 
