@@ -4,7 +4,7 @@
 ; Converted for P500 by Vossi 05/2020
 !cpu 6502
 ; switches
-;P500 = 1		; P500 bank 0 file
+P500 = 1		; P500 bank 0 file
 ;CRT = 1		; CRT header for VICE
 !ifdef 	P500{!to "pm500.prg", cbm
 } else	{ !ifdef CRT {!to "pm500.crt", plain
@@ -56,6 +56,16 @@ VR_EIRQ					= $1a
 VR_EXTCOL				= $20
 VR_BGRCOL				= $21
 VR_MOBCOL				= $27
+SR_V1FREQ				= $00
+SR_V1CTRL				= $04
+SR_V1SR					= $06
+SR_V2FREQ				= $07
+SR_V2CTRL				= $0b
+SR_V2SR					= $0d
+SR_V3FREQ				= $0e
+SR_V3CTRL				= $12
+SR_MODVOL				= $18
+SR_RANDOM				= $1b
 ; ************************************** P500 ADDRESSES *******************************************
 !addr CodeBank			= $00		; code bank register
 !addr IndirectBank		= $01		; indirect bank register
@@ -434,17 +444,17 @@ uccplp1:lda UserCharMenu,x				; copy 32 bytes to menu user font
 		lda #SYSTEMBANK
 		sta IndirectBank	; select bank 15 - now as STANDARD
 		txa
-		ldy #$0e
+		ldy #SR_V3FREQ
 		sta (SID),y						; SID voice 3 frequency lo to $ff 
 		iny
 		sta (SID),y						; SID voice 3 frequency hi to $ff 
-		ldy #$12
+		ldy #SR_V3CTRL
 		lda #$80
 		sta (SID),y						; SID voice 3 to $80 = noise for random generation
 		lda #$f0
-		ldy #$06
+		ldy #SR_V1SR
 		sta (SID),y						; SID voice 1 SR to $f0
-		ldy #$0d
+		ldy #SR_V2SR
 		sta (SID),y						; SID voice 2 SR To $f0
 							; stay in bank 15 for VIC interrupt setup
 } else{
@@ -1140,11 +1150,22 @@ l880a:	lda jiffy
 		cpx #$40
 		beq l8830
 		lda FrequencyHi,x
+!ifdef 	P500{
+		ldy #SR_V1FREQ+1
+		sta (SID),y						; SID voice 1 frequency hi
+		dey
+		lda FrequencyLo,x
+		sta (SID),y						; SID voice 1 frequency lo
+		lda #$21
+		ldy #SR_V1CTRL
+		sta (SID),y						; SID voice 1 control
+} else{
 		sta $d401						; SID voice 1 frequency hi
 		lda FrequencyLo,x
 		sta $d400						; SID voice 1 frequency lo
 		lda #$21
 		sta $d404						; SID voice 1 control
+}
 		inc $5f
 		cpx #$28
 		bne l87f5
@@ -1302,7 +1323,7 @@ l8909:	sta $26
 }
 		lda #$00
 !ifdef 	P500{
-		ldy #$0b
+		ldy #SR_V2CTRL
 		sta (SID),y						; SID voice 2 control = off
 } else{
 		sta $d40b						; SID voice 2 control = off
@@ -1705,8 +1726,17 @@ l8c32:	clc
 		beq l8c40						; voice 1 = off
 l8c3e:	adc #$01
 l8c40:	sta $b7
+!ifdef 	P500{
+		sty temp
+		ldy #SR_V1FREQ+1
+		sta (SID),y						; set SID voice 1 frequency hi
+		lda temp
+		ldy #SR_V1CTRL
+		sta (SID),y						; SID voice 1 control
+} else{
 		sta $d401						; set SID voice 1 frequency hi
 		sty $d404						; SID voice 1 control
+}
 l8c48:	rts
 ; -------------------------------------------------------------------------------------------------
 ; $8c49
@@ -2098,9 +2128,17 @@ l8ec9:	cmp #$03
 		cmp #$06
 		beq l8f34
 l8ed9:	lda #$21
+!ifdef 	P500{
+		ldy #SR_V1CTRL
+		sta (SID),y						; SID voice 1 control = sawtooth, on
+		lda $af
+		ldy #SR_V1FREQ+1
+		sta (SID),y						; set SID voice 1 frequency hi
+} else{
 		sta $d404						; SID voice 1 control = sawtooth, on
 		lda $af
 		sta $d401						; set SID voice 1 frequency hi
+}
 		sec
 		sbc #$02
 		sta $af
@@ -2110,9 +2148,17 @@ l8ed9:	lda #$21
 		bne l8f33
 		beq l8f14
 l8ef2:	lda #$21
+!ifdef 	P500{
+		ldy #SR_V1CTRL
+		sta (SID),y						; SID voice 1 control = sawtooth, on
+		lda $af
+		ldy #SR_V1FREQ+1
+		sta (SID),y						; set SID voice 1 frequency hi
+} else{
 		sta $d404						; SID voice 1 control = sawtooth, on
 		lda $af
 		sta $d401						; set SID voice 1 frequency hi
+}
 		clc
 		adc #$02
 		sta $af
@@ -2131,9 +2177,17 @@ l8f14:	sta $ac
 ; -------------------------------------------------------------------------------------------------
 ; $8f17
 l8f17:	lda #$21
+!ifdef 	P500{
+		ldy #SR_V1CTRL
+		sta (SID),y						; SID voice 1 control = sawtooth, on
+		lda $ae
+		ldy #SR_V1FREQ+1
+		sta (SID),y						; set SID voice 1 frequency hi
+} else{
 		sta $d404						; SID voice 1 control = sawtooth, on
 		lda $ae
 		sta $d401						; set SID voice 1 frequency hi
+}
 		clc
 		adc #$02
 		sta $ae
@@ -2352,9 +2406,17 @@ l9061:	clc
 		lda $9d
 		adc #$03
 l9066:	sta $9d
+!ifdef 	P500{
+		ldy #SR_V2FREQ+1
+		sta (SID),y						; SID voice 2 frequency hi
+		lda #$21
+l906d:	ldy #SR_V2CTRL
+		sta (SID),y						; SID voice 2 control = sawtooth, on
+} else{
 		sta $d408						; SID voice 2 frequency hi
 		lda #$21
 l906d:	sta $d40b						; SID voice 2 control = sawtooth, on
+}
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $9071
@@ -2368,7 +2430,12 @@ l9079:	cmp #$64
 l907f:	sec
 		sbc #$03
 		sta $b2
+!ifdef 	P500{
+		ldy #SR_V2FREQ+1
+		sta (SID),y						; SID voice 2 frequency hi
+} else{
 		sta $d408						; SID voice 2 frequency hi
+}
 		lda #$21
 		bne l906d
 l908b:	dec $a5
@@ -2379,8 +2446,15 @@ l908b:	dec $a5
 		sta $a6
 		cmp #$10
 		beq l90bc
+!ifdef 	P500{
+		ldy #SR_V1FREQ+1
+		sta (SID),y						; SID voice 1 frequency hi
+		ldy #SR_V2FREQ+1
+		sta (SID),y						; SID voice 2 frequency hi
+} else{
 		sta $d401						; SID voice 1 frequency hi
 		sta $d408						; SID voice 2 frequency hi
+}
 		lda #$21
 		bne l90b7
 l90a4:	lda #$02
@@ -2389,10 +2463,20 @@ l90a4:	lda #$02
 		lda $a6
 		sbc #$03
 		sta $a6
+!ifdef 	P500{
+		ldy #SR_V1FREQ+1
+		sta (SID),y						; SID voice 1 frequency hi
+		ldy #SR_V2FREQ+1
+		sta (SID),y						; SID voice 2 frequency hi
+		lda #$21
+l90b7:	ldy #SR_V2CTRL
+		sta (SID),y						; SID voice 2 control = sawtooth, on
+} else{
 		sta $d401						; SID voice 1 frequency hi
 		sta $d408						; SID voice 2 frequency hi
 		lda #$21
 l90b7:	sta $d40b						; SID voice 2 control = sawtooth, on
+}
 		bne l9109
 l90bc:	jsr SoundOff
 		sta $a4
@@ -2437,21 +2521,29 @@ l90f5:	lda $b5
 		jmp l9102
 l90ff:	lda $9d2b,x
 l9102:	inc $b4
+!ifdef 	P500{
+		ldy #SR_V1FREQ+1
+		sta (SID),y						; SID voice 1 frequency hi
+		lda #$21
+l9109:	ldy #SR_V1CTRL
+		sta (SID),y						; SID voice 1 control = sawtooth, on
+} else{
 		sta $d401						; SID voice 1 frequency hi
 		lda #$21
 l9109:	sta $d404						; SID voice 1 control = sawtooth, on
+}
 l910c:	rts
 ; -------------------------------------------------------------------------------------------------
 ; $910d Stop SID sound
 SoundOff:
 !ifdef 	P500{
 		lda #$88
-		ldy #$18
+		ldy #SR_MODVOL
 		sta (SID),y						; SID mode to 3OFF, Volume = 8
 		lda #$00
-		ldy #$04
+		ldy #SR_V1CTRL
 		sta (SID),y						; SID voice 1 control = off
-		ldy #$0b
+		ldy #SR_V2CTRL
 		sta (SID),y						; SID voice 2 control = off
 		ldy #$ff
 		rts
@@ -3122,9 +3214,17 @@ l958f:	sec
 		lda $9a
 		sbc $58
 l9594:	sta $9a
+!ifdef 	P500{
+		ldy #SR_V2FREQ
+		sta (SID),y						; SID voice 2 frequency hi
+		lda #$11
+		ldy #SR_V2CTRL
+		sta (SID),y						; SID voice 2 control = triangle, on
+} else{
 		sta $d408						; SID voice 2 frequency hi
 		lda #$11
 		sta $d40b						; SID voice 2 control = triangle, on
+}
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $959f
@@ -3572,7 +3672,12 @@ l98a1:	lda #$08
 		sta $8a,x
 		lda #$00
 		sta $7a,x
+!ifdef 	P500{
+		ldy #SR_RANDOM
+		lda (SID),y						; load random value SID register $1b
+} else{
 		lda $d41b						; load random value SID register $1b
+}
 		and #$0f						; calc random value from $0-$f
 		sta $76,x
 		asl
@@ -3781,7 +3886,12 @@ l9a1f:	sta $96,x
 		beq l9a36
 		bit temp
 		beq l9a36
+!ifdef 	P500{
+		ldy #SR_RANDOM
+		lda (SID),y						; load random value SID register $1b
+} else{
 		lda $d41b						; load random value SID register $1b
+}
 		bmi l9a3a
 l9a36:	lda $92,x
 		bne l9a64
@@ -3790,7 +3900,12 @@ l9a3a:	lda $96,x
 l9a3e:	lda $96,x
 		bit temp
 		bne l9a3a
+!ifdef 	P500{
+		ldy #SR_RANDOM
+		lda (SID),y						; load random value SID register $1b
+} else{
 		lda $d41b						; load random value SID register $1b
+}
 		and temp
 		bne l9a4d
 		lda temp
