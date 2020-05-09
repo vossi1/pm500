@@ -131,6 +131,7 @@ SR_RANDOM				= $1b
 ; $2e,2f score
 !addr data_tb1			= $3c		; 20 bytes from $9bbf
 !addr sprite_y			= $41		; -$45 sprite y postion 
+!addr pause				= $57		; $80 = pause
 !addr jiffy				= $a2		; jiffy clock 20ms counter from raster interrupt = Vsync
 !addr blink_counter		= $b9		; blink counter 1up/2up 0/1=off/on
 !addr spritedata_pointer= $c0		; 16bit pointer for sprite data copy
@@ -344,7 +345,7 @@ clrzplp:sta $02,x						; clear zero page $03 - $c4
 		lda #>CompressedMazeData
 		sta pointer1+1					; set source pointer = compressed MazeData
 		ldy #$00
-mazcplp:lda (pointer1),y				; load byte from maze
+mazcopy:lda (pointer1),y				; load byte from maze
 		sta temp						; store for later bit#6 check
 		bmi mazbit7						; skip if bit#7 = 1
 		bpl mazchar						; branch if normal char
@@ -359,7 +360,7 @@ mazbit7:cmp #$ff						; check if $ff = end of data
 mazrptb:jsr StoreIncPointer2			; copy byte to maze
 		dex
 		bpl mazrptb						; repeat store byte X times
-		bmi mazcplp						; read next byte
+		bmi mazcopy						; read next byte
 mazbit6:and #$3f						; clear ident bits#7,6
 		jsr StoreIncPointer2			; store byte to maze
 		jsr IncPointer1					; next byte
@@ -369,7 +370,7 @@ mazbit6:and #$3f						; clear ident bits#7,6
 		and #$0f						; isolate low nibble
 mazchar:jsr StoreIncPointer2			; copy byte to maze
 		jsr IncPointer1
-		jmp mazcplp						; read next byte
+		jmp mazcopy						; read next byte
 ; $8401 Copy and decode LookUpTable Nibbles
 mazend:	lda #<cLookUpTable
 		sta pointer1
@@ -392,14 +393,14 @@ ludeclp:jsr LoadHiNibblePointer1		; load and shift high nibble 4 bits right
 ; P500 Copy chars $00-$7f of the first (graphic) fontset to $80 of the custom fonts
 		lda #SYSTEMBANK					; select bank 15 to get font from char ROM
 		sta IndirectBank
-fntcplp:lda (CharROM1),y				; load from character ROM - Y already $00	
+fntcopy:lda (CharROM1),y				; load from character ROM - Y already $00	
 		sta CharGame+$400,y				; store to game fontset from char $80
 		sta CharMenu+$400,y				; store to menu fontset from char $80
 		lda (CharROM0),y
 		sta CharGame+$500,y
 		sta CharMenu+$500,y
 		dey
-		bne fntcplp
+		bne fntcopy
 		sty IndirectBank				; select bank 0 - Y already $00
 } else{
 ; $8426 C64
@@ -410,14 +411,14 @@ fntcplp:lda (CharROM1),y				; load from character ROM - Y already $00
 		and #$fb
 		sta CPUPort64
 		ldx #$00
-fntcplp:lda CharROM64+$100,x			; load from character ROM
+fntcopy:lda CharROM64+$100,x			; load from character ROM
 		sta CharGame+$400,x				; store to game fontset from char $80
 		sta CharMenu+$400,x				; store to menu fontset from char $80
 		lda CharROM64,x
 		sta CharGame+$500,x
 		sta CharMenu+$500,x
 		dex
-		bne fntcplp
+		bne fntcopy
 		lda CPUPort64					; disable character ROM
 		ora #$04
 		sta CPUPort64
@@ -446,10 +447,10 @@ fntcplp:lda CharROM64+$100,x			; load from character ROM
 		jsr UncompressUserFont			; copy menu user font
 ; $847f Copy user chars to menu user font
 		ldx #$1f
-uccplp1:lda UserCharMenu,x				; copy 32 bytes to menu user font
+uccopy1:lda UserCharMenu,x				; copy 32 bytes to menu user font
 		sta CharMenu+$a8,x
 		dex
-		bpl uccplp1						; next byte
+		bpl uccopy1						; next byte
 !ifdef 	P500{
 ; P500 SID init							; x already $ff
 		lda #SYSTEMBANK
@@ -480,10 +481,10 @@ uccplp1:lda UserCharMenu,x				; copy 32 bytes to menu user font
 }
 ; $849d Copy user chars from game to menu user font
 		ldx #$a1						; copy $a1 bytes
-uccplp2:lda CharGame+$1cf,x
+uccopy2:lda CharGame+$1cf,x
 		sta CharMenu+$1cf,x
 		dex
-		bne uccplp2
+		bne uccopy2
 !ifdef 	P500{
 ; P500 Hardware interrupt vector setup, enable VIC raster IRQ
 		ldy #VR_EIRQ
@@ -572,10 +573,10 @@ waitlp :cmp jiffy
 		jsr InitGameVariables
 		lda players
 		beq new1up						; skip if 1 player
-		jsr Init2Player					; write 1up, 2up, score=0
+		jsr Init2Player					; sub: print 1Up, 2Up, print zero scores
 		jmp new2up						; skip if 2 player
 ;		
-new1up: jsr Init1Player					; write 1up, score=0
+new1up: jsr Init1Player					; sub: print 1Up, print zero score
 new2up: lda #$02
 		sta $0a							; $0a=2 if 2 players
 notgame:lda state
@@ -664,7 +665,7 @@ idiff0c:lda #$00
 		sta difficulty					; after $c reset difficulty to 0
 		beq SetStateMenu				; return in menu state
 ; -------------------------------------------------------------------------------------------------
-Interrupt:
+Interrupt: ; game interrupt routine every 20ms = 1 jiffy
 !ifdef 	P500{
 ; p500 Interrupt routine
 		pha
@@ -794,7 +795,7 @@ InitMenu:
 		sta $d015						; VIC disable sprites
 		rts
 ; -------------------------------------------------------------------------------------------------
-; $85d8 Init 1 player
+; $85d8 print 1Up, print zero score
 Init1Player:
 		ldx #$05						; 6 chars
 		lda #$80						; <space> code
@@ -809,7 +810,7 @@ iplayr1:jsr Write1Up
 		dex
 		bpl -
 		rts
-; $85f3 Init 2 Player
+; $85f3 print 1Up, 2Up, print zero scores
 Init2Player:
 		jsr Write2Up
 		ldx #$05
@@ -883,7 +884,7 @@ UpdateScreen:
 		jmp GameCycle					; state = 0 game in progress
 nogame:	cpy #$01
 		bne MenuDelay					; state > 1 menu delay $ff jiffys
-; state = 1: Print Startup screen
+; state = 1: Print startup screen
 		jsr InitMenu					; sub: Init menu - set VIC, sound off, clears sprite x
 		ldx #$00
 		txa
@@ -897,7 +898,7 @@ cmenulp:sta $0c00,x						; clear menu screen
 		dex
 		bne cmenulp
 		ldx #$0d
-atarilp:lda Text_Atari1983,x
+atarilp:lda Text_Atari1983,x			; write "Atari 1983" to screen
 		sta MenuScreen+$267,x
 		dex
 		bpl atarilp
@@ -915,7 +916,7 @@ pacmlp:	txa								; write PACMAN logo to screen
 nxstate:inc state						; increase state
 mwait: 	rts
 ; -------------------------------------------------------------------------------------------------
-; $8698 state = 2: Menu delay loop
+; $8698 state = 2: 5 seconds Menu delay loop after startup
 MenuDelay:
 		cpy #$02
 		bne Menu
@@ -926,59 +927,60 @@ MenuDelay:
 ; -------------------------------------------------------------------------------------------------
 ; $86a4 state = 3: Print menu screen
 Menu:	ldx players
-		inx
+		inx								; add 1 to get 1/2
 		txa
 		ora #$90
-		sta $0cd7
+		sta MenuScreen+$d7				; add $90 for char and print 1/2 players to screen
 		lda players
-		bne l86bc
+		bne m2playr						; skip if 2 players
 		cpy #$03
-		bne l86b8
-		jsr Init1Player
-l86b8:	lda #$92
-		bne l86c5
-l86bc:	cpy #$03
-		bne l86c3
-		jsr Init2Player
-l86c3:	lda #$91
-l86c5:	sta $0d4f
+		bne m1nots3						; skip if not state 3
+		jsr Init1Player					; sub: print 1Up, print zero score on game screen
+m1nots3:lda #$92
+		bne mskp2pl						; skip 2 player init
+m2playr:cpy #$03
+		bne m2nots3						; skip if not state 3
+		jsr Init2Player					; sub: print 1Up, 2Up, print zero scores on game screen
+m2nots3:lda #$91
+mskp2pl:sta MenuScreen+$14f				; write 2/1 player for F3 to screen
 		ldx #$0a
-l86ca:	lda Text_PlayerGame,x
-		sta $0d51,x
-		sta $0cd9,x
+-		lda Text_PlayerGame,x
+		sta MenuScreen+$151,x			; write "Player Game" twice 
+		sta MenuScreen+$d9,x
 		dex
-		bpl l86ca
+		bpl -
 		jsr InitMenu					; sub: Init menu - set VIC, sound off, clears sprite x
 		ldx #$0b
-l86db:	lda Text_PressF3To,x
-		sta $0d27,x
+-		lda Text_PressF3To,x			; write F-key messages to screen 
+		sta MenuScreen+$127,x
 		lda Text_PressF5To,x
-		sta $0e40,x
+		sta MenuScreen+$240,x
 		lda Text_PressF1To,x
-		sta $0ee0,x
+		sta MenuScreen+$2e0,x
 		dex
-		bpl l86db
+		bpl -
 		ldx difficulty
-		lda LevelTable3,x
-		sta $0dcc
+		lda DifficultyNuggetsMenu,x
+		sta MenuScreen+$1cc				; write two chars for the difficulty nugget
 		clc
 		adc #$01
-		sta $0dcd
+		sta MenuScreen+$1cd
 		ldx #$10
-l8700:	lda Text_ChangeDifficulty,x
-		sta $0e65,x
+-		lda Text_ChangeDifficulty,x
+		sta MenuScreen+$265,x			; write "change difficulty"
 		dex
-		bpl l8700
+		bpl -
 		ldx #$08
-l870b:	lda Text_PlayGame,x
-		sta $0f09,x
+-		lda Text_PlayGame,x
+		sta MenuScreen+$309,x			; write "play game"
 		dex
-		bpl l870b
+		bpl -
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $8715 main game cycle 
 GameCycle:	
-!ifdef 	P500{			; already in systembank from interrupt routine
+!ifdef 	P500{
+; set sprite positions
 		ldx #$04						; start with sprite 4
 		ldy #$08						; x-position reg of sprite 4
 spposlp:lda sprite_x,x					; load x
@@ -1004,6 +1006,7 @@ spnoclr:sta (VIC),y						; store new X-MSB-byte to VIC
 		dex
 		bpl spposlp						; next sprite
 } else{
+; set sprite positions
 		ldx #$04						; start with sprite 4
 		ldy #$08						; x-position reg of sprite 4
 spposlp:lda sprite_x,x						; load x
@@ -1026,98 +1029,104 @@ spnoclr:sta $d010						; store new X-MSB-byte to VIC
 		dex
 		bpl spposlp						; next sprite
 }
+; copy sprite data pointer for all 5 sprites
 		ldx #$04
-		lda #$c4
-sppntlp:sta SpriteDataPointer,x			; copy sprite data pointer for all 5 sprites
+		lda #(SpriteData/$40)+4			; VIC Sprite Data at $c0-$c4
+sdpcopy:sta SpriteDataPointer,x
 		sec
 		sbc #$01
 		dex
-		bpl sppntlp
+		bpl sdpcopy
+; copy pacman sprite data		
 		lda sprite_y+4					; set data pointer to $5345 (pacman $5348-$5351)
 		sta spritedata_pointer
 		lda #$53
 		sta spritedata_pointer+1
-		jsr SetPacmanDataEnd
+		jsr SetPacmanDataEnd			; sub: Set last row, last byte of pacman
 !ifdef 	P500{
 		lda #GAMEBANK
 		sta IndirectBank				; select bank 0 for $cx access
 }
-spmcplp:lda ($c0),y						; copy pacman sprite data
+spmcopy:lda (spritedata_pointer),y		; copy pacman sprite data
 		sta SpriteData+$100,x
 		dex
 		dex
 		dex
 		dey
 		cpy #$02						; reach last byte
-		bne spmcplp
+		bne spmcopy
 		lda sprite_y+0
-		jsr SetGhostDataEnd
-sg0cplp:lda ($c0),y						; copy ghost 0 sprite data
+		jsr SetGhostDataEnd				; sub: Calc pointer, set last row, last byte of ghost
+; copy sprite data of 4 ghosts
+sg0copy:lda (spritedata_pointer),y		; copy ghost 0 sprite data
 		sta SpriteData,x
 		dex
 		dex
 		dex
 		dey
 		cpy #$01						; reach last byte
-		bne sg0cplp
+		bne sg0copy
 		lda sprite_y+1
-		jsr SetGhostDataEnd
-sg1cplp:lda ($c0),y						; copy ghost 1 sprite data
+		jsr SetGhostDataEnd				; sub: Calc pointer, set last row, last byte of ghost
+sg1copy:lda (spritedata_pointer),y		; copy ghost 1 sprite data
 		sta SpriteData+$40,x
 		dex
 		dex
 		dex
 		dey
 		cpy #$01						; reach last byte
-		bne sg1cplp
+		bne sg1copy
 		lda sprite_y+2
-		jsr SetGhostDataEnd
-sg2cplp:lda ($c0),y						; copy ghost 2 sprite data
+		jsr SetGhostDataEnd				; sub: Calc pointer, set last row, last byte of ghost
+sg2copy:lda (spritedata_pointer),y		; copy ghost 2 sprite data
 		sta SpriteData+$80,x
 		dex
 		dex
 		dex
 		dey
 		cpy #$01						; reach last byte
-		bne sg2cplp
+		bne sg2copy
 		lda sprite_y+3
-		jsr SetGhostDataEnd
-sg3cplp:lda ($c0),y						; copy ghost 3 sprite data
+		jsr SetGhostDataEnd				; sub: Calc pointer, set last row, last byte of ghost
+sg3copy:lda (spritedata_pointer),y		; copy ghost 3 sprite data
 		sta SpriteData+$c0,x
 		dex
 		dex
 		dex
 		dey
 		cpy #$01						; reach last byte
-		bne sg3cplp
+		bne sg3copy
 !ifdef 	P500{
 		lda #SYSTEMBANK
 		sta IndirectBank				; restore to bank 15
 }
+; check joystick button = pause game
 		lda jiffy
-		and #$0f
-		bne l87c6
+		and #$0f						; only every 16 cycles
+		bne skpjoyb
 !ifdef 	P500{
 		ldy #$00						
 		lda (CIA),y						; load CIA Port A - joystick button = pause
 		ora #$3f						; ignore bit#0-5
 		cmp #$ff						; check if bit#6 and 7 = 1 -> no joystick button pressed
-		beq l87c0
+		beq nojoyb
 } else{
 		lda $dc00
 		and #$10
-		bne l87c0
+		bne nojoyb
 }
-		lda $57
-		eor #$80
-		sta $57
-l87c0:	lda $0c
-		beq l87c6
+		lda pause
+		eor #$80						; toggle pause
+		sta pause						; 1 = pause
+
+nojoyb:	lda $0c
+		beq skpjoyb
 		dec $0c
-l87c6:	lda $57
-		beq l87cd
-		jmp SoundOff
-l87cd:	jsr Blink12Up
+
+skpjoyb:lda pause
+		beq sksndof						; skip if 0 = no pause
+		jmp SoundOff					; Sound off in pause
+sksndof:jsr Blink12Up
 		lda $0a
 		beq l87d8
 		cmp #$02
@@ -1653,7 +1662,8 @@ chnewlp:lda GameScreen,x
 chnonew:rts
 ; -------------------------------------------------------------------------------------------------
 ; $8b93
-SpriteDirectionCompareLoop:	ldx #$04
+SpriteDirectionCompareLoop:
+		ldx #$04
 l8b95:	lda sprite_y,x
 		cmp #$74
 		bne l8b9e
@@ -4274,8 +4284,8 @@ Text_ChangeDifficulty:
 		!byte $a9, $a6, $a6, $a9, $a3, $b5, $ac, $b4
 		!byte $b9
 ; $9e74
-LevelTable3:
-		!byte $3a, $3c, $3e, $3e, $40, $40, $44, $44
+DifficultyNuggetsMenu:
+		!byte $3a, $3c, $3e, $3e, $40, $40, $44, $44 ; first of two nugget chars: $3a,$3b = cherry
 		!byte $48, $48, $4a, $4a, $4c, $4c
 ; -------------------------------------------------------------------------------------------------
 ; $9e82 encoded menu user font (bytes 0-$3f from FontData, bit 6+7 = count)
