@@ -11,16 +11,18 @@
 		} else{ !to "pm500.rom", plain }}
 ; ########################################### TODO ################################################
 ;
-; add highscore text above score
 ; add extra nuggets in one color for menu difficulty
 ;
 ; ########################################### BUGS ################################################
 ;
 ; Nuggets in menu are not in multicolor so they look like zebra ;)
-; Background color 2 for multicolor is not set to 2 but works on C64 because its VIC reset value
+; Background color 2 for multicolor is not set to 2 but works on C64 because its VIC init value
+; ########################################### MODS ################################################
+;
+; added unused highscore text above highscore digits
 ;
 ; ******************************************* INFO ************************************************
-; Menu screen is at $0a00, menu font at $2800
+; Menu screen is at $0c00, menu font at $2800
 ; Game screen is at $0400, game font at $2000, multicolor
 ; Sprites 0-3 are ghosts, sprite 4 is pacman, sprites are 10/11 px heigh, 6px wide + xpanded -> 12px
 ; Sprite data pointer are static = $c0-$c4 -> $3000-$3100, sprites are not multicolor
@@ -56,6 +58,10 @@ LIVES					= 3			; start lives
 ; ************************************** P500 REGISTER ********************************************
 VR_MODEY				= $11
 VR_RASTER				= $12
+VR_MOBENA				= $15
+VR_MCMCSX				= $16
+VR_MEMPT				= $18
+VR_MOBXPA				= $1d
 VR_MOBMOB				= $1e
 VR_EIRQ					= $1a
 VR_EXTCOL				= $20
@@ -95,7 +101,7 @@ SR_RANDOM				= $1b
 !addr GameScreen		= $0400		; Game screen page
 !addr SpriteDataPointer	= $07f8		; 5 Pointer to sprite 0-4
 !addr Playfield			= GameScreen + 2*40	; Line 2 of game screen
-!addr MenuScreen		= $0a00		; game screen page
+!addr MenuScreen		= $0c00		; game screen page
 !addr CharGame			= $2000		; User character game
 !addr CharMenu			= $2800		; User character menu
 !addr SpriteData		= $3000		; Sprite data 5x $40
@@ -113,13 +119,10 @@ SR_RANDOM				= $1b
 !addr delay_menu		= $0b		; jiffy-1 at start for 5s menu delay
 !addr temp				= $18		; temp byte
 !addr actual_player		= $19		; actual player
-!addr lives1			= $1a		; lives player 1 (starts with 3)
-!addr lives2			= $1b		; lives player 2 (starts with 3)
-!addr level1			= $1e		; level player 1
-!addr level2			= $1f		; level player 2
+!addr lives				= $1a ; $1b	  lives player 1, 2 (starts with 3)
+!addr level				= $1e ; $1f	  level player 1, 2
 ; $20,21 score
-!addr score1			= $22		; score player 1 (lowbyte, last digit always zero)
-!addr score2			= $23		; score player 1 (lowbyte, last digit always zero)
+!addr score				= $22 ; $23   score player 1, 2 (lowbyte, last digit always zero)
 ; $24,25 score
 ; $26
 ; $28
@@ -187,7 +190,7 @@ Cold:
 		!byte $30, $02, $bb, $5a, $30, $5f, $ee, $3d
 		!byte $a8
 ; -------------------------------------------------------------------------------------------------
-; $8011 Compressed game user font (bytes 0-$3f from FontData, bit 6+7 = count)
+; $8011 Encoded game user font (bytes 0-$3f from FontData, bit 6+7 = count)
 EncodedUserFontGame:
 		!byte $c0, $c0, $80, $57, $80, $57, $ee, $57
 		!byte $40, $01, $c4, $04, $40, $19, $ca, $ca
@@ -546,15 +549,15 @@ waitlp :cmp jiffy
 		beq waitlp						; wait one jiffy = 20ms
 !ifdef 	P500{
 		lda #$18						; VM13-10=$1 screen at $0400, CB13,12,11,x=1000 char at $2000
-		ldy #$18
+		ldy #VR_MEMPT
 		sta (VIC),y						; set VIC memory pointers
 		lda #$d8
-		ldy #$16
+		ldy #VR_MCMCSX
 		sta (VIC),y						; VIC multicolormode MCM=1, 40 columns
 		lda #$1f
-		ldy #$15
+		ldy #VR_MOBENA
 		sta (VIC),y						; VIC enable spritess 0-4
-		ldy #$1d
+		ldy #VR_MOBXPA
 		sta (VIC),y						; VIC x-expand sprites 0-4
 } else{
 		lda #$18						; VM13-10=$1 screen at $0400, CB13,12,11,x=1000 char at $2000
@@ -674,23 +677,23 @@ Interrupt:
 		lda #SYSTEMBANK
 		sta IndirectBank				; select bank 15
 
-		ldy #$19
+		ldy #VR_IRQ
 		lda (VIC),y						; load VIC interrupt reg and mask bit 1
 		and #$01
 		beq inorast						; skip if source is not raster interrupt
 		inc jiffy						; increase jiffy
-		ldy #$12
 		lda #$32
+		ldy #VR_RASTER
 		sta (VIC),y						; set VIC raster reg again to $32 (start)
-		ldy #$19
 		lda #$81
+		ldy #VR_IRQ
 		sta (VIC),y						; clear VIC raster interrupt
 		dec $30							;
-		jsr l864f				; draw screen
+		jsr UpdateScreen				; sub: Update screen: Startup, Menu, Game
 
 		lda $a4
 		bne iskpspr						; skip if $a4 is not 0
-		jsr l8b93				; sprite direction compare loop
+		jsr SpriteDirectionCompareLoop	; sprite direction compare loop
 
 iskpspr:ldy #$00
 		sty pressed_key					; clear key variable
@@ -747,10 +750,10 @@ inorast:pla
 		lda #$81
 		sta $d019						; clear VIC raster interrupt
 		dec $30							;
-		jsr l864f				; draw screen
+		jsr UpdateScreen				; sub: Update screen: Startup, Menu, Game
 		lda $a4
 		bne iskpspr						; skip if $a4 is not 0
-		jsr l8b93				; sprite direction compare loop
+		jsr SpriteDirectionCompareLoop				; sprite direction compare loop
 iskpspr:ldx #$ff
 		stx $dc02						; set CIA1 port A for output
 		dex
@@ -764,32 +767,26 @@ idebkey:lda $dc01						; load CIA1 port B = keyboard row
 inorast:jmp $ea7e						; jump to kernal interrupt
 }
 ; -------------------------------------------------------------------------------------------------
-; $85bd
+; $85bd Init menu - set VIC, sound off, clears sprite x
 InitMenu:
-!ifdef 	P500{
 		lda #$00
 		ldx #$07
--		sta sprite_x,x
+-		sta sprite_x,x					; clear sprite x variables
 		dex
 		bpl -
-		lda #$3a						; VM13-10=$3 screen $0a00, CB13,12,11,x=1010 char $2800						; VIC memory pointers
-		ldy #$18
+		lda #$3a						; VM13-10=$3 screen $0c00, CB13,12,11,x=1010 char $2800						; VIC memory pointers
+!ifdef 	P500{
+		ldy #VR_MEMPT
 		sta (VIC),y						; set VIC memory pointers
 		lda #$c8
-		ldy #$16
+		ldy #VR_MCMCSX
 		sta (VIC),y						; set VIC Multicolor mode off, 40 Columns
 		jsr SoundOff					; returns with A=$00
-		ldy #$15
+		ldy #VR_MOBENA
 		sta (VIC),y						; VIC disable sprites
 		rts
 } else{
 }
-		lda #$00
-		ldx #$07
--		sta sprite_x,x
-		dex
-		bpl -
-		lda #$3a						; VM13-10=$3 screen $0a00, CB13,12,11,x=1010 char $2800						; VIC memory pointers
 		sta $d018						; set VIC memory pointers
 		lda #$c8
 		sta $d016						; set VIC Multicolor mode off, 40 Columns
@@ -879,52 +876,56 @@ LoadHiNibblePointer1:
 		lsr
 		rts
 ; -------------------------------------------------------------------------------------------------
-; $864f
-l864f:	ldy state
-		bne +
-		jmp SetSpritePositions
-+		cpy #$01
-		bne l8698
-		jsr InitMenu
+; $864f Update screen: Startup, Menu, Game
+UpdateScreen:
+		ldy state
+		bne nogame
+		jmp GameCycle					; state = 0 game in progress
+nogame:	cpy #$01
+		bne MenuDelay					; state > 1 menu delay $ff jiffys
+; state = 1: Print Startup screen
+		jsr InitMenu					; sub: Init menu - set VIC, sound off, clears sprite x
 		ldx #$00
 		txa
 		sta $02c5
 		lda #$80
--		sta $0c00,x						; clear menu screen
+cmenulp:sta $0c00,x						; clear menu screen
 		sta $0d00,x
 		sta $0e00,x
 		sta $0f00,x
-		sta $0750,x
+		sta $0750,x						; clear lower part game screen
 		dex
-		bne -
+		bne cmenulp
 		ldx #$0d
-l8679:	lda Text_Atari1983,x
-		sta $0e67,x
+atarilp:lda Text_Atari1983,x
+		sta MenuScreen+$267,x
 		dex
-		bpl l8679
-		inx
-l8683:	txa
+		bpl atarilp
+		inx								; X = $00
+pacmlp:	txa								; write PACMAN logo to screen
 		clc
 		adc #$01
-		sta $0c5f,x
+		sta MenuScreen+$5f,x			; first line char 1 - 12
 		txa
 		adc #$0d
-		sta $0c87,x
+		sta MenuScreen+$87,x			; second line char 13 - 24
 		inx
 		cpx #$0c
-		bne l8683
-l8695:	inc state
-l8697:	rts
+		bne pacmlp
+nxstate:inc state						; increase state
+mwait: 	rts
 ; -------------------------------------------------------------------------------------------------
-; $8698
-l8698:	cpy #$02
-		bne l86a4
+; $8698 state = 2: Menu delay loop
+MenuDelay:
+		cpy #$02
+		bne Menu
 		lda delay_menu
-		cmp jiffy
-		bne l8697
-		beq l8695
-; $86a4
-l86a4:	ldx players
+		cmp jiffy						; wait for $ff jiffys from startup
+		bne mwait
+		beq nxstate						; increase to next state = 3 Menu
+; -------------------------------------------------------------------------------------------------
+; $86a4 state = 3: Print menu screen
+Menu:	ldx players
 		inx
 		txa
 		ora #$90
@@ -947,7 +948,7 @@ l86ca:	lda Text_PlayerGame,x
 		sta $0cd9,x
 		dex
 		bpl l86ca
-		jsr InitMenu
+		jsr InitMenu					; sub: Init menu - set VIC, sound off, clears sprite x
 		ldx #$0b
 l86db:	lda Text_PressF3To,x
 		sta $0d27,x
@@ -958,7 +959,7 @@ l86db:	lda Text_PressF3To,x
 		dex
 		bpl l86db
 		ldx difficulty
-		lda DifficultyTable3,x
+		lda LevelTable3,x
 		sta $0dcc
 		clc
 		adc #$01
@@ -975,8 +976,8 @@ l870b:	lda Text_PlayGame,x
 		bpl l870b
 		rts
 ; -------------------------------------------------------------------------------------------------
-; $8715 set sprite positions 0-4
-SetSpritePositions:	
+; $8715 main game cycle 
+GameCycle:	
 !ifdef 	P500{			; already in systembank from interrupt routine
 		ldx #$04						; start with sprite 4
 		ldy #$08						; x-position reg of sprite 4
@@ -1124,9 +1125,9 @@ l87cd:	jsr Blink12Up
 l87d8:	lda $0e
 		beq l87e6
 		lda players
-		beq l87e3
+		beq +							; skip if 1 player
 		jsr Write2Up
-l87e3:	jmp Write1Up
++		jmp Write1Up
 l87e6:	lda $14
 		beq l87ed
 		jmp l8c5c
@@ -1156,10 +1157,10 @@ SetPacmanDataEnd:
 ; $880a
 l880a:	lda jiffy
 		and #$03
-		bne l87f5
+		bne l87f5						; frequency change every 4 jiffy
 		ldx $5f
 		cpx #$40
-		beq l8830
+		beq l8830						; skip if end of frequency table
 		lda FrequencyHi,x
 !ifdef 	P500{
 		ldy #SR_V1FREQ+1
@@ -1276,10 +1277,10 @@ l88d0:	lda #$42
 		sta $02d4
 		clc
 		ldy #$02
-l88e3:	adc #$02
+-		adc #$02
 		sta $02d5,y
 		dey
-		bpl l88e3
+		bpl -
 		adc #$02
 		sta sprite_x,x
 		lda #WHITE
@@ -1287,7 +1288,7 @@ l88e3:	adc #$02
 !ifdef 	P500{
 		stx temp
 		ldy temp
-		sta (VIC27),y						; set VIC sprite color = white (ghost)
+		sta (VIC27),y					; set VIC sprite color = white (ghost)
 } else{
 		sta $d027,x						; set VIC sprite color = white (ghost)
 }
@@ -1379,7 +1380,7 @@ l897b:	lda $5b
 		cmp #$84
 		bne l89da
 		ldx actual_player
-		lda level1,x				; load player difficulty
+		lda level,x						; load level
 		cmp #$0c
 		bcc l8995
 		lda #$0c						; limit to $0c
@@ -1406,7 +1407,7 @@ l899c:	lda NuggetPoints,x
 		lda #$10
 		sta $b7
 		ldx actual_player
-		lda level1,x
+		lda level,x
 		cmp #$0c
 		bcc l89ca
 		lda #$0c
@@ -1554,9 +1555,9 @@ l8ae8:	lda players
 		beq l8b2b
 		lda actual_player
 		bne l8b0d
-		lda lives2
+		lda lives+1
 		beq l8b2b
-		lda lives1
+		lda lives
 		bne l8b02
 		lda #$02
 		sta $11
@@ -1568,9 +1569,9 @@ l8b02:	jsr BackupGameScreen1			; copies game screen to $4400
 		sta $13
 		lda #$02
 		bne l8ae5
-l8b0d:	lda lives1
+l8b0d:	lda lives
 		beq l8b2b
-		lda lives2
+		lda lives+1
 		bne l8b1f
 		lda #$01
 		sta $11
@@ -1586,7 +1587,7 @@ l8b2a:	rts
 ; -------------------------------------------------------------------------------------------------
 ; $8b2b
 l8b2b:	ldx actual_player
-		lda lives1,x
+		lda lives,x
 		beq l8b3a
 		jsr InitNewGame
 		jsr Ready
@@ -1609,10 +1610,10 @@ l8b3e:	sta $063d,x
 }
 		lda $11
 		bne l8b2a
-		ldx #$2a
-		jsr l8b71
-		ldx #$47
-		jsr l8b71
+		ldx #$2a						; score 1 screen position
+		jsr CheckHighscore
+		ldx #$47						; score 2 screen position
+		jsr CheckHighscore
 		lda #$00
 		sta $12
 		lda #$01
@@ -1621,29 +1622,38 @@ l8b3e:	sta $063d,x
 		sta $0c
 		jsr Write1Up
 		jmp l95aa
-l8b71:	ldy #$00
-l8b73:	lda GameScreen,x
-		cmp GameScreen+$39,y
-		beq l8b7f
-		bcc l8b92
-		bcs l8b86
-l8b7f:	inx
+; $8b71 check for new highsore
+CheckHighscore:
+		ldy #$00
+chkhslp:lda GameScreen,x
+		cmp GameScreen+$39,y			; compare last player score with highscore on screen
+		beq chnxdig						; didit equal, next digit
+		bcc chnonew						; digit lower = no highscore -> return
+		bcs chnewlp						; new highscore
+chnxdig:inx
 		iny
 		cpy #$06
-		bne l8b73
+		bne chkhslp
 		rts
 ; -------------------------------------------------------------------------------------------------
-; $8b86
-l8b86:	lda GameScreen,x
+; $8b86	copy new highscore to screen
+chnewlp:lda GameScreen,x
 		sta GameScreen+$39,y
 		inx
 		iny
 		cpy #$06
-		bne l8b86
-l8b92:	rts
+		bne chnewlp						; copy 6 digits
+!ifdef 	P500{
+		ldx #$09
+-		lda Text_HighScore,x
+		sta GameScreen+$10,x
+		dex
+		bpl -
+}
+chnonew:rts
 ; -------------------------------------------------------------------------------------------------
 ; $8b93
-l8b93:	ldx #$04
+SpriteDirectionCompareLoop:	ldx #$04
 l8b95:	lda sprite_y,x
 		cmp #$74
 		bne l8b9e
@@ -1767,7 +1777,7 @@ l8c5b:	rts
 l8c5c:	lda $15
 		bne l8c6d
 		jsr SoundOff
-		jsr l8d8d
+		jsr _SpriteMovementAnimationLoop
 		lda #$40
 l8c68:	sta $16
 l8c6a:	inc $15
@@ -1832,8 +1842,8 @@ l8caf:	cmp #$03
 ; $8cb9
 l8cb9:	jsr l8e49
 		ldx actual_player
-		inc lives1,x
-		inc level1,x
+		inc lives,x
+		inc level,x
 		jsr Ready
 		jsr PlayerDead
 		lda #$00
@@ -1858,7 +1868,7 @@ readylp:sta $063f,x						; screen position for READY:
 		cpx #$0a						; 10 chars
 		bne readylp
 		ldx actual_player
-		lda level1,x				; load player difficulty
+		lda level,x						; load player difficulty
 		cmp #$06
 		bcc l8cf6
 		cmp #$0a
@@ -1876,7 +1886,7 @@ l8cf8:	sty $5c
 		lda #$07						; pointer2 = fruit screen position $07e2
 		sta pointer2+1
 		ldx #$00
-l8d0c:	lda LevelNuggets,x			; load fruit char from table
+l8d0c:	lda LevelNuggets,x				; load fruit char from table
 		sta (pointer2),y				; store fruit code to screen
 		inc pointer2					; screen pointer to second char
 		clc
@@ -1922,13 +1932,13 @@ l8d51:
 ; -------------------------------------------------------------------------------------------------
 ; $8d52
 PlayerDead:
-		jsr l8d8d
+		jsr _SpriteMovementAnimationLoop
 		ldx actual_player
-		dec lives1,x
+		dec lives,x
 ; $8d59
 UpdateLivesDisplay:
 		ldx actual_player
-		lda lives1,x
+		lda lives,x
 		ldx #$00
 		ldy #$1b
 		cmp #$03
@@ -1953,11 +1963,12 @@ l8d89:	stx $07c8
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $8d8d
-l8d8d:	lda #$01
+_SpriteMovementAnimationLoop:
+		lda #$01
 		sta $6a
 		ldx #$03
 l8d93:	lda $4b,x
-		jsr l9952
+		jsr _SpriteMovementAnimation
 		dex
 		bpl l8d93
 		lda #$00
@@ -2020,16 +2031,16 @@ InitNewGame:
 		bne -							; clear ZP $3c - $c5
 		jsr ColorInit					; init color RAM and VIC Sprite colors
 		ldx actual_player
-		lda level1,x				; load player difficulty
+		lda level,x				; load player difficulty
 		cmp #$06
 		bcc +
 		lda #$06						; limit A to 6 and move it to Y
 +		tay
-		lda DifficultyTable1,y			; load from table as index
+		lda LevelTable1,y			; load from table as index
 		tax
 		lda $4dae,x						; copy data from RAM to ZP with index
 		sta $75
-		lda DifficultyTable2,y
+		lda LevelTable2,y
 		tay
 		ldx #$03
 -		lda $4dae,y
@@ -2057,17 +2068,17 @@ InitNewGame:
 ; $8e38 Init game variables - lives, score...
 InitGameVariables:
 		lda #LIVES						; start with 3 lives
-		sta lives1
-		sta lives2
+		sta lives
+		sta lives+1
 		lda difficulty
-		sta level1
-		sta level2
+		sta level
+		sta level+1
 		ldx #$01
 		jsr inzersc						; zero score
 l8e49:	jsr InitGameScreen				; copy game screen to screen RAM
 		jsr UpdateLivesDisplay
 		ldx actual_player
-		lda level1,x
+		lda level,x
 		tay
 		bne +
 		lda jiffy
@@ -2107,7 +2118,7 @@ l8e84:	lda $ac
 		jsr l8c49
 		ldx #$03
 l8e93:	lda $4b,x
-		jsr l9952
+		jsr _SpriteMovementAnimation
 		dex
 		bpl l8e93
 		dec $ad
@@ -2307,7 +2318,7 @@ l8faf:	lda $b1
 		bne l8f9a
 		jmp l9558
 l8fb6:	ldx actual_player
-		lda level1,x
+		lda level,x
 		tax
 		lda $4c72,x
 		cmp $bb
@@ -3038,9 +3049,9 @@ l9428:	eor #$0f
 		lda #$ff
 		sta $a8
 		ldx actual_player
-		lda level1,x
+		lda level,x
 		tax
-		lda DifficultyTable4,x
+		lda LevelTable4,x
 		sta $bc
 		ldx #$03
 l944b:	lda $8a,x
@@ -3120,7 +3131,7 @@ l94d0:	lda $0448
 		cmp #$90
 		beq l94cf
 l94d7:	inc $1c,x
-		inc lives1,x
+		inc lives,x
 		jmp UpdateLivesDisplay
 l94de:	lda $46,x
 		sta $61
@@ -3294,16 +3305,16 @@ l95e7:	lda $6c,x
 		sta $6c,x
 l95f1:	inc $6c,x
 		ldy actual_player
-		lda $0000+level1,y			; load player difficulty in A
+		lda $0000+level,y			; load player difficulty in A
 		cmp #$06
 		bcc +
 		lda #$06						; limit A to 6 and move it to Y
 +		tay
 		cpx #$04
 		bne l9608
-		lda DifficultyTable1,y
+		lda LevelTable1,y
 		bpl +							; skip always
-l9608:	lda DifficultyTable2,y
+l9608:	lda LevelTable2,y
 +		clc
 		adc $6c,x
 		tay
@@ -3403,7 +3414,7 @@ l96a8:	cpy #$50
 l96ac:	cpy #$a0
 		bne l9695
 l96b0:	inc $2e,x
-		lda level1,x
+		lda level,x
 		cmp #$0c
 		bcc l96ba
 		lda #$0c						; max difficulty = $0c
@@ -3478,7 +3489,7 @@ l9728:	jsr l94de
 		sta $82,x
 		jsr l99e9
 l9739:	lda $4b,x
-		jsr l9952
+		jsr _SpriteMovementAnimation
 l973e:	dex
 		bpl l96f4
 		lda $b1
@@ -3539,7 +3550,7 @@ l97a4:	sty $4b,x
 ; $97a9
 l97a9:	lda #$01
 l97ab:	sta $4b,x
-		jmp l9952
+		jmp _SpriteMovementAnimation
 l97b0:	lda $8a,x
 		and #$0f
 		sta $8a,x
@@ -3623,7 +3634,7 @@ l9836:	lda sprite_y,x
 		lda #$01
 l983e:	sta $4b,x
 l9840:	lda $4b,x
-		jmp l9952
+		jmp _SpriteMovementAnimation
 l9845:	lda $8a,x
 		bpl l984f
 		lsr
@@ -3706,7 +3717,7 @@ l98a1:	lda #$08
 		sta $86,x
 		bne l98c8
 l98c3:	sta $4b,x
-		jmp l9952
+		jmp _SpriteMovementAnimation
 l98c8:	lda $86,x
 		bne l98cf
 		jmp l9915
@@ -3774,7 +3785,7 @@ l993f:	lda $4a
 		clc
 		jsr l99e9
 l9950:	lda $4b,x
-l9952:	cmp #$01
+_SpriteMovementAnimation:	cmp #$01
 		bne l9962
 		ldy $6a
 		bne l995e
@@ -4118,19 +4129,17 @@ Table07:
 Table08:
 		!byte $00, $03, $0a, $0c, $11, $11, $0c, $0a
 		!byte $03, $00
-; -------------------------------------------------------------------------------------------------
 ; $9c32 SpriteColors Sprite color table
 SpriteColors:
 		!byte RED, LIGHTRED, GREEN, ORANGE
 		!byte YELLOW, BROWN, ORANGE, GRAY3
-; -------------------------------------------------------------------------------------------------
 ; $9c3a		
 		!byte $0f, $0a, $0f, $0d
 ; $9c3e from offset +3 copied to $87-$89
 Table03:
 		!byte $90, $60, $30, $04, $00, $00
 ; $9c44
-DifficultyTable4:
+LevelTable4:
 		!byte $ff, $c0, $80, $40, $00, $c0, $00, $00
 		!byte $00, $c0, $00, $00, $00
 ; $9c51
@@ -4232,10 +4241,10 @@ UserFontTiles:
 		!byte $df, $81, $70, $9f, $87, $07, $bc
 ; -------------------------------------------------------------------------------------------------
 ; $9e05
-DifficultyTable1:
+LevelTable1:
 		!byte $08, $08, $08, $0c, $10, $14, $14
 ; $9e0c
-DifficultyTable2:
+LevelTable2:
 		!byte $00, $04, $08, $08, $0c, $10, $10
 ; $9e13 unused
 Text_HighScore
@@ -4265,11 +4274,11 @@ Text_ChangeDifficulty:
 		!byte $a9, $a6, $a6, $a9, $a3, $b5, $ac, $b4
 		!byte $b9
 ; $9e74
-DifficultyTable3:
+LevelTable3:
 		!byte $3a, $3c, $3e, $3e, $40, $40, $44, $44
 		!byte $48, $48, $4a, $4a, $4c, $4c
 ; -------------------------------------------------------------------------------------------------
-; $9e82 compressed menu user font (bytes 0-$3f from FontData, bit 6+7 = count)
+; $9e82 encoded menu user font (bytes 0-$3f from FontData, bit 6+7 = count)
 EncodedUserFontMenu:
 		!byte $40, $31, $ae, $32, $2e, $80, $1f, $25
 		!byte $73, $26, $40, $19, $69, $6b, $34, $40
@@ -4364,7 +4373,7 @@ iniiolp:lda IOPointerTable,x			; copy 8 IO pointer to ZP
 		sta (TPI2),y					; store to TPI2 port c
 		lda #$3a
 		ldy #$18						; VIC reg $18 memory pointers
-		sta (VIC),y						; set VM13-10=$3 screen at $0a00, CB13,12,11,x=1010 char at $2800
+		sta (VIC),y						; set VM13-10=$3 screen at $0c00, CB13,12,11,x=1010 char at $2800
 		lda #$7f						; bit#7=0 clears/mask out all 5 irq sources with bit#0-4 = 1
 		ldy #$0d						; CIA interrupt control register
 		sta (CIA),y						; disable all hardware interrupts
