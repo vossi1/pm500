@@ -4,7 +4,7 @@
 ; Converted for P500 by Vossi 05/2020
 !cpu 6502
 ; switches
-;P500 = 1		; P500 bank 0 file
+P500 = 1		; P500 bank 0 file
 ;CRT = 1		; CRT header for VICE
 !ifdef 	P500{!to "pm500.prg", cbm
 } else	{ !ifdef CRT {!to "pm500.crt", plain
@@ -61,9 +61,10 @@ VR_RASTER				= $12
 VR_MOBENA				= $15
 VR_MCMCSX				= $16
 VR_MEMPT				= $18
+VR_IRQ					= $19
+VR_EIRQ					= $1a
 VR_MOBXPA				= $1d
 VR_MOBMOB				= $1e
-VR_EIRQ					= $1a
 VR_EXTCOL				= $20
 VR_BGRCOL				= $21
 VR_MOBCOL				= $27
@@ -1029,7 +1030,7 @@ spnoclr:sta $d010						; store new X-MSB-byte to VIC
 		dex
 		bpl spposlp						; next sprite
 }
-; copy sprite data pointer for all 5 sprites
+; $8740 copy sprite data pointer for all 5 sprites
 		ldx #$04
 		lda #(SpriteData/$40)+4			; VIC Sprite Data at $c0-$c4
 sdpcopy:sta SpriteDataPointer,x
@@ -1037,7 +1038,7 @@ sdpcopy:sta SpriteDataPointer,x
 		sbc #$01
 		dex
 		bpl sdpcopy
-; copy pacman sprite data		
+; $874d copy pacman sprite data		
 		lda sprite_y+4					; set data pointer to $5345 (pacman $5348-$5351)
 		sta spritedata_pointer
 		lda #$53
@@ -1057,7 +1058,7 @@ spmcopy:lda (spritedata_pointer),y		; copy pacman sprite data
 		bne spmcopy
 		lda sprite_y+0
 		jsr SetGhostDataEnd				; sub: Calc pointer, set last row, last byte of ghost
-; copy sprite data of 4 ghosts
+; $876a copy sprite data of 4 ghosts
 sg0copy:lda (spritedata_pointer),y		; copy ghost 0 sprite data
 		sta SpriteData,x
 		dex
@@ -1100,33 +1101,33 @@ sg3copy:lda (spritedata_pointer),y		; copy ghost 3 sprite data
 		lda #SYSTEMBANK
 		sta IndirectBank				; restore to bank 15
 }
-; check joystick button = pause game
+; $87ad check joystick button -> toggle pause game
 		lda jiffy
-		and #$0f						; only every 16 cycles
-		bne skpjoyb
+		and #$0f
+		bne chkpaus						; only every 16 cycles
 !ifdef 	P500{
 		ldy #$00						
 		lda (CIA),y						; load CIA Port A - joystick button = pause
 		ora #$3f						; ignore bit#0-5
 		cmp #$ff						; check if bit#6 and 7 = 1 -> no joystick button pressed
-		beq nojoyb
+		beq +
 } else{
 		lda $dc00
 		and #$10
-		bne nojoyb
+		bne +
 }
 		lda pause
-		eor #$80						; toggle pause
-		sta pause						; 1 = pause
+		eor #$80						; toggle pause -> $80 = pause
+		sta pause
 
-nojoyb:	lda $0c
-		beq skpjoyb
++		lda $0c
+		beq chkpaus
 		dec $0c
 
-skpjoyb:lda pause
-		beq sksndof						; skip if 0 = no pause
-		jmp SoundOff					; Sound off in pause
-sksndof:jsr Blink12Up
+chkpaus:lda pause
+		beq blk12up						; skip if 0 = no pause
+		jmp SoundOff					; JUMP to Sound off in pause and return from game cycle!
+blk12up:jsr Blink12Up					; sub: blink 1/2up of active player
 		lda $0a
 		beq l87d8
 		cmp #$02
@@ -1655,7 +1656,7 @@ chnewlp:lda GameScreen,x
 !ifdef 	P500{
 		ldx #$09
 -		lda Text_HighScore,x
-		sta GameScreen+$10,x
+		sta GameScreen+$0f,x
 		dex
 		bpl -
 }
@@ -1868,9 +1869,6 @@ l8cb9:	jsr l8e49
 ; $8cd7 print READY: and difficulty nuggets
 Ready:	lda #$22						; first READY: char ( $22-$2b )
 		ldx #$00
-!ifdef 	P500{				; X already $00
-		stx IndirectBank				; select bank 0 for pointer operations
-}
 readylp:sta $063f,x						; screen position for READY:
 		clc
 		adc #$01
@@ -1896,16 +1894,19 @@ l8cf8:	sty $5c
 		lda #$07						; pointer2 = fruit screen position $07e2
 		sta pointer2+1
 		ldx #$00
-l8d0c:	lda LevelNuggets,x				; load fruit char from table
-		sta (pointer2),y				; store fruit code to screen
+!ifdef 	P500{				; X already $00
+		stx IndirectBank				; select bank 0 for pointer operations
+}
+l8d0c:	lda LevelNuggets,x				; load nugget char from table
+		sta (pointer2),y				; store nugget code to screen
 		inc pointer2					; screen pointer to second char
 		clc
-		adc #$01						; add 1 to char code for second fruit char
+		adc #$01						; add 1 to char code for second nugget char
 		sta (pointer2),y
 		cpx temp
 		beq l8d51
 		inx
-		dec pointer2					; next fruit position to the left
+		dec pointer2					; next nugget position to the left
 		dec pointer2
 		dec pointer2
 		bne l8d0c
@@ -1991,7 +1992,7 @@ l8da6:	sta $063d,x
 		bpl l8da6
 		rts
 ; -------------------------------------------------------------------------------------------------
-; $8dad
+; $8dad blink 1/2up of active player
 Blink12Up:
 		lda jiffy
 		and #$0f
@@ -2009,6 +2010,7 @@ blink0:	lda #$00
 		tax								; code 0 = <space>
 		tay
 		beq wclr2up
+; $8dcb write 2UP
 Write2Up:
 		lda #$92						; code 2, U, P
 		ldx #$b5
@@ -2023,6 +2025,7 @@ wc1up:	lda blink_counter
 		tax								; code 0 = <space>
 		tay
 		beq wclr1up						; clear 1UP on screen
+; $8de3 write 1UP
 Write1Up:
 		lda #$91						; code 1, U, P
 		ldx #$b5
@@ -2248,10 +2251,6 @@ l8f3b:	dec $b0
 ; -------------------------------------------------------------------------------------------------
 ; $8f3e
 l8f3e:	
-!ifdef 	P500{
-		lda #GAMEBANK
-		sta IndirectBank				; select bank 0 for pointer operations
-}
 		lda $a9
 		beq l8f9a
 		lda $45
@@ -2277,6 +2276,10 @@ l8f5e:	lda $aa
 		lda LookUpTable,x
 		tay
 		dey
+!ifdef 	P500{
+		lda #GAMEBANK
+		sta IndirectBank				; select bank 0 for pointer operations
+}
 		lda SpriteData2,x
 		sta (pointer2),y
 !ifdef 	P500{
@@ -2288,30 +2291,54 @@ l8f5e:	lda $aa
 ; $8f73
 l8f73:	ldy #$0c			; already bank 0 selected
 		ldx #$09
+!ifdef 	P500{
+		lda #GAMEBANK
+		sta IndirectBank				; select bank 0 for pointer operations
+}
 l8f77:	lda SpriteDataTable+$78,x
 		sta (pointer2),y
 		dey
 		dex
 		bpl l8f77
+!ifdef 	P500{
+		lda #SYSTEMBANK
+		sta IndirectBank				; switch back to bank 15
+}
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $8f81
 l8f81:	ldy #$0f			; already bank 0 selected
 		ldx #$0f
+!ifdef 	P500{
+		lda #GAMEBANK
+		sta IndirectBank				; select bank 0 for pointer operations
+}
 l8f85:	lda Table09,x
 		sta (pointer2),y
 		dey
 		dex
 		bpl l8f85
+!ifdef 	P500{
+		lda #SYSTEMBANK
+		sta IndirectBank				; switch back to bank 15
+}
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $8f8f
 l8f8f:	ldy #$0f			; already bank 0 selected
 		lda #$00
+!ifdef 	P500{
+		lda #GAMEBANK
+		sta IndirectBank				; select bank 0 for pointer operations
+}
 l8f93:	sta (pointer2),y
 		dey
 		bpl l8f93
 		sta $a9
+!ifdef 	P500{
+		lda #SYSTEMBANK
+		sta IndirectBank				; switch back to bank 15
+}
 l8f9a:	rts
 ; -------------------------------------------------------------------------------------------------
 ; $8f9b
@@ -2909,11 +2936,11 @@ l9333:	tax
 		lda #$00
 		adc pointer1+1
 		sta pointer1+1
+		ldy #$09
 !ifdef 	P500{
 		lda #GAMEBANK
 		sta IndirectBank				; select bank 0 for pointer operations
 }
-		ldy #$09
 l934d:	lda (pointer1),y
 		sta $5803,y
 		dey
@@ -2966,11 +2993,18 @@ l9398:	lda $45
 		sty IndirectBank				; select bank 0 for pointer operations
 }
 		lda ($3c),y
+!ifdef 	P500{
+		ldx #SYSTEMBANK
+		stx IndirectBank				; switch back to bank 15
+}
 		cmp #$01
 		beq l93b0
 		cmp #$02
 		bne l93e8
 		tya
+!ifdef 	P500{				; Y already $00
+		sty IndirectBank				; select bank 0 for pointer operations
+}
 		sta ($3c),y
 !ifdef 	P500{				; X already $0f
 		stx IndirectBank				; switch back to bank 15
@@ -2993,7 +3027,14 @@ l93c7:	lda #$00
 l93c9:	sta $b5
 		lda #$00
 		tay
+!ifdef 	P500{				; Y already $00
+		sty IndirectBank				; select bank 0 for pointer operations
+}
 		sta ($3c),y
+!ifdef 	P500{
+		ldx #SYSTEMBANK
+		stx IndirectBank				; switch back to bank 15
+}
 l93d0:	ldx actual_player
 		inc $22,x
 		bne l93d8
@@ -3006,12 +3047,7 @@ l93d8:	ldx actual_player
 		bne l93e8
 		lda #$01
 		sta $14
-l93e8:	
-!ifdef 	P500{
-		lda #SYSTEMBANK
-		sta IndirectBank				; switch back to bank 15
-}
-		rts
+l93e8:	rts
 ; -------------------------------------------------------------------------------------------------
 ; $93e9
 l93e9:	ldx actual_player
