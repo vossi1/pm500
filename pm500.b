@@ -12,11 +12,11 @@ P500 = 1		; P500 bank 0 file
 ; ########################################### TODO ################################################
 ;
 ; add highscore text above score
-; add extra fruits in one color for menu difficulty
+; add extra nuggets in one color for menu difficulty
 ;
 ; ########################################### BUGS ################################################
 ;
-; Fruits in menu are not in multicolor so they look like zebra ;)
+; Nuggets in menu are not in multicolor so they look like zebra ;)
 ; Background color 2 for multicolor is not set to 2 but works on C64 because its VIC reset value
 ;
 ; ******************************************* INFO ************************************************
@@ -27,11 +27,11 @@ P500 = 1		; P500 bank 0 file
 ; Sprite source data is at $5300,$5400-$57ff and will copied in each cycle to the VIC sprite data
 ; First half of char ROM copied to lower half of user fonts
 ; Game screen is compressed at $81ef -> decompressed to $4000
-; Game font is compressed at $8011 -> decompressed to $2000 
-; Menu font is compressed at $9e82-> decompressed to $2800
-; 512 Nibble table lo+hi decoded -> $4c00
-; compressed font data are 2bit count + 6bit tile numbers of table at $9dc6
+; Game font is encoded at $8011 -> decoded to $2000 
+; Menu font is encoded at $9e82-> decoded to $2800
+; Encoded font data are 2bit count + 6bit tile numbers of table at $9dc6
 ; - 00-7f char, 80-bf next char repeated 0-3f, c0-fe low nib - next byte high-low nib, ff end
+; 512 Nibbles table lo+hi decoded -> $4c00
 ; Only SID voices 1+2 are used with sawtooth+triangle
 ; SID voice 3 with noise and reg $1b used for random number generation 
 ; ***************************************** CONSTANTS *********************************************
@@ -99,10 +99,10 @@ SR_RANDOM				= $1b
 !addr CharGame			= $2000		; User character game
 !addr CharMenu			= $2800		; User character menu
 !addr SpriteData		= $3000		; Sprite data 5x $40
-!addr MapData			= $4000		; Map data
+!addr MazeData			= $4000		; Maze data
 !addr ScreenBackup1		= $4400		; Game screen backup player 1
 !addr ScreenBackup2		= $4800		; Game screen backup player 2
-!addr MapData			= $4000		; Map data
+!addr MazeData			= $4000		; Maze data
 !addr LookUpTable		= $4c00		; LookUp Table 484 nibbles
 !addr SpriteRAM			= $5300		; 5x Sprite RAM -$57ff
 
@@ -112,10 +112,11 @@ SR_RANDOM				= $1b
 !addr difficulty		= $09		; 0, 1, 2, 4, 6, 8, a, c
 !addr delay_menu		= $0b		; jiffy-1 at start for 5s menu delay
 !addr temp				= $18		; temp byte
+!addr actual_player		= $19		; actual player
 !addr lives1			= $1a		; lives player 1 (starts with 3)
 !addr lives2			= $1b		; lives player 2 (starts with 3)
-!addr difficulty1		= $1e		; difficulty player 1
-!addr difficulty2		= $1f		; difficulty player 2
+!addr level1		= $1e		; difficulty player 1
+!addr level2		= $1f		; difficulty player 2
 ; $20,21 score
 !addr score1			= $22		; score player 1 (lowbyte, last digit always zero)
 !addr score2			= $23		; score player 1 (lowbyte, last digit always zero)
@@ -128,6 +129,7 @@ SR_RANDOM				= $1b
 !addr data_tb1			= $3c		; 20 bytes from $9bbf
 !addr sprite_y			= $41		; -$45 sprite y postion 
 !addr jiffy				= $a2		; jiffy clock 20ms counter from raster interrupt = Vsync
+!addr blink_counter		= $b9		; blink counter 1up/2up 0/1=off/on
 !addr spritedata_pointer= $c0		; 16bit pointer for sprite data copy
 !addr pressed_key		= $c5		; pressed key from interrupt
 ; ***************************************** VARIABLES *********************************************
@@ -186,7 +188,7 @@ Cold:
 		!byte $a8
 ; -------------------------------------------------------------------------------------------------
 ; $8011 Compressed game user font (bytes 0-$3f from FontData, bit 6+7 = count)
-cUserFontGame:
+EncodedUserFontGame:
 		!byte $c0, $c0, $80, $57, $80, $57, $ee, $57
 		!byte $40, $01, $c4, $04, $40, $19, $ca, $ca
 		!byte $4a, $19, $40, $c4, $04, $01, $c0, $1e
@@ -248,8 +250,8 @@ cUserFontGame:
 		!byte $c1, $1d, $40, $1e, $c0, $1e, $40, $0d
 		!byte $d9, $0d, $40, $1e, $40, $ff
 ; -------------------------------------------------------------------------------------------------
-; $81ef Compressed map data
-cMapData:
+; $81ef Compressed Maze data
+CompressedMazeData:
 		!byte $00, $11, $1c, $8f, $0c, $15, $16, $8f
 		!byte $0c, $1e, $20, $00, $00, $13, $0f, $8f
 		!byte $01, $0d, $0f, $8f, $01, $0d, $14, $00
@@ -329,44 +331,44 @@ clrzplp:sta $02,x						; clear zero page $03 - $c4
 		ldx jiffy						; load jiffy = $00 (cleared at ZP clear loop)
 		dex
 		stx delay_menu					; remember jiffy-1 for 255 x 20ms = 5s menu delay
-; $83b3 Copy and uncompress map
-		lda #<MapData
+; $83b3 Copy and uncompress maze
+		lda #<MazeData
 		sta pointer2
-		lda #>MapData
-		sta pointer2+1					; set target pointer = MapData
-		lda #<cMapData
+		lda #>MazeData
+		sta pointer2+1					; set target pointer = MazeData
+		lda #<CompressedMazeData
 		sta pointer1
-		lda #>cMapData
-		sta pointer1+1					; set source pointer = compressed MapData
+		lda #>CompressedMazeData
+		sta pointer1+1					; set source pointer = compressed MazeData
 		ldy #$00
-mapcplp:lda (pointer1),y				; load byte from map
+mazcplp:lda (pointer1),y				; load byte from maze
 		sta temp						; store for later bit#6 check
-		bmi mapbit7						; skip if bit#7 = 1
-		bpl mapchar						; branch if normal char
-mapbit7:cmp #$ff						; check if $ff = end of data
-		beq mapend						; exit loop
+		bmi mazbit7						; skip if bit#7 = 1
+		bpl mazchar						; branch if normal char
+mazbit7:cmp #$ff						; check if $ff = end of data
+		beq mazend						; exit loop
 		bit temp
-		bvs mapbit6						; branch if bit#6 = 1
+		bvs mazbit6						; branch if bit#6 = 1
 		and #$7f						; clear ident bit#7
 		tax								; use value in X as repeat counter
 		jsr IncPointer1					; read next byte
 		jsr LoadIncPointer1
-maprptb:jsr StoreIncPointer2			; copy byte to map
+mazrptb:jsr StoreIncPointer2			; copy byte to maze
 		dex
-		bpl maprptb						; repeat store byte X times
-		bmi mapcplp						; read next byte
-mapbit6:and #$3f						; clear ident bits#7,6
-		jsr StoreIncPointer2			; store byte to map
+		bpl mazrptb						; repeat store byte X times
+		bmi mazcplp						; read next byte
+mazbit6:and #$3f						; clear ident bits#7,6
+		jsr StoreIncPointer2			; store byte to maze
 		jsr IncPointer1					; next byte
 		jsr LoadHiNibblePointer1		; load and shift high nibble 4 bits right
 		jsr StoreIncPointer2			; store hi nibble
 		lda (pointer1),y
 		and #$0f						; isolate low nibble
-mapchar:jsr StoreIncPointer2			; copy byte to map
+mazchar:jsr StoreIncPointer2			; copy byte to maze
 		jsr IncPointer1
-		jmp mapcplp						; read next byte
+		jmp mazcplp						; read next byte
 ; $8401 Copy and decode LookUpTable Nibbles
-mapend:	lda #<cLookUpTable
+mazend:	lda #<cLookUpTable
 		sta pointer1
 		lda #>cLookUpTable
 		sta pointer1+1					; set source pointer = $9f0e
@@ -420,19 +422,19 @@ fntcplp:lda CharROM64+$100,x			; load from character ROM
 		ora #$01
 		sta $dc0e
 }
-; $8459 Copy and uncompress user fonts
-		lda #<cUserFontGame
+; $8459 Copy and decode user fonts
+		lda #<EncodedUserFontGame
 		sta pointer1
-		lda #>cUserFontGame
+		lda #>EncodedUserFontGame
 		sta pointer1+1					; pointer1 = $8011
 		lda #<CharGame
 		sta pointer2
 		lda #>CharGame
 		sta pointer2+1					; pointer2 = $2000
 		jsr UncompressUserFont			; copy game user font
-		lda #<cUserFontMenu
+		lda #<EncodedUserFontMenu
 		sta pointer1
-		lda #>cUserFontMenu
+		lda #>EncodedUserFontMenu
 		sta pointer1+1					; pointer1 = $9e82
 		lda #<(CharMenu+$08)
 		sta pointer2
@@ -795,30 +797,30 @@ InitMenu:
 		sta $d015						; VIC disable sprites
 		rts
 ; -------------------------------------------------------------------------------------------------
-; $85d8
+; $85d8 Init 1 player
 Init1Player:
-		ldx #$05
-		lda #$80
--		sta $0420,x
-		sta $0447,x
+		ldx #$05						; 6 chars
+		lda #$80						; <space> code
+-		sta $0420,x						; write to screen score position 1
+		sta $0447,x 					; write to screen score position 2
 		dex
 		bpl -
-iplayer:jsr l8de3
-		ldx #$05
-		lda #$90
--		sta $042a,x
+iplayr1:jsr Write1Up
+		ldx #$05						; 6 chars
+		lda #$90						; code 0
+-		sta $042a,x						; write player 1 score 000000
 		dex
 		bpl -
 		rts
-; $85f3 Init2Player
+; $85f3 Init 2 Player
 Init2Player:
-		jsr l8dcb
+		jsr Write2Up
 		ldx #$05
 		lda #$90
--		sta $0447,x
+-		sta $0447,x						; write player 2 score 000000
 		dex
 		bpl -
-		bmi iplayer
+		bmi iplayr1
 ; -------------------------------------------------------------------------------------------------
 ; $8602 copy and uncompress user font
 UncompressUserFont:	
@@ -1114,7 +1116,7 @@ l87c0:	lda $0c
 l87c6:	lda $57
 		beq l87cd
 		jmp SoundOff
-l87cd:	jsr l8dad
+l87cd:	jsr Blink12Up
 		lda $0a
 		beq l87d8
 		cmp #$02
@@ -1123,8 +1125,8 @@ l87d8:	lda $0e
 		beq l87e6
 		lda players
 		beq l87e3
-		jsr l8dcb
-l87e3:	jmp l8de3
+		jsr Write2Up
+l87e3:	jmp Write1Up
 l87e6:	lda $14
 		beq l87ed
 		jmp l8c5c
@@ -1310,10 +1312,10 @@ l8909:	sta $26
 		lda $a8
 		asl
 		tay
-		lda PointerTable3,y
+		lda PointsSpriteIndex,y
 		sta pointer1
 		iny
-		lda PointerTable3,y
+		lda PointsSpriteIndex,y
 		sta pointer1+1
 !ifdef 	P500{
 		lda #GAMEBANK
@@ -1322,7 +1324,7 @@ l8909:	sta $26
 		ldy #$0f
 -		lda (pointer1),y
 		sta ($26),y
-		lda Table02,y
+		lda PointsSpriteData,y
 		sta ($28),y
 		dey
 		bpl -
@@ -1376,16 +1378,16 @@ l897b:	lda $5b
 		lda $45
 		cmp #$84
 		bne l89da
-		ldx $19
-		lda difficulty1,x				; load player difficulty
+		ldx actual_player
+		lda level1,x				; load player difficulty
 		cmp #$0c
 		bcc l8995
 		lda #$0c						; limit to $0c
 l8995:	tax
-		lda DifficultyTable7,x			; load index from table
+		lda NuggetPointsIndex,x			; load index from table
 		tax
 		ldy #$00
-l899c:	lda DifficultyTable6,x
+l899c:	lda NuggetPoints,x
 		sta $0641,y						; fruit middle of screen
 		inx
 		iny
@@ -1403,8 +1405,8 @@ l899c:	lda DifficultyTable6,x
 		sta $b6
 		lda #$10
 		sta $b7
-		ldx $19
-		lda difficulty1,x
+		ldx actual_player
+		lda level1,x
 		cmp #$0c
 		bcc l89ca
 		lda #$0c
@@ -1499,44 +1501,45 @@ l8a78:	jsr l95aa
 		lda $11
 		beq l8ae8
 		ldx $13
-		beq l8a86
+		beq ChangePlayer
 		dec $13
 		rts
 ; -------------------------------------------------------------------------------------------------
-; $8a86
-l8a86:	cmp #$01
+; $8a86 change player
+ChangePlayer:
+		cmp #$01
 		bne l8ab0
 		ldx #$00
-l8a8c:	lda $4400,x
-		sta $0450,x
-		lda $4500,x
-		sta $0550,x
-		lda $4600,x
-		sta $0650,x
-		lda $4700,x
-		sta $0750,x
+l8a8c:	lda ScreenBackup1,x				; restore player  screen
+		sta Playfield,x
+		lda ScreenBackup1+$100,x
+		sta Playfield+$100,x
+		lda ScreenBackup1+$200,x
+		sta Playfield+$200,x
+		lda ScreenBackup1+$300,x
+		sta Playfield+$300,x
 		inx
 		bne l8a8c
-		jsr l8dcb
-		lda #$00
-		sta $19
+		jsr Write2Up
+		lda #$00						; change to player 1
+		sta actual_player
 		beq l8ae3
 l8ab0:	cmp #$02
 		bne l8ada
 		ldx #$00
-l8ab6:	lda $4800,x
-		sta $0450,x
-		lda $4900,x
-		sta $0550,x
-		lda $4a00,x
-		sta $0650,x
-		lda $4b00,x
-		sta $0750,x
+l8ab6:	lda ScreenBackup2,x				; restore player 2 screen
+		sta Playfield,x
+		lda ScreenBackup2+$100,x
+		sta Playfield+$100,x
+		lda ScreenBackup2+$200,x
+		sta Playfield+$200,x
+		lda ScreenBackup2+$300,x
+		sta Playfield+$300,x
 		inx
 		bne l8ab6
-		jsr l8de3
-		lda #$01
-		sta $19
+		jsr Write1Up
+		lda #$01						; change to player 2
+		sta actual_player
 		bne l8ae3
 l8ada:	jsr l95aa
 		lda #$00
@@ -1549,7 +1552,7 @@ l8ae5:	sta $11
 ; $8ae8
 l8ae8:	lda players
 		beq l8b2b
-		lda $19
+		lda actual_player
 		bne l8b0d
 		lda lives2
 		beq l8b2b
@@ -1582,7 +1585,7 @@ l8b1f:	jsr BackupGameScreen2			; copies game screen to $4800
 l8b2a:	rts
 ; -------------------------------------------------------------------------------------------------
 ; $8b2b
-l8b2b:	ldx $19
+l8b2b:	ldx actual_player
 		lda lives1,x
 		beq l8b3a
 		jsr InitNewGame
@@ -1616,7 +1619,7 @@ l8b3e:	sta $063d,x
 		sta $0e
 		lda #$e2
 		sta $0c
-		jsr l8de3
+		jsr Write1Up
 		jmp l95aa
 l8b71:	ldy #$00
 l8b73:	lda GameScreen,x
@@ -1828,9 +1831,9 @@ l8caf:	cmp #$03
 ; -------------------------------------------------------------------------------------------------
 ; $8cb9
 l8cb9:	jsr l8e49
-		ldx $19
+		ldx actual_player
 		inc lives1,x
-		inc difficulty1,x
+		inc level1,x
 		jsr Ready
 		jsr PlayerDead
 		lda #$00
@@ -1842,7 +1845,7 @@ l8cb9:	jsr l8e49
 		sta $13
 		rts
 ; -------------------------------------------------------------------------------------------------
-; $8cd7 print READY: and difficulty fruits
+; $8cd7 print READY: and difficulty nuggets
 Ready:	lda #$22						; first READY: char ( $22-$2b )
 		ldx #$00
 !ifdef 	P500{				; X already $00
@@ -1854,8 +1857,8 @@ readylp:sta $063f,x						; screen position for READY:
 		inx
 		cpx #$0a						; 10 chars
 		bne readylp
-		ldx $19
-		lda difficulty1,x				; load player difficulty
+		ldx actual_player
+		lda level1,x				; load player difficulty
 		cmp #$06
 		bcc l8cf6
 		cmp #$0a
@@ -1873,7 +1876,7 @@ l8cf8:	sty $5c
 		lda #$07						; pointer2 = fruit screen position $07e2
 		sta pointer2+1
 		ldx #$00
-l8d0c:	lda DifficultyTable5,x			; load fruit char from table
+l8d0c:	lda LevelNuggets,x			; load fruit char from table
 		sta (pointer2),y				; store fruit code to screen
 		inc pointer2					; screen pointer to second char
 		clc
@@ -1893,10 +1896,10 @@ l8d2b:	sec
 		sbc #$06						; substract $06 -> value 0 - $0c
 		sta temp
 		sec
-		lda #<(DifficultyTable5+$18)			; = $8a
+		lda #<(LevelNuggets+$18)			; = $8a
 		sbc temp
 		sta pointer1
-		lda #>(DifficultyTable5+$18)			; pointer to end of table = $9d8a (min -$0c)
+		lda #>(LevelNuggets+$18)			; pointer to end of table = $9d8a (min -$0c)
 		sbc #$00
 		sta pointer1+1
 		ldx #$00
@@ -1920,11 +1923,11 @@ l8d51:
 ; $8d52
 PlayerDead:
 		jsr l8d8d
-		ldx $19
+		ldx actual_player
 		dec lives1,x
 ; $8d59
 UpdateLivesDisplay:
-		ldx $19
+		ldx actual_player
 		lda lives1,x
 		ldx #$00
 		ldy #$1b
@@ -1968,42 +1971,45 @@ l8da6:	sta $063d,x
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $8dad
-l8dad:	lda jiffy
+Blink12Up:
+		lda jiffy
 		and #$0f
-		bne l8df2
-		lda $b9
-		bne l8dbb
-		inc $b9
-		bne l8dbf
-l8dbb:	lda #$00
-		sta $b9
-l8dbf:	lda $19
-		beq l8ddb
-		lda $b9
-		bne l8dcb
-		tax
+		bne blnkskp						; blink only every 16. jiffy cycle
+		lda blink_counter
+		bne blink0						; branch if blink = 1 -> set to 0
+		inc blink_counter				; increase blink
+		bne +							; branch always
+blink0:	lda #$00
+		sta blink_counter				; set blink to 0
++		lda actual_player
+		beq wc1up						; branch to 1 player
+		lda blink_counter
+		bne Write2Up					; if blink counter > 0 write 2UP
+		tax								; code 0 = <space>
 		tay
-		beq l8dd1
-l8dcb:	lda #$92
+		beq wclr2up
+Write2Up:
+		lda #$92						; code 2, U, P
 		ldx #$b5
 		ldy #$b0
-l8dd1:	sta $0421
+wclr2up:sta $0421						; write to screen right side
 		stx $0422
 		sty $0423
 		rts
 ; $8ddb
-l8ddb:	lda $b9
-		bne l8de3
-		tax
+wc1up:	lda blink_counter
+		bne Write1Up					; if blink_counter > 0 write 1UP
+		tax								; code 0 = <space>
 		tay
-		beq l8de9
-l8de3:	lda #$91
+		beq wclr1up						; clear 1UP on screen
+Write1Up:
+		lda #$91						; code 1, U, P
 		ldx #$b5
 		ldy #$b0
-l8de9:	sta $0404
+wclr1up:sta $0404						; write to screen left side
 		stx $0405
 		sty $0406
-l8df2:	rts
+blnkskp:rts
 ; -------------------------------------------------------------------------------------------------
 ; $8df3 init new game
 InitNewGame:
@@ -2013,8 +2019,8 @@ InitNewGame:
 		dex
 		bne -							; clear ZP $3c - $c5
 		jsr ColorInit					; init color RAM and VIC Sprite colors
-		ldx $19
-		lda difficulty1,x				; load player difficulty
+		ldx actual_player
+		lda level1,x				; load player difficulty
 		cmp #$06
 		bcc +
 		lda #$06						; limit A to 6 and move it to Y
@@ -2054,14 +2060,14 @@ InitGameVariables:
 		sta lives1
 		sta lives2
 		lda difficulty
-		sta difficulty1
-		sta difficulty2
+		sta level1
+		sta level2
 		ldx #$01
 		jsr inzersc						; zero score
 l8e49:	jsr InitGameScreen				; copy game screen to screen RAM
 		jsr UpdateLivesDisplay
-		ldx $19
-		lda difficulty1,x
+		ldx actual_player
+		lda level1,x
 		tay
 		bne +
 		lda jiffy
@@ -2070,7 +2076,7 @@ l8e49:	jsr InitGameScreen				; copy game screen to screen RAM
 		jmp ++
 +		iny
 		bne -
-++		ldx $19
+++		ldx actual_player
 inzersc:lda #$0f						; zero score
 		sta $20,x
 		lda #$00
@@ -2300,8 +2306,8 @@ l8fa6:	lda $bc
 l8faf:	lda $b1
 		bne l8f9a
 		jmp l9558
-l8fb6:	ldx $19
-		lda difficulty1,x
+l8fb6:	ldx actual_player
+		lda level1,x
 		tax
 		lda $4c72,x
 		cmp $bb
@@ -2353,28 +2359,29 @@ l8ff9:	lda $ba
 l9003:	dec $ba
 l9005:	lda $bb
 		lsr
-		bcc l900e
-		ldy #BLUE
-		bne l9010						; branch always
-l900e:	ldy #WHITE
-l9010:	ldx #$03						; 3-0 ghosts
+		bcc ghwhite						; color ghosts white
 !ifdef 	P500{
-		sty temp
-		ldy #VR_MOBCOL+3
-l9012:	lda $8a,x
-		bpl l901a
-		lda temp
-		sta (VIC),y						; set VIC sprites color 3-0 (ghosts)
-l901a:	dey
-		dex
+		ldx #BLUE
+		bne +							; blue loaded, skip white
+ghwhite:ldx #WHITE
++		ldy #$03						; 3-0 ghosts
+ghcollp:lda $8a,y
+		bpl ghskip						; skip reborn ghost
+		txa
+		sta (VIC27),y					; set VIC ghost sprites color 3-0
+ghskip:	dey
 } else{
-l9012:	lda $8a,x
-		bpl l901a
+		ldy #BLUE
+		bne +							; blue loaded, skip white
+ghwhite:ldy #WHITE
++		ldx #$03						; 3-0 ghosts
+ghcollp:lda $8a,x
+		bpl ghskip						; skip reborn ghost
 		tya
-		sta $d027,x						; set VIC sprites color 3-0 (ghosts)
-l901a:	dex
+		sta $d027,x						; set VIC ghost sprites color 3-0
+ghskip:	dex
 }
-		bpl l9012
+		bpl ghcollp
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $901e
@@ -2495,8 +2502,8 @@ l90bc:	jsr SoundOff
 		lda #$0f
 		sta $02c7
 !ifdef 	P500{
-		ldy #VR_MOBCOL+3				; 3-0 ghosts
-l90cc:	lda (VIC),y						; load VIC sprites color 3-0 (ghosts)
+		ldy #$03						; 3-0 ghosts
+l90cc:	lda (VIC27),y					; load VIC sprites color 3-0 (ghosts)
 		cmp #$f1
 		beq l90d7
 		dey
@@ -2630,13 +2637,13 @@ coinlp3:lda SpriteColors,x
 ; $9163 init Screen
 InitGameScreen:
 		ldx #$00
-scrinlp:lda MapData,x					; load decompressed Screen Data
+scrinlp:lda MazeData,x					; load decompressed Screen Data
 		sta Playfield,x			; copy to game screen from line2
-		lda MapData+$100,x
+		lda MazeData+$100,x
 		sta Playfield+$100,x
-		lda MapData+$200,x
+		lda MazeData+$200,x
 		sta Playfield+$200,x
-		lda MapData+$300,x
+		lda MazeData+$300,x
 		sta Playfield+$300,x
 		inx
 		bne scrinlp
@@ -2693,7 +2700,7 @@ l91bd:	lda $66
 		sty $64
 l91df:	lda $68
 		sta $4f
-l91e3:	ldx $19
+l91e3:	ldx actual_player
 !ifdef 	P500{
 		ldy #$01
 		lda (CIA),y						; load CIA port b bit#0-3 = joystick 1 movement
@@ -2966,11 +2973,11 @@ l93c9:	sta $b5
 		lda #$00
 		tay
 		sta ($3c),y
-l93d0:	ldx $19
+l93d0:	ldx actual_player
 		inc $22,x
 		bne l93d8
 		inc $24,x
-l93d8:	ldx $19
+l93d8:	ldx actual_player
 		lda $24,x
 		beq l93e8
 		lda $22,x
@@ -2986,7 +2993,7 @@ l93e8:
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $93e9
-l93e9:	ldx $19
+l93e9:	ldx actual_player
 		lda $20,x
 		sta temp
 		ldx $45
@@ -3021,7 +3028,7 @@ l941b:	asl
 		bne l93e8
 l9428:	eor #$0f
 		and temp
-		ldx $19
+		ldx actual_player
 		sta $20,x
 		lda #$05
 		sta $54
@@ -3030,8 +3037,8 @@ l9428:	eor #$0f
 		sta $bb
 		lda #$ff
 		sta $a8
-		ldx $19
-		lda difficulty1,x
+		ldx actual_player
+		lda level1,x
 		tax
 		lda DifficultyTable4,x
 		sta $bc
@@ -3058,7 +3065,7 @@ l9467:	dex
 l946d:	lda #$00
 		sta $56
 		sed
-		lda $19
+		lda actual_player
 		beq l947a
 		ldx #$4c
 		bne l947c
@@ -3098,7 +3105,7 @@ l94ab:	ora #$90
 l94b9:	sta $50,x
 		dex
 		bpl l94b9
-		ldx $19
+		ldx actual_player
 		lda $1c,x
 		bne l94cf
 		cpx #$00
@@ -3245,7 +3252,7 @@ l959f:	lda jiffy
 ; -------------------------------------------------------------------------------------------------
 ; $95aa
 l95aa:	ldy #$02
-		ldx $19
+		ldx actual_player
 		lda $20,x
 		sta temp
 		lda #$01
@@ -3286,8 +3293,8 @@ l95e7:	lda $6c,x
 		lda #$ff
 		sta $6c,x
 l95f1:	inc $6c,x
-		ldy $19
-		lda $0000+difficulty1,y			; load player difficulty in A
+		ldy actual_player
+		lda $0000+level1,y			; load player difficulty in A
 		cmp #$06
 		bcc +
 		lda #$06						; limit A to 6 and move it to Y
@@ -3312,7 +3319,7 @@ l9617:	lda jiffy
 		lda $69
 		beq l9623
 		dec $69
-l9623:	ldx $19
+l9623:	ldx actual_player
 		lda $24,x
 		beq l9632
 l9629:	ldx #$03
@@ -3381,7 +3388,7 @@ l9695:	rts
 ; $9696
 l9696:	lda $5b
 		bne l96d4
-		ldx $19
+		ldx actual_player
 		lda $22,x
 		tay
 		lda $2e,x
@@ -3396,12 +3403,12 @@ l96a8:	cpy #$50
 l96ac:	cpy #$a0
 		bne l9695
 l96b0:	inc $2e,x
-		lda difficulty1,x
+		lda level1,x
 		cmp #$0c
 		bcc l96ba
 		lda #$0c						; max difficulty = $0c
 l96ba:	tax
-		lda DifficultyTable5,x
+		lda LevelNuggets,x
 		sta $0643
 		clc
 		adc #$01
@@ -4088,9 +4095,16 @@ Table05:
 		!byte $b2, $be
 ; $9be7
 PointerTable2:
-		!byte $0e, $4c, $18, $4c, $22, $4c, $2c, $4c
-		!byte $36, $4c, $40, $4c, $4a, $4c, $54, $4c
-		!byte $5e, $4c, $68, $4c
+		!word $4c0e
+		!word $4c18
+		!word $4c22
+		!word $4c2c
+		!word $4c36
+		!word $4c40
+		!word $4c4a
+		!word $4c54
+		!word $4c5e
+		!word $4c68
 ; $9bfb
 		!byte $7c, $ff, $58, $7c, $9e, $ff, $58, $9e
 		!byte $ff, $3c, $ac, $ff, $ff
@@ -4125,15 +4139,15 @@ DifficultyTable4:
 Table09:
 		!byte $00, $00, $00, $00, $00, $92, $54, $00
 		!byte $c6, $00, $54, $92
-; $9c5f
-Table02:
-		!byte $00, $00, $00, $00, $c6, $29, $29, $29
+; $9c5f Sprite data for points -> Pacman sprite
+PointsSpriteData:
+		!byte $00, $00, $00, $00, $c6, $29, $29, $29	; x00
 		!byte $29, $29, $c6, $00, $00, $00, $00, $00
-		!byte $38, $45, $05, $19, $21, $41, $7c, $00
-		!byte $00, $00, $00, $00, $08, $19, $29, $49
+		!byte $38, $45, $05, $19, $21, $41, $7c, $00	; 2x
+		!byte $00, $00, $00, $00, $08, $19, $29, $49	; 4x
 		!byte $7d, $09, $08, $00, $00, $00, $00, $00
-		!byte $38, $45, $45, $39, $45, $45, $38, $00
-		!byte $00, $00, $00, $00, $8c, $91, $a1, $b9
+		!byte $38, $45, $45, $39, $45, $45, $38, $00	; 8x
+		!byte $00, $00, $00, $00, $8c, $91, $a1, blink_counter	; 16x
 		!byte $a5, $a5, $98, $00, $00
 ; $9c9c
 FrequencyHi:
@@ -4155,12 +4169,12 @@ FrequencyLo:
 		!byte $8f, $87, $1e, $61, $00, $1f, $1f, $00
 		!byte $8f, $1f, $60, $b5, $00, $b5, $1e, $9c
 		!byte $00, $9c, $31, $df, $00, $87, $87, $00
-; $9d1c
-PointerTable3:
-		!byte <(Table02+$0c), >(Table02+$0c)
-		!byte <(Table02+$18), >(Table02+$18)
-		!byte <(Table02+$24), >(Table02+$24)
-		!byte <(Table02+$30), >(Table02+$30)
+; $9d1c Index to points sprite data -> pacman sprite
+PointsSpriteIndex:
+		!word PointsSpriteData+$0c						; 200
+		!word PointsSpriteData+$18						; 400
+		!word PointsSpriteData+$24						; 800
+		!word PointsSpriteData+$30						; 1600
 ; $9d24
 
 		!byte $19, $1a, $1c, $1d, $20, $23, $00
@@ -4169,7 +4183,10 @@ PointerTable3:
 		!byte $23, $1d, $1a, $17, $15, $12, $00
 ; $9d32
 PointerTable4:
-		!byte $86, $4c, $93, $4c, $9b, $4c, $a3, $4c
+		!word $4c86
+		!word $4c93
+		!word $4c9b
+		!word $4ca3
 ; $9d3a
 Table10:
 		!byte $96, $a4, $62, $74, $82, $64, $62, $64
@@ -4184,29 +4201,24 @@ Table06:
 		!byte $00, $0b, $16, $21, $2c, $33, $3a, $41
 		!byte $48, $53, $60, $6d, $80, $99, $b6, $c9
 ; $9d72
-DifficultyTable5:
-		!byte $3a, $3c, $3e, $3e, $40, $40, $42, $42
+LevelNuggets:
+		!byte $3a, $3c, $3e, $3e, $40, $40, $42, $42 ; first of two nugget chars: $3a,$3b = cherry
 		!byte $46, $46, $4a, $4a, $4c, $4c, $4c, $4c
 		!byte $4c, $4c, $4c, $4a, $4a, $48, $48, $44
-		!byte $44
-; $9d8b
-
-		!byte $40, $40, $3e, $3e, $3c
-		!byte $3a
+		!byte $44, $40, $40, $3e, $3e, $3c, $3a
 ; $9d91
-DifficultyTable6:
-		!byte $00, $4e, $4f, $5f, $60	; $00
-		!byte $00, $50, $51, $5f, $60	; $05
-		!byte $00, $52, $53, $5f, $60	; $0a
-		!byte $00, $54, $55, $5f, $60	; $0f
-		!byte $56, $57, $5e, $5f, $60	; $14
-		!byte $58, $59, $5e, $5f, $60	; $19
-		!byte $5a, $5b, $5e, $5f, $60	; $1e
-		!byte $5c, $5d, $5e, $5f, $60	; $23
+NuggetPoints:
+		!byte $00, $4e, $4f, $5f, $60	; $00 chars for 100 points
+		!byte $00, $50, $51, $5f, $60	; $05 chars for 300 points
+		!byte $00, $52, $53, $5f, $60	; $0a chars for 500 points
+		!byte $00, $54, $55, $5f, $60	; $0f chars for 700 points
+		!byte $56, $57, $5e, $5f, $60	; $14 chars for 1000 points
+		!byte $58, $59, $5e, $5f, $60	; $19 chars for 2000 points
+		!byte $5a, $5b, $5e, $5f, $60	; $1e chars for 3000 points
+		!byte $5c, $5d, $5e, $5f, $60	; $23 chars for 5000 points
 ; $9db9 
-DifficultyTable7:	; 0-$c difficulty indexes for Difficultytable 6 (for fruit-pos of Screen $0641)
-		!byte $00, $05, $0a, $0a, $0f, $0f, $14, $14
-		!byte $19, $19, $1e, $1e, $23
+NuggetPointsIndex:	; Index for level 0-12 nugget points
+		!byte $00, $05, $0a, $0a, $0f, $0f, $14, $14, $19, $19, $1e, $1e, $23
 ; -------------------------------------------------------------------------------------------------
 ; $9dc6 User font tiles 0 - $3e
 UserFontTiles:
@@ -4243,22 +4255,22 @@ Text_PressF5To:
 		!byte $b0, $b2, $a5, $b3, $b3, $80, $a6, $95, $80, $b4, $af, $80  
 ; $9e4f
 Text_PlayGame:
-		!byte $b0, $ac, $a1, $b9, $80, $a7, $a1, $ad, $a5
+		!byte $b0, $ac, $a1, blink_counter, $80, $a7, $a1, $ad, $a5
 ; $9e58
 Text_PlayerGame:
-		!byte $b0, $ac, $a1, $b9, $a5, $b2, $80, $a7, $a1, $ad, $a5
+		!byte $b0, $ac, $a1, blink_counter, $a5, $b2, $80, $a7, $a1, $ad, $a5
 ; $9e63
 Text_ChangeDifficulty:
 		!byte $a3, $a8, $a1, $ae, $a7, $a5, $80, $a4
 		!byte $a9, $a6, $a6, $a9, $a3, $b5, $ac, $b4
-		!byte $b9
+		!byte blink_counter
 ; $9e74
 DifficultyTable3:
 		!byte $3a, $3c, $3e, $3e, $40, $40, $44, $44
 		!byte $48, $48, $4a, $4a, $4c, $4c
 ; -------------------------------------------------------------------------------------------------
 ; $9e82 compressed menu user font (bytes 0-$3f from FontData, bit 6+7 = count)
-cUserFontMenu:
+EncodedUserFontMenu:
 		!byte $40, $31, $ae, $32, $2e, $80, $1f, $25
 		!byte $73, $26, $40, $19, $69, $6b, $34, $40
 		!byte $03, $09, $75, $6f, $40, $29, $34, $2d
