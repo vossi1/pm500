@@ -4,7 +4,7 @@
 ; Converted for P500 by Vossi 05/2020
 !cpu 6502
 ; switches
-P500 = 1		; P500 bank 0 file
+;P500 = 1		; P500 bank 0 file
 ;CRT = 1		; CRT header for VICE
 !ifdef 	P500{!to "pm500.prg", cbm
 } else	{ !ifdef CRT {!to "pm500.crt", plain
@@ -115,8 +115,8 @@ SR_RANDOM				= $1b
 !addr actual_player		= $19		; actual player
 !addr lives1			= $1a		; lives player 1 (starts with 3)
 !addr lives2			= $1b		; lives player 2 (starts with 3)
-!addr level1		= $1e		; difficulty player 1
-!addr level2		= $1f		; difficulty player 2
+!addr level1			= $1e		; level player 1
+!addr level2			= $1f		; level player 2
 ; $20,21 score
 !addr score1			= $22		; score player 1 (lowbyte, last digit always zero)
 !addr score2			= $23		; score player 1 (lowbyte, last digit always zero)
@@ -4147,7 +4147,7 @@ PointsSpriteData:
 		!byte $00, $00, $00, $00, $08, $19, $29, $49	; 4x
 		!byte $7d, $09, $08, $00, $00, $00, $00, $00
 		!byte $38, $45, $45, $39, $45, $45, $38, $00	; 8x
-		!byte $00, $00, $00, $00, $8c, $91, $a1, blink_counter	; 16x
+		!byte $00, $00, $00, $00, $8c, $91, $a1, $b9	; 16x
 		!byte $a5, $a5, $98, $00, $00
 ; $9c9c
 FrequencyHi:
@@ -4255,15 +4255,15 @@ Text_PressF5To:
 		!byte $b0, $b2, $a5, $b3, $b3, $80, $a6, $95, $80, $b4, $af, $80  
 ; $9e4f
 Text_PlayGame:
-		!byte $b0, $ac, $a1, blink_counter, $80, $a7, $a1, $ad, $a5
+		!byte $b0, $ac, $a1, $b9, $80, $a7, $a1, $ad, $a5
 ; $9e58
 Text_PlayerGame:
-		!byte $b0, $ac, $a1, blink_counter, $a5, $b2, $80, $a7, $a1, $ad, $a5
+		!byte $b0, $ac, $a1, $b9, $a5, $b2, $80, $a7, $a1, $ad, $a5
 ; $9e63
 Text_ChangeDifficulty:
 		!byte $a3, $a8, $a1, $ae, $a7, $a5, $80, $a4
 		!byte $a9, $a6, $a6, $a9, $a3, $b5, $ac, $b4
-		!byte blink_counter
+		!byte $b9
 ; $9e74
 DifficultyTable3:
 		!byte $3a, $3c, $3e, $3e, $40, $40, $44, $44
