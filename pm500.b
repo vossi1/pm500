@@ -18,12 +18,15 @@ P500 = 1		; P500 bank 0 file
 ; Nuggets in menu are not in multicolor so they look like zebra ;)
 ; Background color 2 for multicolor is not set to 2 but works on C64 because its VIC init value
 ; ########################################### MODS ################################################
+; P500: indirect reg standard = $15, switch only to $0 for game indirect pointer instructions 
+; P500: Game runs exclusvie - Kernal not used -> IRQ vector $fffe in bank 0 set to game irq routine
 ;
 ; added unused highscore text above highscore digits
 ;
 ; ******************************************* INFO ************************************************
 ; Menu screen is at $0c00, menu font at $2800
 ; Game screen is at $0400, game font at $2000, multicolor
+; First two lines of game screen are not multicolor
 ; Sprites 0-3 are ghosts, sprite 4 is pacman, sprites are 10/11 px heigh, 6px wide + xpanded -> 12px
 ; Sprite data pointer are static = $c0-$c4 -> $3000-$3100, sprites are not multicolor
 ; Sprite source data is at $5300,$5400-$57ff and will copied in each cycle to the VIC sprite data
@@ -36,6 +39,15 @@ P500 = 1		; P500 bank 0 file
 ; 512 Nibbles table lo+hi decoded -> $4c00
 ; Only SID voices 1+2 are used with sawtooth+triangle
 ; SID voice 3 with noise and reg $1b used for random number generation 
+; ******************************************* FONT ************************************************
+; Menufont:		$00-$17 = PACMAN logo 2 rows of 12 chars
+; Gamefont:	 	$00-$21 = Maze parts except $01 = pill, $03 = cross, $1b = mini-pacman (live)
+; (all MCM)		$22-$2b = READY:
+;				$2c-$39	= GAME OVER
+;				$4e-$60	= Points 1,3,5,7,10,20,30,50,00,0
+;				$61-$64 = Maze parts
+; Both fonts:	$3a-$4d = 10 Nuggets (MCM)
+;				$80-$bf = Font CharROM -$8f signs, $90-$99 numbers, $a1-$bf letters
 ; ***************************************** CONSTANTS *********************************************
 FILL					= $aa		; fills free memory areas with $aa
 NOPCODE					= $ea		; nop instruction for fill
@@ -114,9 +126,10 @@ SR_RANDOM				= $1b
 !addr SpriteRAM			= $5300		; 5x Sprite RAM -$57ff
 
 ; ***************************************** ZERO PAGE *********************************************
-!addr state				= $07		; 0 = game, 3 = menu
+!addr state				= $07		; 0 = game, 1 = startup, 2 = delay menu, 3 = menu
 !addr players			= $08		; 0 = 1 player, 1 = 2 players
 !addr difficulty		= $09		; 0, 1, 2, 4, 6, 8, a, c
+;!addr ready				= $0a		; 2 = READY
 !addr delay_menu		= $0b		; jiffy-1 at start for 5s menu delay
 !addr temp				= $18		; temp byte
 !addr actual_player		= $19		; actual player
@@ -134,6 +147,7 @@ SR_RANDOM				= $1b
 !addr sprite_y			= $41		; -$45 sprite y postion 
 !addr pause				= $57		; $80 = pause
 !addr jiffy				= $a2		; jiffy clock 20ms counter from raster interrupt = Vsync
+;						= $04		 ; 0 -> Sprite Direction loop
 !addr blink_counter		= $b9		; blink counter 1up/2up 0/1=off/on
 !addr spritedata_pointer= $c0		; 16bit pointer for sprite data copy
 !addr pressed_key		= $c5		; pressed key from interrupt
@@ -328,10 +342,10 @@ Start:
 }
 Warm:	lda #$00
 		ldx #$c2
-clrzplp:sta $02,x						; clear zero page $03 - $c4
+clearzp:sta $02,x						; clear zero page $03 - $c4
 		sta GameScreen-1,x				; clear top of game screen $0400 - $04c1
 		dex
-		bne clrzplp						; next byte
+		bne clearzp						; next byte
 		inc state						; increase state to 1 to start in menu mode
 		ldx jiffy						; load jiffy = $00 (cleared at ZP clear loop)
 		dex
@@ -351,7 +365,7 @@ mazcopy:lda (pointer1),y				; load byte from maze
 		bmi mazbit7						; skip if bit#7 = 1
 		bpl mazchar						; branch if normal char
 mazbit7:cmp #$ff						; check if $ff = end of data
-		beq mazend						; exit loop
+		beq lookupt:					; exit loop
 		bit temp
 		bvs mazbit6						; branch if bit#6 = 1
 		and #$7f						; clear ident bit#7
@@ -373,7 +387,7 @@ mazchar:jsr StoreIncPointer2			; copy byte to maze
 		jsr IncPointer1
 		jmp mazcopy						; read next byte
 ; $8401 Copy and decode LookUpTable Nibbles
-mazend:	lda #<cLookUpTable
+lookupt:lda #<cLookUpTable
 		sta pointer1
 		lda #>cLookUpTable
 		sta pointer1+1					; set source pointer = $9f0e
@@ -383,25 +397,25 @@ mazend:	lda #<cLookUpTable
 		sta pointer2+1					; set target pointer = LookUpTable
 		ldy #$00
 		ldx #$00
-ludeclp:jsr LoadHiNibblePointer1		; load and shift high nibble 4 bits right
+lutcopy:jsr LoadHiNibblePointer1		; load and shift high nibble 4 bits right
 		jsr StoreIncPointer2			; store high nibble
 		jsr LoadIncPointer1
 		and #$0f
 		jsr StoreIncPointer2			; store low nibble
 		inx
-		bne ludeclp						; next byte
+		bne lutcopy						; next byte
 !ifdef 	P500{
 ; P500 Copy chars $00-$7f of the first (graphic) fontset to $80 of the custom fonts
 		lda #SYSTEMBANK					; select bank 15 to get font from char ROM
 		sta IndirectBank
-fntcopy:lda (CharROM1),y				; load from character ROM - Y already $00	
+fontcpy:lda (CharROM1),y				; load from character ROM - Y already $00	
 		sta CharGame+$400,y				; store to game fontset from char $80
 		sta CharMenu+$400,y				; store to menu fontset from char $80
 		lda (CharROM0),y
 		sta CharGame+$500,y
 		sta CharMenu+$500,y
 		dey
-		bne fntcopy
+		bne fontcpy
 		sty IndirectBank				; select bank 0 - Y already $00
 } else{
 ; $8426 C64
@@ -412,14 +426,14 @@ fntcopy:lda (CharROM1),y				; load from character ROM - Y already $00
 		and #$fb
 		sta CPUPort64
 		ldx #$00
-fntcopy:lda CharROM64+$100,x			; load from character ROM
+fontcpy:lda CharROM64+$100,x			; load from character ROM
 		sta CharGame+$400,x				; store to game fontset from char $80
 		sta CharMenu+$400,x				; store to menu fontset from char $80
 		lda CharROM64,x
 		sta CharGame+$500,x
 		sta CharMenu+$500,x
 		dex
-		bne fntcopy
+		bne fontcpy
 		lda CPUPort64					; disable character ROM
 		ora #$04
 		sta CPUPort64
@@ -448,10 +462,10 @@ fntcopy:lda CharROM64+$100,x			; load from character ROM
 		jsr UncompressUserFont			; copy menu user font
 ; $847f Copy user chars to menu user font
 		ldx #$1f
-uccopy1:lda UserCharMenu,x				; copy 32 bytes to menu user font
+ucmcopy:lda UserCharMenu,x				; copy 32 bytes to menu user font
 		sta CharMenu+$a8,x
 		dex
-		bpl uccopy1						; next byte
+		bpl ucmcopy						; next byte
 !ifdef 	P500{
 ; P500 SID init							; x already $ff
 		lda #SYSTEMBANK
@@ -482,10 +496,10 @@ uccopy1:lda UserCharMenu,x				; copy 32 bytes to menu user font
 }
 ; $849d Copy user chars from game to menu user font
 		ldx #$a1						; copy $a1 bytes
-uccopy2:lda CharGame+$1cf,x
+charcpy:lda CharGame+$1cf,x
 		sta CharMenu+$1cf,x
 		dex
-		bne uccopy2
+		bne charcpy
 !ifdef 	P500{
 ; P500 Hardware interrupt vector setup, enable VIC raster IRQ
 		ldy #VR_EIRQ
@@ -517,9 +531,9 @@ uccopy2:lda CharGame+$1cf,x
 ; $84c3 Main loop		
 mainlp:	lda #$00
 		ldx #$1f
-clvarlp:sta $0e,x						; clear game variables $0e-$2d
+clrgvar:sta $0e,x						; clear game variables $0e-$2d
 		dex
-		bpl clvarlp
+		bpl clrgvar
 		txs								; init stack with $ff
 		jsr SoundOff					; SID sound off
 !ifdef 	P500{
@@ -533,22 +547,22 @@ clvarlp:sta $0e,x						; clear game variables $0e-$2d
 		lda #RED
 		iny
 		sta (VIC),y						; VIC background color2 = red
-		ldy #$ff			; set Y = $ff because its set to this value after SoundOff
+		ldy #$ff						; set Y = $ff because its set to this value after SoundOff
 } else{
 		sta $d020						; VIC exterior color = black
 		sta $d021						; VIC background color0 = black
 		lda #LIGHTBLUE
 		sta $d022						; VIC background color1 = lightblue
 }
-		jsr ColorInit					; init color RAM and VIC Sprite colors
-		jsr InitGameScreen				; copy game screen to screen RAM
-		jsr BackupGameScreen1			; init game screen player1 $4400
-		jsr BackupGameScreen2			; init game screen player2 $4800
+		jsr InitColors					; sub: init color RAM and VIC Sprite colors
+		jsr InitGameScreen				; sub: copy game screen to screen RAM
+		jsr BackupGameScreen1			; sub: init game screen player1 $4400
+		jsr BackupGameScreen2			; sub: init game screen player2 $4800
 		lda state						; state at startup = 1
-		bne notgame						; branch if not game state = 0
+		bne notgame						; branch if not game state 0
 		lda jiffy
-waitlp :cmp jiffy
-		beq waitlp						; wait one jiffy = 20ms
+waitcyc:cmp jiffy
+		beq waitcyc						; wait one jiffy = interrupt cycle
 !ifdef 	P500{
 		lda #$18						; VM13-10=$1 screen at $0400, CB13,12,11,x=1000 char at $2000
 		ldy #VR_MEMPT
@@ -570,8 +584,8 @@ waitlp :cmp jiffy
 		sta $d015						; VIC enable spritess 0-4
 		sta $d01d						; VIC x-expand sprites 0-4
 }
-		jsr InitNewGame
-		jsr InitGameVariables
+		jsr InitNewGame					; sub: init new game
+		jsr InitGameVariables			; sub: Init game variables: lives, level, score...
 		lda players
 		beq new1up						; skip if 1 player
 		jsr Init2Player					; sub: print 1Up, 2Up, print zero scores
@@ -593,14 +607,14 @@ checkey:ldy #$00
 		lda (CIA),y						; load CIA Port A
 		ora #$3f						; ignore bit#0-5
 		cmp #$ff						; check if bit#6 and 7 = 1 -> no joystick button pressed
-		bne mnewgam
+		bne newgame
 chkfkey:lda pressed_key
 		cmp #$07
 		beq notgame						; no key pressed
 keydebo:cmp pressed_key
 		beq keydebo						; debounce key
 		cmp #$03
-		beq mnewgam						; F1 -> start new game
+		beq newgame						; F1 -> start new game
 		ldx state
 		cpx #$03
 		bcc SetStateMenu				; set state to 3 = menu (at startup its 1)
@@ -613,14 +627,14 @@ keydebo:cmp pressed_key
 } else{
 checkey:lda #$10
 		bit $dc00						; check CIA1 Porta column 4 = Joy 2 button
-		beq mnewgam
+		beq newgame
 chkfkey:lda pressed_key
 		cmp #$ff
 		beq notgame						; no key pressed
-keydebo:cmp pressed_key
-		beq keydebo						; debounce key
+debounc:cmp pressed_key
+		beq debounc						; debounce key
 		cmp #$ef
-		beq mnewgam						; F1, Joy1Button -> start new game
+		beq newgame						; F1, Joy1Button -> start new game
 		ldx state
 		cpx #$03
 		bcc SetStateMenu				; set state to 3 = menu (at startup its 1)
@@ -631,7 +645,7 @@ keydebo:cmp pressed_key
 		bne notgame
 }
 ; start new game
-mnewgam:lda #$00						; start new game
+newgame:lda #$00						; start new game
 		sta $0e
 		sta state						; state = 0 game mode
 		lda #$01
@@ -682,7 +696,7 @@ Interrupt: ; game interrupt routine every 20ms = 1 jiffy
 		ldy #VR_IRQ
 		lda (VIC),y						; load VIC interrupt reg and mask bit 1
 		and #$01
-		beq inorast						; skip if source is not raster interrupt
+		beq endirq						; skip if source is not raster interrupt
 		inc jiffy						; increase jiffy
 		lda #$32
 		ldy #VR_RASTER
@@ -694,10 +708,10 @@ Interrupt: ; game interrupt routine every 20ms = 1 jiffy
 		jsr UpdateScreen				; sub: Update screen: Startup, Menu, Game
 
 		lda $a4
-		bne iskpspr						; skip if $a4 is not 0
+		bne ichkkey						; skip if $a4 is not 0
 		jsr SpriteDirectionCompareLoop	; sprite direction compare loop
 
-iskpspr:ldy #$00
+ichkkey:ldy #$00
 		sty pressed_key					; clear key variable
 		lda #$fe
 		iny
@@ -733,7 +747,7 @@ if5deb:	lda (TPI2),y					; load TPI2 port C
 		lsr								; shift bit#0 in carry
 		rol pressed_key					; shift bit in key variable
 
-inorast:pla
+endirq: pla
 		sta IndirectBank				; restore indirect bank before interrupt
 		pla
 		tay
@@ -745,7 +759,7 @@ inorast:pla
 ; $8583 C64 interrupt routine
 		lda $d019						; load VIC interrupt reg and mask bit 1
 		and #$01
-		beq inorast						; skip if source is not raster interrupt
+		beq endirq						; skip if source is not raster interrupt
 		inc jiffy						; increase jiffy
 		lda #$32
 		sta $d012						; set VIC raster reg again to $32 (start)
@@ -754,9 +768,9 @@ inorast:pla
 		dec $30							;
 		jsr UpdateScreen				; sub: Update screen: Startup, Menu, Game
 		lda $a4
-		bne iskpspr						; skip if $a4 is not 0
-		jsr SpriteDirectionCompareLoop				; sprite direction compare loop
-iskpspr:ldx #$ff
+		bne ichkkey						; skip if $a4 is not 0
+		jsr SpriteDirectionCompareLoop	; sprite direction compare loop
+ichkkey:ldx #$ff
 		stx $dc02						; set CIA1 port A for output
 		dex
 		stx $dc00						; store $fe to Port A = select keyboard column 0
@@ -766,7 +780,7 @@ idebkey:lda $dc01						; load CIA1 port B = keyboard row
 		sta pressed_key					; store pressed key $ef=F1,JoyButton1 / $df=F3 / $bf=F5
 		ldx #$00
 		stx $dc02						; reset CIA1 port B to input
-inorast:jmp $ea7e						; jump to kernal interrupt
+endirq: jmp $ea7e						; jump to kernal interrupt
 }
 ; -------------------------------------------------------------------------------------------------
 ; $85bd Init menu - set VIC, sound off, clears sprite x
@@ -800,14 +814,14 @@ InitMenu:
 Init1Player:
 		ldx #$05						; 6 chars
 		lda #$80						; <space> code
--		sta $0420,x						; write to screen score position 1
-		sta $0447,x 					; write to screen score position 2
+-		sta GameScreen+$20,x			; write to screen score position 1
+		sta GameScreen+$47,x 			; write to screen score position 2
 		dex
 		bpl -
 iplayr1:jsr Write1Up
 		ldx #$05						; 6 chars
 		lda #$90						; code 0
--		sta $042a,x						; write player 1 score 000000
+-		sta GameScreen+$2a,x			; write player 1 score 000000
 		dex
 		bpl -
 		rts
@@ -816,7 +830,7 @@ Init2Player:
 		jsr Write2Up
 		ldx #$05
 		lda #$90
--		sta $0447,x						; write player 2 score 000000
+-		sta GameScreen+$47,x			; write player 2 score 000000
 		dex
 		bpl -
 		bmi iplayr1
@@ -851,7 +865,7 @@ ucfntrp:jsr StoreIncPointer2			; store in user font
 		bpl ucfntrp						; repeat number of temp counter 
 		bmi ucfntlp						; next byte
 ; -------------------------------------------------------------------------------------------------
-; $8636 Load++ pointer 1 sub
+; $8636 Load++ pointer 1
 LoadIncPointer1:
 		lda (pointer1),y
 IncPointer1:
@@ -861,7 +875,7 @@ IncPointer1:
 ucfntrt:
 +		rts
 ; -------------------------------------------------------------------------------------------------
-; $863f Store++ pointer 2 sub
+; $863f Store++ pointer 2
 StoreIncPointer2:
 		sta (pointer2),y
 		inc pointer2
@@ -869,7 +883,7 @@ StoreIncPointer2:
 		inc pointer2+1
 +		rts
 ; -------------------------------------------------------------------------------------------------
-; $8648 Load byte from pointer 1 and shift high nibble to low sub
+; $8648 Load byte from pointer 1 and shift high nibble to low
 LoadHiNibblePointer1:
 		lda (pointer1),y
 		lsr
@@ -1007,10 +1021,10 @@ spnoclr:sta (VIC),y						; store new X-MSB-byte to VIC
 		dex
 		bpl spposlp						; next sprite
 } else{
-; set sprite positions
+; $8715 set sprite positions
 		ldx #$04						; start with sprite 4
 		ldy #$08						; x-position reg of sprite 4
-spposlp:lda sprite_x,x						; load x
+spposlp:lda sprite_x,x					; load x
 		sec
 		sbc #$2c						; calc sprite x postion
 		asl
@@ -1135,9 +1149,10 @@ blk12up:jsr Blink12Up					; sub: blink 1/2up of active player
 l87d8:	lda $0e
 		beq l87e6
 		lda players
-		beq +							; skip if 1 player
+		beq wr1up						; skip if 1 player
 		jsr Write2Up
-+		jmp Write1Up
+wr1up:	jmp Write1Up
+; $87e6 
 l87e6:	lda $14
 		beq l87ed
 		jmp l8c5c
@@ -1190,11 +1205,13 @@ l880a:	lda jiffy
 }
 		inc $5f
 		cpx #$28
-		bne l87f5
-		jmp PlayerDead
+		bne l87f5						; return if $5f not = $28
+		jmp PlayerDead					; sub: Player dead: die-animation, decrease lives
+; $8830
 l8830:	inc $0f
 l8832:	inc $8a
 		jsr l8da2
+; $ 8837
 l8837:	lda $12
 		beq l885e
 		cmp #$01
@@ -1574,7 +1591,7 @@ l8ae8:	lda players
 		lda #$30
 		sta $13
 		bne l8b3a
-l8b02:	jsr BackupGameScreen1			; copies game screen to $4400
+l8b02:	jsr BackupGameScreen1			; sub: init game screen player1 $4400
 		lda #$30
 		sta $13
 		lda #$02
@@ -1588,7 +1605,7 @@ l8b0d:	lda lives
 		lda #$30
 		sta $13
 		bne l8b3a
-l8b1f:	jsr BackupGameScreen2			; copies game screen to $4800
+l8b1f:	jsr BackupGameScreen2			; sub: init game screen player2 $4800
 		lda #$30
 		sta $13
 		lda #$01
@@ -1599,9 +1616,9 @@ l8b2a:	rts
 l8b2b:	ldx actual_player
 		lda lives,x
 		beq l8b3a
-		jsr InitNewGame
+		jsr InitNewGame					; sub: init new game
 		jsr Ready
-		jmp PlayerDead
+		jmp PlayerDead					; sub: Player dead: die-animation, decrease lives
 l8b3a:	lda #$2c
 		ldx #$00
 l8b3e:	sta $063d,x
@@ -1846,7 +1863,7 @@ l8ca7:
 ; $8caf
 l8caf:	cmp #$03
 		bne l8cb9
-		jsr InitNewGame
+		jsr InitNewGame					; sub: init new game
 		inc $15
 		rts
 ; -------------------------------------------------------------------------------------------------
@@ -1856,7 +1873,7 @@ l8cb9:	jsr l8e49
 		inc lives,x
 		inc level,x
 		jsr Ready
-		jsr PlayerDead
+		jsr PlayerDead					; sub: Player dead: die-animation, decrease lives
 		lda #$00
 		sta $14
 		sta $15
@@ -1941,36 +1958,36 @@ l8d51:
 }
 		rts
 ; -------------------------------------------------------------------------------------------------
-; $8d52
+; $8d52 Player dead: die-animation, decrease lives
 PlayerDead:
 		jsr _SpriteMovementAnimationLoop
 		ldx actual_player
-		dec lives,x
-; $8d59
+		dec lives,x						; decrease lives of actual player
+; $8d59 update lives display -> draw mini-pacmans
 UpdateLivesDisplay:
 		ldx actual_player
 		lda lives,x
-		ldx #$00
-		ldy #$1b
+		ldx #$00						; char $00 = <space>
+		ldy #$1b						; Char $1b = mini pacman	
 		cmp #$03
-		bne l8d6f
-		sty $07c8
-l8d68:	sty $07c6
-l8d6b:	sty $07c4
+		bne lives2						; branch if not 3 lives
+		sty GameScreen+$3c8				; write mini-pacmans
+wr2live:sty GameScreen+$3c6
+wr1live:sty GameScreen+$3c4
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $8d6f
-l8d6f:	cmp #$02
-		bne l8d79
-		jsr l8d89
-		jmp l8d68
-l8d79:	cmp #$01
-		bne l8d83
-		jsr l8d86
-		jmp l8d6b
-l8d83:	stx $07c4
-l8d86:	stx $07c6
-l8d89:	stx $07c8
+lives2:	cmp #$02
+		bne lives1						; branch if not 2 lives
+		jsr clr1liv						; clear 3. mini-pacman
+		jmp wr2live						; write 2 mini-pacmans
+lives1:	cmp #$01						; branch if not 1 live = dead
+		bne clr3liv						; dead -> clear all mini-pacmans
+		jsr clr2liv						; clear 2.+3. mini-pacman
+		jmp wr1live						; write 1 mini-pacman
+clr3liv:stx GameScreen+$3c4
+clr2liv:stx GameScreen+$3c6
+clr1liv:stx GameScreen+$3c8
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $8d8d
@@ -2042,14 +2059,14 @@ InitNewGame:
 -		sta $3b,x
 		dex
 		bne -							; clear ZP $3c - $c5
-		jsr ColorInit					; init color RAM and VIC Sprite colors
+		jsr InitColors					; sub: init color RAM and VIC Sprite colors
 		ldx actual_player
-		lda level,x				; load player difficulty
+		lda level,x						; load player difficulty
 		cmp #$06
 		bcc +
 		lda #$06						; limit A to 6 and move it to Y
 +		tay
-		lda LevelTable1,y			; load from table as index
+		lda LevelTable1,y				; load from table as index
 		tax
 		lda $4dae,x						; copy data from RAM to ZP with index
 		sta $75
@@ -2078,7 +2095,7 @@ InitNewGame:
 }
 		rts
 ; -------------------------------------------------------------------------------------------------
-; $8e38 Init game variables - lives, score...
+; $8e38 Init game variables: lives, level, score...
 InitGameVariables:
 		lda #LIVES						; start with 3 lives
 		sta lives
@@ -2088,8 +2105,8 @@ InitGameVariables:
 		sta level+1
 		ldx #$01
 		jsr inzersc						; zero score
-l8e49:	jsr InitGameScreen				; copy game screen to screen RAM
-		jsr UpdateLivesDisplay
+l8e49:	jsr InitGameScreen				; sub: copy game screen to screen RAM
+		jsr UpdateLivesDisplay			; sub: update lives display -> draw mini-pacmans
 		ldx actual_player
 		lda level,x
 		tay
@@ -2639,7 +2656,7 @@ clramlp:sta SpriteData,x
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $913a Init color RAM + Sprite colors
-ColorInit:
+InitColors:
 !ifdef 	P500{
 		lda #GRAY3
 		ldy #$00
@@ -2682,11 +2699,11 @@ coinlp3:lda SpriteColors,x
 		rts
 }
 ; -------------------------------------------------------------------------------------------------
-; $9163 init Screen
+; $9163 copy game screen to screen RAM
 InitGameScreen:
 		ldx #$00
 scrinlp:lda MazeData,x					; load decompressed Screen Data
-		sta Playfield,x			; copy to game screen from line2
+		sta Playfield,x					; copy to game screen from line2
 		lda MazeData+$100,x
 		sta Playfield+$100,x
 		lda MazeData+$200,x
@@ -2697,7 +2714,7 @@ scrinlp:lda MazeData,x					; load decompressed Screen Data
 		bne scrinlp
 		rts
 ; -------------------------------------------------------------------------------------------------
-; $9181 backup game screen to $4400
+; $9181 backup game screen player 1 to $4400
 BackupGameScreen1:
 		ldx #$00
 bscr1lp:lda Playfield,x
@@ -2712,7 +2729,7 @@ bscr1lp:lda Playfield,x
 		bne bscr1lp
 		rts
 ; -------------------------------------------------------------------------------------------------
-; $919f backup game screen to $4800
+; $919f backup game screen player 2 to $4800
 BackupGameScreen2:
 		ldx #$00
 bscr2lp:lda Playfield,x
@@ -3178,7 +3195,7 @@ l94d0:	lda $0448
 		beq l94cf
 l94d7:	inc $1c,x
 		inc lives,x
-		jmp UpdateLivesDisplay
+		jmp UpdateLivesDisplay			; sub: update lives display -> draw mini-pacmans
 l94de:	lda $46,x
 		sta $61
 		lda sprite_y,x
