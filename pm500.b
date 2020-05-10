@@ -698,25 +698,33 @@ Interrupt: ; game interrupt routine every 20ms = 1 jiffy
 		ldy #VR_IRQ
 		lda (VIC),y						; load VIC interrupt reg and mask bit 1
 		and #$01
-		beq endirq						; skip if source is not raster interrupt
+		beq jendirq						; skip if source is not raster interrupt
 		ldy #VR_RASTER
 		lda (VIC),y						; set VIC raster reg again
 		cmp #RASTERLINE1
-		beq rl1
+		beq raslin1
+		lda state
+		beq setrl1
 		lda #$c8
 		ldy #VR_MCMCSX
 		sta (VIC),y						; VIC multicolormode MCM=1, 40 columns
-		bne setrl1
-rl1		inc jiffy						; increase jiffy
+		lda #RASTERLINE1
+		ldy #VR_RASTER
+		sta (VIC),y						; set VIC raster reg again
+		lda #$81
+		ldy #VR_IRQ
+		sta (VIC),y						; clear VIC raster interrupt
+jendirq:jmp endirq
+raslin1:inc jiffy						; increase jiffy
 		lda #$d8
 		ldy #VR_MCMCSX
 		sta (VIC),y						; VIC multicolormode MCM=1, 40 columns
 		lda state
 		beq setrl1
 		lda #RASTERLINE2
-		bne skip
-setrl1	lda #RASTERLINE1
-skip	ldy #VR_RASTER
+		bne setrast
+setrl1:	lda #RASTERLINE1
+setrast:ldy #VR_RASTER
 		sta (VIC),y						; set VIC raster reg again
 		lda #$81
 		ldy #VR_IRQ
@@ -1184,7 +1192,7 @@ l87f6:	inc $10
 		lda #$00
 		sta $03
 		sta $0a
-		jmp Ready
+		jmp Ready						; sub: print READY: and level nuggets
 ; -------------------------------------------------------------------------------------------------
 ; $8801 calc new ghost data pointer
 SetGhostDataEnd:
@@ -1634,7 +1642,7 @@ l8b2b:	ldx actual_player
 		lda lives,x
 		beq l8b3a
 		jsr InitNewGame					; sub: init new game
-		jsr Ready
+		jsr Ready						; sub: print READY: and level nuggets
 		jmp PlayerDead					; sub: Player dead: die-animation, decrease lives
 l8b3a:	lda #$2c
 		ldx #$00
@@ -1889,7 +1897,7 @@ l8cb9:	jsr l8e49
 		ldx actual_player
 		inc lives,x
 		inc level,x
-		jsr Ready
+		jsr Ready						; sub: print READY: and level nuggets
 		jsr PlayerDead					; sub: Player dead: die-animation, decrease lives
 		lda #$00
 		sta $14
@@ -1900,15 +1908,15 @@ l8cb9:	jsr l8e49
 		sta $13
 		rts
 ; -------------------------------------------------------------------------------------------------
-; $8cd7 print READY: and difficulty nuggets
+; $8cd7 print READY: and level nuggets
 Ready:	lda #$22						; first READY: char ( $22-$2b )
 		ldx #$00
-readylp:sta $063f,x						; screen position for READY:
+readycp:sta $063f,x						; screen position for READY:
 		clc
 		adc #$01
 		inx
 		cpx #$0a						; 10 chars
-		bne readylp
+		bne readycp
 		ldx actual_player
 		lda level,x						; load player difficulty
 		cmp #$06
@@ -1920,6 +1928,9 @@ readylp:sta $063f,x						; screen position for READY:
 l8cf6:	ldy #$0a
 l8cf8:	sty $5c
 		ldy #$00
+!ifdef 	P500{				; Y already $00
+		sty IndirectBank				; select bank 0 for pointer operations
+}
 		cmp #$06
 		bcs l8d25						; branch if A >= $06
 		sta temp
