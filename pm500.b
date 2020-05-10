@@ -11,17 +11,17 @@ P500 = 1		; P500 bank 0 file
 		} else{ !to "pm500.rom", plain }}
 ; ########################################### TODO ################################################
 ;
-; add extra nuggets in one color for menu difficulty
+; nothing
 ;
 ; ########################################### BUGS ################################################
 ;
 ; Nuggets in menu are not in multicolor so they look like zebra ;)
 ; Background color 2 for multicolor is not set to 2 but works on C64 because its VIC init value
-; ########################################### MODS ################################################
-; P500: indirect reg standard = $15, switch only to $0 for game indirect pointer instructions 
-; P500: Game runs exclusvie - Kernal not used -> IRQ vector $fffe in bank 0 set to game irq routine
-;
+; ######################################### P500 MODS #############################################
+; Indirect reg standard = $15, switch only to $0 for game indirect pointer instructions 
+; Game runs exclusvie - Kernal not used -> IRQ vector $fffe in bank 0 set to game irq routine
 ; added unused highscore text above highscore digits
+; added rasterirq -> switch to multicolor-mode in menu to display the nuggte correctly
 ;
 ; ******************************************* INFO ************************************************
 ; Menu screen is at $0c00, menu font at $2800
@@ -65,7 +65,10 @@ BROWN					= $09
 LIGHTRED				= $0a
 LIGHTBLUE				= $0e
 GRAY3					= $0f
+MCM						= $08		; bit#3 for multicolor character
 ; game
+RASTERLINE1				= $32+11*8	; just above the menu nugget in line 11 
+RASTERLINE2				= $33+12*8	; just below the menu nugget in line 11 
 LIVES					= 3			; start lives
 ; ************************************** P500 REGISTER ********************************************
 VR_MODEY				= $11
@@ -129,7 +132,7 @@ SR_RANDOM				= $1b
 !addr state				= $07		; 0 = game, 1 = startup, 2 = delay menu, 3 = menu
 !addr players			= $08		; 0 = 1 player, 1 = 2 players
 !addr difficulty		= $09		; 0, 1, 2, 4, 6, 8, a, c
-;!addr ready				= $0a		; 2 = READY
+;!addr ready			= $0a		; 2 = READY
 !addr delay_menu		= $0b		; jiffy-1 at start for 5s menu delay
 !addr temp				= $18		; temp byte
 !addr actual_player		= $19		; actual player
@@ -469,7 +472,7 @@ ucmcopy:lda UserCharMenu,x				; copy 32 bytes to menu user font
 !ifdef 	P500{
 ; P500 SID init							; x already $ff
 		lda #SYSTEMBANK
-		sta IndirectBank	; select bank 15 - now as STANDARD
+		sta IndirectBank	; select bank 15 - from here as STANDARD!
 		txa
 		ldy #SR_V3FREQ
 		sta (SID),y						; SID voice 3 frequency lo to $ff 
@@ -483,7 +486,6 @@ ucmcopy:lda UserCharMenu,x				; copy 32 bytes to menu user font
 		sta (SID),y						; SID voice 1 SR to $f0
 		ldy #SR_V2SR
 		sta (SID),y						; SID voice 2 SR To $f0
-							; stay in bank 15 for VIC interrupt setup
 } else{
 ; $848a SID init						; x already $ff
 		stx $d40e						; SID voice 3 frequency lo to $ff 
@@ -502,14 +504,14 @@ charcpy:lda CharGame+$1cf,x
 		bne charcpy
 !ifdef 	P500{
 ; P500 Hardware interrupt vector setup, enable VIC raster IRQ
-		ldy #VR_EIRQ
 		lda #$01
+		ldy #VR_EIRQ
 		sta (VIC),y						; VIC enable raster interrupt
-		ldy #VR_MODEY
 		lda #$1b
+		ldy #VR_MODEY
 		sta (VIC),y						; VIC RC8 = 0, DEN, 40 columns, Y = 3
+		lda #RASTERLINE2
 		ldy #VR_RASTER
-		lda #$32
 		sta (VIC),y						; VIC raster reg = $032 (start visible screen)
 		cli								; enable interrupts
 } else{
@@ -697,10 +699,25 @@ Interrupt: ; game interrupt routine every 20ms = 1 jiffy
 		lda (VIC),y						; load VIC interrupt reg and mask bit 1
 		and #$01
 		beq endirq						; skip if source is not raster interrupt
-		inc jiffy						; increase jiffy
-		lda #$32
 		ldy #VR_RASTER
-		sta (VIC),y						; set VIC raster reg again to $32 (start)
+		lda (VIC),y						; set VIC raster reg again
+		cmp #RASTERLINE1
+		beq rl1
+		lda #$c8
+		ldy #VR_MCMCSX
+		sta (VIC),y						; VIC multicolormode MCM=1, 40 columns
+		bne setrl1
+rl1		inc jiffy						; increase jiffy
+		lda #$d8
+		ldy #VR_MCMCSX
+		sta (VIC),y						; VIC multicolormode MCM=1, 40 columns
+		lda state
+		beq setrl1
+		lda #RASTERLINE2
+		bne skip
+setrl1	lda #RASTERLINE1
+skip	ldy #VR_RASTER
+		sta (VIC),y						; set VIC raster reg again
 		lda #$81
 		ldy #VR_IRQ
 		sta (VIC),y						; clear VIC raster interrupt
@@ -2658,9 +2675,9 @@ clramlp:sta SpriteData,x
 ; $913a Init color RAM + Sprite colors
 InitColors:
 !ifdef 	P500{
-		lda #GRAY3
+		lda #YELLOW+MCM
 		ldy #$00
-coinlp1:sta (ColorRAM0),y				; init color RAM with gray3
+coinlp1:sta (ColorRAM0),y				; init color RAM with yellow + bit#3 for multicolor
 		sta (ColorRAM1),y
 		sta (ColorRAM2),y
 		sta (ColorRAM3),y
@@ -2679,8 +2696,8 @@ coinlp3:lda SpriteColors,y
 		rts
 } else{
 		ldx #$00
-		lda #GRAY3
-coinlp1:sta ColorRAM64,x				; init color RAM with gray3
+		lda #YELLOW+MCM
+coinlp1:sta ColorRAM64,x				; init color RAM with yellow + bit#3 for multicolor
 		sta ColorRAM64+$100,x
 		sta ColorRAM64+$200,x
 		sta ColorRAM64+$300,x

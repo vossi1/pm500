@@ -1,6 +1,7 @@
 ; ******************************************* INFO ************************************************
 ; Menu screen is at $0c00, menu font at $2800
 ; Game screen is at $0400, game font at $2000, multicolor
+; First two lines of game screen are not multicolor
 ; Sprites 0-3 are ghosts, sprite 4 is pacman, sprites are 10/11 px heigh, 6px wide + xpanded -> 12px
 ; Sprite data pointer are static = $c0-$c4 -> $3000-$3100, sprites are not multicolor
 ; Sprite source data is at $5300,$5400-$57ff and will copied in each cycle to the VIC sprite data
@@ -14,9 +15,10 @@
 ; Only SID voices 1+2 are used with sawtooth+triangle
 ; SID voice 3 with noise and reg $1b used for random number generation 
 ; ***************************************** ZERO PAGE *********************************************
-!addr state				= $07		; 0 = game, 3 = menu
+!addr state				= $07		; 0 = game, 1 = startup, 2 = delay menu, 3 = menu
 !addr players			= $08		; 0 = 1 player, 1 = 2 players
 !addr difficulty		= $09		; 0, 1, 2, 4, 6, 8, a, c
+;!addr ready			= $0a		; 2 = READY
 !addr delay_menu		= $0b		; jiffy-1 at start for 5s menu delay
 !addr temp				= $18		; temp byte
 !addr actual_player		= $19		; actual player
@@ -34,6 +36,7 @@
 !addr sprite_y			= $41		; -$45 sprite y postion 
 !addr pause				= $57		; $80 = pause
 !addr jiffy				= $a2		; jiffy clock 20ms counter from raster interrupt = Vsync
+;						= $04		 ; 0 -> Sprite Direction loop
 !addr blink_counter		= $b9		; blink counter 1up/2up 0/1=off/on
 !addr spritedata_pointer= $c0		; 16bit pointer for sprite data copy
 !addr pressed_key		= $c5		; pressed key from interrupt
