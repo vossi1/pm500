@@ -825,6 +825,7 @@ InitMenu:
 		jsr SoundOff					; returns with A=$00
 		ldy #VR_MOBENA
 		sta (VIC),y						; VIC disable sprites
+		ldy #$ff						; set Y = $ff because its set to this value after SoundOff
 		rts
 } else{
 }
@@ -1970,10 +1971,10 @@ l8d2b:	sec
 		sta pointer1+1
 		ldx #$00
 l8d3f:	lda (pointer1),y
-		sta $07d6,x
+		sta GameScreen+$3d6,x
 		clc
 		adc #$01
-		sta $07d7,x
+		sta GameScreen+$3d7,x
 		inx
 		inx
 		iny
