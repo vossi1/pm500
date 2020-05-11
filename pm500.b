@@ -4,7 +4,7 @@
 ; Converted for P500 by Vossi 05/2020
 !cpu 6502
 ; switches
-;P500 = 1		; P500 bank 0 file
+P500 = 1		; P500 bank 0 file
 ;CRT = 1		; CRT header for VICE
 !ifdef 	P500{!to "pm500.prg", cbm
 } else	{ !ifdef CRT {!to "pm500.crt", plain
@@ -19,10 +19,11 @@
 ; Background color 2 for multicolor is not set to 2 but works on C64 because its VIC init value
 ; ######################################### P500 MODS #############################################
 ; Indirect reg standard = $15, switch only to $0 for game indirect pointer instructions 
-; Game runs exclusvie - Kernal not used -> IRQ vector $fffe in bank 0 set to game irq routine
-; added unused highscore text above highscore digits
-; added rasterirq -> switch to multicolor-mode in menu to display the nuggte correctly
-;
+; Game runs exclusive - Kernal not used -> IRQ vector $fffe in bank 0 set to game irq routine
+; Added unused highscore text above highscore digits
+; Added rasterirq -> switch to multicolor-mode in menu to display the fruits correctly
+; Set backgroundcolor 2 correctly
+; Added uncompressed Maze and User chars
 ; ******************************************* INFO ************************************************
 ; Menu screen is at $0c00, menu font at $2800
 ; Game screen is at $0400, game font at $2000, multicolor
@@ -118,66 +119,67 @@ SR_RANDOM				= $1b
 !addr GameScreen		= $0400		; Game screen page
 !addr SpriteDataPointer	= $07f8		; 5 Pointer to sprite 0-4
 !addr Playfield			= GameScreen + 2*40	; Line 2 of game screen
-!addr MenuScreen		= $0c00		; game screen page
+!addr MenuScreen		= $0c00		; Game screen page
 !addr CharGame			= $2000		; User character game
 !addr CharMenu			= $2800		; User character menu
 !addr SpriteData		= $3000		; Sprite data 5x $40
-!addr MazeData			= $4000		; Maze data
-!addr ScreenBackup1		= $4400		; Game screen backup player 1
-!addr ScreenBackup2		= $4800		; Game screen backup player 2
-!addr MazeData			= $4000		; Maze data
+!addr Player1Save		= $4400		; Game screen bac‚kup player 1
+!addr Player2Save		= $4800		; Game screen backup player 2
 !addr NibbleTable		= $4c00		; LookUp Table 484 nibbles
 !addr SpriteRAM			= $5300		; 5x Sprite RAM -$57ff
 
+!ifndef P500{
+!addr MazeData			= $4000		; Maze data
+}
 ; ***************************************** ZERO PAGE *********************************************
 !addr attract_ATARI		= $03		; Atari ATTRACT FLAG for screen saver - not used on Commodore
 !addr state				= $07		; 0 = game, 1 = startup, 2 = delay menu, 3 = menu
 !addr players			= $08		; 0 = 1 player, 1 = 2 players
 !addr difficulty		= $09		; 0, 1, 2, 4, 6, 8, a, c
 !addr restart_flag		= $0a		; 1 = new game, 2 after init, 3 at ready
-!addr delay_menu		= $0b		; jiffy-1 at start for 5s menu delay
-!addr atract_timer_ATARI= $0c		; countdown timer to attract mode - ONLY ATARI
+!addr delay_menu		= $0b		; Jiffy-1 at start for 5s menu delay
+!addr atract_timer_ATARI= $0c		; Countdown timer to attract mode - ONLY ATARI
 !addr game_over_flag	= $0e		; 
 !addr ready_flag		= $0f		; 
 !addr intro_flag		= $10		; 
 !addr swap_player_flag	= $11		; 
 !addr reset_flag		= $12		;
-!addr temp				= $18		; temp byte
-!addr player_number		= $19		; actual player 0=1, 1=2
-!addr extra_pacman1		= $1a		; lives player 1 (starts with 3)
-!addr extra_pacman2		= $1b		; lives player 2 (starts with 3)
-!addr bonus_pacman		= $1c ; $1d   bonus pacman player 1,2
-!addr maze_count1		= $1e 		; maze player 1
-!addr maze_count2		= $1f 		; maze player 2
+!addr temp				= $18		; Temp byte
+!addr player_number		= $19		; Actual player 0=1, 1=2
+!addr extra_pacman1		= $1a		; Lives player 1 (starts with 3)
+!addr extra_pacman2		= $1b		; Lives player 2 (starts with 3)
+!addr bonus_pacman		= $1c ; $1d   Bonus pacman player 1,2
+!addr maze_count1		= $1e 		; Maze player 1
+!addr maze_count2		= $1f 		; Maze player 2
 !addr bigdot_status		= $20 ; $21   Big dot status player 1,2
 !addr dots_eaten_lo		= $22 ; $23	  Dots eaten player 1,2 lowbyte
 !addr dots_eaten_hi		= $24 ; $25	  Dots eaten player 1,2 highbyte
 !addr score_pointer1	= $26		;
 !addr score_pointer2	= $28		;
-!addr pointer1			= $2a		; source pointer
-!addr pointer2			= $2c		; target pointer
-!addr fruit_counter		= $2e ; $2f	; Fruit counter player 1, 2
+!addr pointer1			= $2a		; Source pointer
+!addr pointer2			= $2c		; Target pointer
+!addr fruit_counter		= $2e ; $2f	  Fruit counter player 1, 2
 !addr bounce_timer_ATARI= $30		; ATARI key debounce - not used on Commodore
 !addr ATARI_32			= $32		; ATARI - not used
 !addr ATARI_33			= $33		; ATARI - not used
-!addr monster_delay		= $34 ; -$37; Monster 1-4 delay
+!addr monster_delay		= $34 ; -$37  Monster 1-4 delay
 
 !addr pacman_screen_ptr	= $3c		;
 !addr pacman_byte_ctr	= $3e		;
 !addr pacman_vpos_save	= $3f		;
 !addr pacman_hpos_save	= $40		;
-!addr sprite_vpos		= $41 ; -$45 sprite y position
-!addr sprite_hpos		= $46 ; -$4a sprite x position
-!addr sprite_direction	= $4b ; -$4f sprite direction
+!addr sprite_vpos		= $41 ; -$45  Sprite y position
+!addr sprite_hpos		= $46 ; -$4a  Sprite x position
+!addr sprite_direction	= $4b ; -$4f  Sprite direction
 
 !addr pause_flag		= $57		; $80 = pause
 
-!addr notes_counter		= $5f		; counter for music			
-!addr jiffy				= $a2		; jiffy clock 20ms counter from raster interrupt = Vsync
+!addr notes_counter		= $5f		; Counter for music			
+!addr jiffy				= $a2		; Jiffy clock 20ms counter from raster interrupt = Vsync
 ;						= $04		 ; 0 -> Sprite Direction loop
-!addr blink_counter		= $b9		; blink counter 1up/2up 0/1=off/on
+!addr blink_counter		= $b9		; Blink counter 1up/2up 0/1=off/on
 !addr spritedata_pointer= $c0		; 16bit pointer for sprite data copy
-!addr pressed_key		= $c5		; pressed key from interrupt
+!addr pressed_key		= $c5		; Pressed key from interrupt
 ; ***************************************** VARIABLES *********************************************
 !addr sprite_x			= $02d0		; -$02d4 sprite x positions (>>1 +$2c)
 ; ************************************** P500 ZERO PAGE *******************************************
@@ -234,6 +236,7 @@ Cold:
 		!byte $a8
 ; -------------------------------------------------------------------------------------------------
 ; $8011 Encoded game user font (bytes 0-$3f from FontData, bit 6+7 = count)
+!ifndef P500{
 EncodedUserFontGame:
 		!byte $c0, $c0, $80, $57, $80, $57, $ee, $57
 		!byte $40, $01, $c4, $04, $40, $19, $ca, $ca
@@ -295,7 +298,9 @@ EncodedUserFontGame:
 		!byte $e6, $26, $17, $00, $40, $1e, $40, $1d
 		!byte $c1, $1d, $40, $1e, $c0, $1e, $40, $0d
 		!byte $d9, $0d, $40, $1e, $40, $ff
+}
 ; -------------------------------------------------------------------------------------------------
+!ifndef P500{
 ; $81ef Compressed Maze data
 CompressedMazeData:
 		!byte $00, $11, $1c, $8f, $0c, $15, $16, $8f
@@ -351,6 +356,7 @@ CompressedMazeData:
 		!byte $1d, $14, $00, $00, $13, $0f, $a1, $01
 		!byte $0d, $14, $00, $00, $12, $1d, $a1, $0c
 		!byte $1f, $21, $a8, $00, $ff
+}
 ; ***************************************** ZONE CODE *********************************************
 !zone code
 *= $8394 ; game code
@@ -377,6 +383,7 @@ clearzp:sta $02,x						; clear zero page $03 - $c4
 		ldx jiffy						; load jiffy = $00 (cleared at ZP clear loop)
 		dex
 		stx delay_menu					; remember jiffy-1 for 255 x 20ms = 5s menu delay
+!ifndef P500{
 ; $83b3 Copy and uncompress maze
 		lda #<MazeData
 		sta pointer2
@@ -413,7 +420,8 @@ mazbit6:and #$3f						; clear ident bits#7,6
 mazchar:jsr StoreIncPointer2			; copy byte to maze
 		jsr IncPointer1
 		jmp mazcopy						; read next byte
-; $8401 Copy and decode NibbleTable Nibbles
+}
+; $8401 Copy and decode Nibbles
 lookupt:lda #<CompressedNibbles
 		sta pointer1
 		lda #>CompressedNibbles
@@ -432,7 +440,7 @@ lutcopy:jsr LoadHiNibblePointer1		; load and shift high nibble 4 bits right
 		inx
 		bne lutcopy						; next byte
 !ifdef 	P500{
-; P500 Copy chars $00-$7f of the first (graphic) fontset to $80 of the custom fonts
+; P500 Copy chars $00-$3f of the first (graphic) fontset to $80 of tboth custom fonts
 		lda #SYSTEMBANK					; select bank 15 to get font from char ROM
 		sta IndirectBank
 fontcpy:lda (CharROM1),y				; load from character ROM - Y already $00	
@@ -468,6 +476,21 @@ fontcpy:lda CharROM64+$100,x			; load from character ROM
 		ora #$01
 		sta $dc0e
 }
+!ifdef 	P500{
+; Copy User chars
+ufntcpy:lda UserFontGame,y	
+		sta CharGame,y
+		lda UserFontGame+$100,y	
+		sta CharGame+$100,y
+		lda UserFontGame+$200,y	
+		sta CharGame+$200,y
+		lda UserFontGame+$300,y	
+		sta CharGame+$300,y
+		lda UserFontMenu,y	
+		sta CharMenu,y
+		dey
+		bne ufntcpy
+} else{
 ; $8459 Copy and decode user fonts
 		lda #<EncodedUserFontGame
 		sta pointer1
@@ -493,11 +516,12 @@ ucmcopy:lda UserCharMenu,x				; copy 32 bytes to menu user font
 		sta CharMenu+$a8,x
 		dex
 		bpl ucmcopy						; next byte
+}
 !ifdef 	P500{
 ; P500 SID init							; x already $ff
 		lda #SYSTEMBANK
 		sta IndirectBank	; select bank 15 - from here as STANDARD!
-		txa
+		ldx #$ff
 		ldy #SR_V3FREQ
 		sta (SID),y						; SID voice 3 frequency lo to $ff 
 		iny
@@ -1589,13 +1613,13 @@ ChangePlayer:
 		cmp #$01
 		bne l8ab0
 		ldx #$00
-l8a8c:	lda ScreenBackup1,x				; restore player  screen
+l8a8c:	lda Player1Save,x				; restore player  screen
 		sta Playfield,x
-		lda ScreenBackup1+$100,x
+		lda Player1Save+$100,x
 		sta Playfield+$100,x
-		lda ScreenBackup1+$200,x
+		lda Player1Save+$200,x
 		sta Playfield+$200,x
-		lda ScreenBackup1+$300,x
+		lda Player1Save+$300,x
 		sta Playfield+$300,x
 		inx
 		bne l8a8c
@@ -1606,13 +1630,13 @@ l8a8c:	lda ScreenBackup1,x				; restore player  screen
 l8ab0:	cmp #$02
 		bne l8ada
 		ldx #$00
-l8ab6:	lda ScreenBackup2,x				; restore player 2 screen
+l8ab6:	lda Player2Save,x				; restore player 2 screen
 		sta Playfield,x
-		lda ScreenBackup2+$100,x
+		lda Player2Save+$100,x
 		sta Playfield+$100,x
-		lda ScreenBackup2+$200,x
+		lda Player2Save+$200,x
 		sta Playfield+$200,x
-		lda ScreenBackup2+$300,x
+		lda Player2Save+$300,x
 		sta Playfield+$300,x
 		inx
 		bne l8ab6
@@ -2772,13 +2796,13 @@ scrinlp:lda MazeData,x					; load decompressed Screen Data
 BackupGameScreen1:
 		ldx #$00
 bscr1lp:lda Playfield,x
-		sta ScreenBackup1,x
+		sta Player1Save,x
 		lda Playfield+$100,x
-		sta ScreenBackup1+$100,x
+		sta Player1Save+$100,x
 		lda Playfield+$200,x
-		sta ScreenBackup1+$200,x
+		sta Player1Save+$200,x
 		lda Playfield+$300,x
-		sta ScreenBackup1+$300,x
+		sta Player1Save+$300,x
 		inx
 		bne bscr1lp
 		rts
@@ -2787,13 +2811,13 @@ bscr1lp:lda Playfield,x
 BackupGameScreen2:
 		ldx #$00
 bscr2lp:lda Playfield,x
-		sta ScreenBackup2,x
+		sta Player2Save,x
 		lda Playfield+$100,x
-		sta ScreenBackup2+$100,x
+		sta Player2Save+$100,x
 		lda Playfield+$200,x
-		sta ScreenBackup2+$200,x
+		sta Player2Save+$200,x
 		lda Playfield+$300,x
-		sta ScreenBackup2+$300,x
+		sta Player2Save+$300,x
 		inx
 		bne bscr2lp
 l91bc:	rts
@@ -4442,12 +4466,14 @@ EncodedUserFontMenu:
 		!byte $58, $c0, $40, $c9, $89, $00, $ee, $ae
 		!byte $00, $ff
 ; -------------------------------------------------------------------------------------------------
+!ifndef	P500{
 ; $9ee4 
 UserCharMenu:
 		!byte $81, $83, $83, $87, $87, $8f, $8f, $00
 		!byte $fc, $de, $fe, $ff, $ff, $ff, $ff, $00
 		!byte $0f, $0f, $0f, $0f, $0f, $8f, $8f, $00
 		!byte $ff, $ff, $ff, $ff, $ff, $ff, $ff, $00
+}
 ; -------------------------------------------------------------------------------------------------
 ; $9f04 sprite 0-4 MSB bit set table
 SpriteSetMSBMask:
@@ -4566,4 +4592,254 @@ IOPointerTable:
 		!word TPI2base
 		!word CharROMbase
 		!word CharROMbase+$100
+; -------------------------------------------------------------------------------------------------
+; Maze data 23 lines x 40 columns
+MazeData:
+		!byte $00, $11, $1c, $0c, $0c, $0c, $0c, $0c
+		!byte $0c, $0c, $0c, $0c, $0c, $0c, $0c, $0c
+		!byte $0c, $0c, $0c, $15, $16, $0c, $0c, $0c
+		!byte $0c, $0c, $0c, $0c, $0c, $0c, $0c, $0c
+		!byte $0c, $0c, $0c, $0c, $0c, $1e, $20, $00
+		!byte $00, $13, $0f, $01, $01, $01, $01, $01
+		!byte $01, $01, $01, $01, $01, $01, $01, $01
+		!byte $01, $01, $01, $0d, $0f, $01, $01, $01
+		!byte $01, $01, $01, $01, $01, $01, $01, $01
+		!byte $01, $01, $01, $01, $01, $0d, $14, $00
+		!byte $00, $13, $0f, $01, $03, $0e, $0e, $0e
+		!byte $04, $01, $03, $0e, $0e, $0e, $0e, $0e
+		!byte $0e, $04, $01, $0d, $0f, $01, $03, $0e
+		!byte $0e, $0e, $0e, $0e, $0e, $04, $01, $03
+		!byte $0e, $0e, $0e, $04, $01, $0d, $14, $00
+		!byte $00, $13, $0f, $02, $06, $10, $10, $10
+		!byte $05, $01, $06, $10, $10, $10, $10, $10
+		!byte $10, $05, $01, $06, $05, $01, $06, $10
+		!byte $10, $10, $10, $10, $10, $05, $01, $06
+		!byte $10, $10, $10, $05, $02, $0d, $14, $00
+		!byte $00, $13, $0f, $01, $01, $01, $01, $01
+		!byte $01, $01, $01, $01, $01, $01, $01, $01
+		!byte $01, $01, $01, $01, $01, $01, $01, $01
+		!byte $01, $01, $01, $01, $01, $01, $01, $01
+		!byte $01, $01, $01, $01, $01, $0d, $14, $00
+		!byte $00, $13, $0f, $01, $0a, $0c, $0c, $0c
+		!byte $08, $01, $03, $0e, $04, $01, $0a, $0c
+		!byte $0c, $0c, $0c, $07, $09, $0c, $0c, $0c
+		!byte $0c, $08, $01, $03, $0e, $04, $01, $0a
+		!byte $0c, $0c, $0c, $08, $01, $0d, $14, $00
+		!byte $00, $13, $0f, $01, $01, $01, $01, $01
+		!byte $01, $01, $0d, $00, $0f, $01, $01, $01
+		!byte $01, $01, $01, $0d, $0f, $01, $01, $01
+		!byte $01, $01, $01, $0d, $00, $0f, $01, $01
+		!byte $01, $01, $01, $01, $01, $0d, $14, $00
+		!byte $00, $12, $1d, $0c, $0c, $0c, $0c, $61
+		!byte $04, $01, $0d, $00, $19, $0c, $0c, $0c
+		!byte $0c, $08, $00, $06, $05, $00, $0a, $0c
+		!byte $0c, $0c, $0c, $1a, $00, $0f, $01, $03
+		!byte $63, $0c, $0c, $0c, $0c, $1f, $21, $00
+		!byte $00, $00, $00, $00, $00, $00, $00, $13
+		!byte $0f, $01, $0d, $00, $0f, $00, $00, $00
+		!byte $00, $00, $00, $00, $00, $00, $00, $00
+		!byte $00, $00, $00, $0d, $00, $0f, $01, $0d
+		!byte $14, $00, $00, $00, $00, $00, $00, $00
+		!byte $00, $00, $0c, $0c, $0c, $0c, $0c, $62
+		!byte $05, $01, $06, $10, $05, $00, $03, $0e
+		!byte $0e, $0e, $0e, $0b, $0b, $0e, $0e, $0e
+		!byte $0e, $04, $00, $06, $10, $05, $01, $06
+		!byte $64, $0c, $0c, $0c, $0c, $0c, $00, $00
+		!byte $00, $00, $00, $00, $00, $00, $00, $00
+		!byte $00, $01, $00, $00, $00, $00, $0d, $00
+		!byte $00, $00, $00, $00, $00, $00, $00, $00
+		!byte $00, $0f, $00, $00, $00, $00, $01, $00
+		!byte $00, $00, $00, $00, $00, $00, $00, $00
+		!byte $00, $00, $0c, $0c, $0c, $0c, $0c, $61
+		!byte $04, $01, $03, $0e, $04, $00, $06, $10
+		!byte $10, $10, $10, $10, $10, $10, $10, $10
+		!byte $10, $05, $00, $03, $0e, $04, $01, $03
+		!byte $63, $0c, $0c, $0c, $0c, $0c, $00, $00
+		!byte $00, $00, $00, $00, $00, $00, $00, $13
+		!byte $0f, $01, $0d, $00, $0f, $00, $00, $00
+		!byte $00, $00, $00, $00, $00, $00, $00, $00
+		!byte $00, $00, $00, $0d, $00, $0f, $01, $0d
+		!byte $14, $00, $00, $00, $00, $00, $00, $00
+		!byte $00, $11, $1c, $0c, $0c, $0c, $0c, $62
+		!byte $05, $01, $06, $10, $05, $00, $0a, $0c
+		!byte $0c, $0c, $0c, $07, $09, $0c, $0c, $0c
+		!byte $0c, $08, $00, $06, $10, $05, $01, $06
+		!byte $64, $0c, $0c, $0c, $0c, $1e, $20, $00
+		!byte $00, $13, $0f, $01, $01, $01, $01, $01
+		!byte $01, $01, $01, $01, $01, $01, $01, $01
+		!byte $01, $01, $01, $0d, $0f, $01, $01, $01
+		!byte $01, $01, $01, $01, $01, $01, $01, $01
+		!byte $01, $01, $01, $01, $01, $0d, $14, $00
+		!byte $00, $13, $0f, $01, $0a, $0c, $0c, $15
+		!byte $04, $01, $0a, $0c, $0c, $0c, $0c, $0c
+		!byte $0c, $08, $01, $06, $05, $01, $0a, $0c
+		!byte $0c, $0c, $0c, $0c, $0c, $08, $01, $03
+		!byte $16, $0c, $0c, $08, $01, $0d, $14, $00
+		!byte $00, $13, $0f, $02, $01, $01, $01, $0d
+		!byte $0f, $01, $01, $01, $01, $01, $01, $01
+		!byte $01, $01, $01, $00, $00, $01, $01, $01
+		!byte $01, $01, $01, $01, $01, $01, $01, $0d
+		!byte $0f, $01, $01, $01, $02, $0d, $14, $00
+		!byte $00, $13, $19, $0c, $0c, $08, $01, $06
+		!byte $05, $01, $03, $0e, $04, $01, $0a, $0c
+		!byte $0c, $0c, $0c, $07, $09, $0c, $0c, $0c
+		!byte $0c, $08, $01, $03, $0e, $04, $01, $06
+		!byte $05, $01, $0a, $0c, $0c, $1a, $14, $00
+		!byte $00, $13, $0f, $01, $01, $01, $01, $01
+		!byte $01, $01, $0d, $00, $0f, $01, $01, $01
+		!byte $01, $01, $01, $0d, $0f, $01, $01, $01
+		!byte $01, $01, $01, $0d, $00, $0f, $01, $01
+		!byte $01, $01, $01, $01, $01, $0d, $14, $00
+		!byte $00, $13, $0f, $01, $0a, $0c, $0c, $0c
+		!byte $0c, $0c, $17, $10, $18, $0c, $0c, $0c
+		!byte $0c, $08, $01, $06, $05, $01, $0a, $0c
+		!byte $0c, $0c, $0c, $17, $10, $18, $0c, $0c
+		!byte $0c, $0c, $0c, $08, $01, $0d, $14, $00
+		!byte $00, $13, $0f, $01, $01, $01, $01, $01
+		!byte $01, $01, $01, $01, $01, $01, $01, $01
+		!byte $01, $01, $01, $01, $01, $01, $01, $01
+		!byte $01, $01, $01, $01, $01, $01, $01, $01
+		!byte $01, $01, $01, $01, $01, $0d, $14, $00
+		!byte $00, $12, $1d, $0c, $0c, $0c, $0c, $0c
+		!byte $0c, $0c, $0c, $0c, $0c, $0c, $0c, $0c
+		!byte $0c, $0c, $0c, $0c, $0c, $0c, $0c, $0c
+		!byte $0c, $0c, $0c, $0c, $0c, $0c, $0c, $0c
+		!byte $0c, $0c, $0c, $0c, $0c, $1f, $21, $00
+		!byte $00, $00, $00, $00, $00, $00, $00, $00
+		!byte $00, $00, $00, $00, $00, $00, $00, $00
+		!byte $00, $00, $00, $00, $00, $00, $00, $00
+		!byte $00, $00, $00, $00, $00, $00, $00, $00
+		!byte $00, $00, $00, $00, $00, $00, $00, $00
+; -------------------------------------------------------------------------------------------------
+; Game user char $00-$64
+UserFontGame:
+		!byte $00, $00, $00, $00, $00, $00, $00, $00	; $00 SPACE
+		!byte $00, $00, $00, $3c, $3c, $00, $00, $00	; $01 Dot
+		!byte $3c, $3c, $ff, $ff, $ff, $ff, $3c, $3c	; $02 Big dot
+		!byte $00, $00, $01, $04, $04, $04, $04, $04	; $03 Maze parts
+		!byte $00, $00, $40, $10, $10, $10, $10, $10
+		!byte $10, $10, $10, $10, $10, $40, $00, $00
+		!byte $04, $04, $04, $04, $04, $01, $00, $00
+		!byte $00, $00, $55, $00, $00, $50, $04, $04
+		!byte $00, $00, $40, $10, $10, $40, $00, $00
+		!byte $00, $00, $55, $00, $00, $05, $10, $10
+		!byte $00, $00, $01, $04, $04, $01, $00, $00
+		!byte $00, $00, $ff, $00, $00, $00, $00, $00
+		!byte $00, $00, $55, $00, $00, $55, $00, $00
+		!byte $04, $04, $04, $04, $04, $04, $04, $04
+		!byte $00, $00, $55, $00, $00, $00, $00, $00
+		!byte $10, $10, $10, $10, $10, $10, $10, $10
+		!byte $00, $00, $00, $00, $00, $55, $00, $00
+		!byte $00, $00, $00, $00, $01, $01, $01, $01
+		!byte $01, $01, $01, $01, $00, $00, $00, $00
+		!byte $01, $01, $01, $01, $01, $01, $01, $01
+		!byte $40, $40, $40, $40, $40, $40, $40, $40
+		!byte $00, $00, $55, $00, $00, $50, $04, $04
+		!byte $00, $00, $55, $00, $00, $05, $10, $10
+		!byte $04, $04, $50, $00, $00, $55, $00, $00		
+		!byte $10, $10, $05, $00, $00, $55, $00, $00
+		!byte $10, $10, $05, $00, $00, $05, $10, $10
+		!byte $04, $04, $50, $00, $00, $50, $04, $04
+		!byte $3c, $ff, $3f, $0f, $3f, $ff, $3c, $00	; $1b Mini-pacman
+		!byte $00, $00, $15, $40, $00, $05, $10, $10	; $1c Maze parts
+		!byte $10, $10, $05, $00, $40, $15, $00, $00
+		!byte $00, $00, $54, $01, $00, $50, $04, $04
+		!byte $04, $04, $50, $00, $01, $54, $00, $00
+		!byte $00, $00, $00, $00, $40, $40, $40, $40
+		!byte $40, $40, $40, $40, $00, $00, $00, $00
+		!byte $00, $3f, $3c, $3c, $3f, $3c, $3c, $00	; $22 READY:
+		!byte $00, $f0, $3c, $3c, $f0, $f0, $3c, $00
+		!byte $00, $ff, $f0, $ff, $f0, $f0, $ff, $00
+		!byte $00, $c0, $03, $0f, $0f, $0f, $cf, $00
+		!byte $00, $f0, $fc, $0f, $0f, $ff, $0f, $00
+		!byte $00, $3f, $3c, $3c, $3c, $3c, $3f, $00
+		!byte $00, $c0, $f0, $3c, $3c, $f0, $c0, $00
+		!byte $00, $f0, $f0, $3f, $0f, $0f, $0f, $00
+		!byte $00, $f3, $f3, $c3, $00, $03, $03, $00
+		!byte $00, $c0, $c0, $c0, $00, $c0, $c0, $00
+		!byte $00, $3f, $f0, $f0, $f3, $f0, $3f, $00	; $2c GAME OVER
+		!byte $00, $f0, $00, $03, $f3, $f3, $f3, $00
+		!byte $00, $3c, $ff, $c3, $c3, $ff, $c3, $00
+		!byte $00, $0f, $0f, $cf, $cf, $cf, $cf, $00
+		!byte $00, $03, $cf, $ff, $33, $03, $03, $00
+		!byte $00, $cf, $cf, $cf, $cf, $cf, $cf, $00
+		!byte $00, $fc, $00, $f0, $00, $00, $fc, $00
+		!byte $00, $00, $03, $03, $03, $03, $00, $00
+		!byte $00, $ff, $c3, $c3, $c3, $c3, $ff, $00
+		!byte $00, $0f, $cf, $cf, $cf, $c3, $00, $00
+		!byte $00, $3c, $3c, $3c, $3c, $f0, $c0, $00
+		!byte $00, $ff, $f0, $ff, $f0, $f0, $ff, $00
+		!byte $00, $cf, $0f, $0f, $0f, $0f, $cf, $00
+		!byte $00, $fc, $0f, $0f, $fc, $3c, $0f, $00
+		!byte $00, $03, $0c, $2a, $2a, $2a, $3a, $2a	; $3a Fruits 10x2 chars
+		!byte $30, $f0, $30, $a8, $a8, $e8, $a8, $00
+		!byte $03, $0f, $2a, $2e, $2a, $2b, $0a, $02
+		!byte $00, $c0, $a0, $e0, $a0, $a0, $80, $00
+		!byte $02, $02, $0f, $3f, $3f, $3f, $3f, $0f
+		!byte $00, $00, $c0, $f0, $f0, $f0, $f0, $c0
+		!byte $03, $0a, $2a, $2a, $2a, $2a, $2a, $0a
+		!byte $00, $80, $a0, $a0, $e0, $e0, $a0, $80
+		!byte $03, $03, $0a, $2a, $2a, $2a, $2a, $0a
+		!byte $00, $00, $80, $a0, $a0, $a0, $a0, $80
+		!byte $03, $03, $0a, $2a, $2a, $2a, $2a, $0a
+		!byte $00, $00, $80, $a0, $a0, $a0, $a0, $80
+		!byte $55, $55, $55, $15, $15, $05, $03, $03
+		!byte $54, $54, $54, $50, $50, $40, $00, $00
+		!byte $55, $55, $55, $15, $15, $05, $03, $03
+		!byte $54, $54, $54, $50, $50, $40, $00, $00
+		!byte $03, $0d, $3f, $3f, $3f, $3a, $2b, $0a
+		!byte $00, $c0, $f0, $f0, $f0, $b0, $a0, $80
+		!byte $0a, $08, $0a, $03, $03, $03, $03, $03
+		!byte $a0, $20, $a0, $c0, $f0, $c0, $f0, $c0
+		!byte $00, $03, $00, $00, $00, $00, $03, $00	; $4e Scores 100 - 5000
+		!byte $c0, $c3, $c3, $c3, $c3, $c3, $f0, $00
+		!byte $3f, $00, $00, $03, $00, $30, $0f, $00
+		!byte $f0, $33, $c3, $c3, $33, $33, $c0, $00
+		!byte $3f, $30, $3f, $00, $00, $30, $0f, $00
+		!byte $f0, $03, $c3, $33, $33, $33, $c0, $00
+		!byte $3f, $00, $00, $03, $0c, $0c, $0c, $00
+		!byte $f0, $33, $c3, $03, $03, $03, $00, $00
+		!byte $03, $0f, $03, $03, $03, $03, $0f, $00
+		!byte $03, $0c, $0c, $0c, $0c, $0c, $c3, $00
+		!byte $3f, $c0, $00, $0f, $30, $c0, $ff, $00
+		!byte $03, $cc, $cc, $0c, $0c, $0c, $c3, $00
+		!byte $ff, $00, $03, $0f, $00, $c0, $3f, $00
+		!byte $c3, $cc, $0c, $0c, $cc, $cc, $03, $00
+		!byte $ff, $c0, $ff, $00, $00, $c0, $3f, $00
+		!byte $c3, $0c, $0c, $cc, $cc, $cc, $03, $00
+		!byte $c0, $33, $33, $33, $33, $33, $c0, $00
+		!byte $f0, $0c, $0c, $0c, $0c, $0c, $f0, $00
+		!byte $3c, $c3, $c3, $c3, $c3, $c3, $3c, $00
+		!byte $00, $00, $55, $00, $00, $54, $01, $01	; $61 Maze parts
+		!byte $01, $01, $54, $00, $00, $55, $00, $00
+		!byte $00, $00, $55, $00, $00, $15, $40, $40
+		!byte $40, $40, $15, $00, $00, $55, $00, $00
+; -------------------------------------------------------------------------------------------------
+; Menu user char $00-$18 PACMAN logo 2 rows with 12 chars
+UserFontMenu:
+		!byte $00, $00, $00, $00, $00, $00, $00, $00	; SPACE
+		!byte $00, $00, $fe, $ff, $ff, $ff, $fb, $ff 	; First row
+		!byte $00, $00, $00, $80, $c0, $c1, $c1, $c3
+		!byte $00, $00, $40, $e0, $e0, $f0, $f0, $f8
+		!byte $00, $00, $03, $0f, $1f, $1f, $3f, $3f
+		!byte $00, $00, $e0, $f8, $fc, $f8, $f0, $e0
+		!byte $00, $00, $00, $00, $00, $00, $00, $3e
+		!byte $00, $00, $08, $0c, $0e, $0f, $0f, $0f
+		!byte $00, $00, $00, $01, $03, $07, $8f, $df
+		!byte $00, $00, $80, $80, $80, $80, $80, $81
+		!byte $00, $00, $20, $70, $70, $f8, $f8, $fc
+		!byte $00, $00, $08, $0c, $0e, $0f, $0f, $0f
+		!byte $00, $00, $1f, $1f, $1f, $1f, $9f, $df
+		!byte $ff, $ff, $fe, $f8, $f8, $f8, $f8, $00	; Second row
+		!byte $c3, $87, $07, $0f, $0f, $1f, $1f, $00
+		!byte $f8, $bc, $fc, $fe, $fe, $ff, $ff, $00
+		!byte $3f, $3f, $3f, $1f, $1f, $0f, $03, $00
+		!byte $c0, $e0, $f0, $f8, $fc, $f8, $e0, $00
+		!byte $3e, $3e, $00, $00, $00, $00, $00, $00
+		!byte $0f, $0f, $0f, $0f, $0f, $0f, $0f, $00
+		!byte $ff, $ff, $ff, $ff, $ff, $ff, $ff, $00
+		!byte $81, $83, $83, $87, $87, $8f, $8f, $00
+		!byte $fc, $de, $fe, $ff, $ff, $ff, $ff, $00
+		!byte $0f, $0f, $0f, $0f, $0f, $8f, $8f, $00
+		!byte $ff, $ff, $ff, $ff, $ff, $ff, $ff, $00
 }
