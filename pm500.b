@@ -4,7 +4,7 @@
 ; Converted for P500 by Vossi 05/2020
 !cpu 6502
 ; switches
-P500 = 1		; P500 bank 0 file
+;P500 = 1		; P500 bank 0 file
 ;CRT = 1		; CRT header for VICE
 !ifdef 	P500{!to "pm500.prg", cbm
 } else	{ !ifdef CRT {!to "pm500.crt", plain
@@ -39,6 +39,7 @@ P500 = 1		; P500 bank 0 file
 ; 512 Nibbles table lo+hi decoded -> $4c00
 ; Only SID voices 1+2 are used with sawtooth+triangle
 ; SID voice 3 with noise and reg $1b used for random number generation 
+; Monsters/Ghosts/Goblins: Lightred=Pinky, Lightred=Pinky, Green=Inky, Orange=Clyde
 ; ******************************************* FONT ************************************************
 ; Menufont:		$00-$17 = PACMAN logo 2 rows of 12 chars
 ; Gamefont:	 	$00-$21 = Maze parts except $01 = pill, $03 = cross, $1b = mini-pacman (live)
@@ -129,26 +130,48 @@ SR_RANDOM				= $1b
 !addr SpriteRAM			= $5300		; 5x Sprite RAM -$57ff
 
 ; ***************************************** ZERO PAGE *********************************************
+!addr attract_ATARI		= $03		; Atari ATTRACT FLAG for screen saver - not used on Commodore
 !addr state				= $07		; 0 = game, 1 = startup, 2 = delay menu, 3 = menu
 !addr players			= $08		; 0 = 1 player, 1 = 2 players
 !addr difficulty		= $09		; 0, 1, 2, 4, 6, 8, a, c
-;!addr ready			= $0a		; 2 = READY
+!addr restart_flag		= $0a		; 1 = new game, 2 after init, 3 at ready
 !addr delay_menu		= $0b		; jiffy-1 at start for 5s menu delay
+!addr atract_timer_ATARI= $0c		; countdown timer to attract mode - ONLY ATARI
+!addr game_over_flag	= $0e		; 
+!addr ready_flag		= $0f		; 
+!addr intro_flag		= $10		; 
+!addr swap_player_flag	= $11		; 
+!addr reset_flag		= $12		;
 !addr temp				= $18		; temp byte
-!addr actual_player		= $19		; actual player
-!addr lives				= $1a ; $1b	  lives player 1, 2 (starts with 3)
-!addr level				= $1e ; $1f	  level player 1, 2
-; $20,21 score
-!addr score				= $22 ; $23   score player 1, 2 (lowbyte, last digit always zero)
-; $24,25 score
-; $26
-; $28
+!addr player_number		= $19		; actual player 0=1, 1=2
+!addr extra_pacman1		= $1a		; lives player 1 (starts with 3)
+!addr extra_pacman2		= $1b		; lives player 2 (starts with 3)
+!addr bonus_pacman		= $1c ; $1d   bonus pacman player 1,2
+!addr maze_count1		= $1e 		; maze player 1
+!addr maze_count2		= $1f 		; maze player 2
+!addr bigdot_status		= $20 ; $21   Big dot status player 1,2
+!addr dots_eaten_lo		= $22 ; $23	  Dots eaten player 1,2 lowbyte
+!addr dots_eaten_hi		= $24 ; $25	  Dots eaten player 1,2 highbyte
+!addr score_pointer1	= $26		;
+!addr score_pointer2	= $28		;
 !addr pointer1			= $2a		; source pointer
 !addr pointer2			= $2c		; target pointer
-; $2e,2f score
-!addr data_tb1			= $3c		; 20 bytes from $9bbf
-!addr sprite_y			= $41		; -$45 sprite y postion 
-!addr pause				= $57		; $80 = pause
+!addr fruit_counter		= $2e ; $2f	; Fruit counter player 1, 2
+!addr bounce_timer_ATARI= $30		; ATARI key debounce - not used on Commodore
+!addr ATARI_32			= $32		; ATARI - not used
+!addr ATARI_33			= $33		; ATARI - not used
+!addr monster_delay		= $34 ; -$37; Monster 1-4 delay
+
+!addr pacman_screen_ptr	= $3c		;
+!addr pacman_byte_ctr	= $3e		;
+!addr pacman_vpos_save	= $3f		;
+!addr pacman_hpos_save	= $40		;
+!addr sprite_vpos		= $41 ; -$45 sprite y position
+!addr sprite_hpos		= $46 ; -$4a sprite x position
+!addr sprite_direction	= $4b ; -$4f sprite direction
+
+!addr pause_flag		= $57		; $80 = pause
+
 !addr notes_counter		= $5f		; counter for music			
 !addr jiffy				= $a2		; jiffy clock 20ms counter from raster interrupt = Vsync
 ;						= $04		 ; 0 -> Sprite Direction loop
@@ -596,15 +619,15 @@ waitcyc:cmp jiffy
 ;		
 new1up: jsr Init1Player					; sub: print 1Up, print zero score
 new2up: lda #$02
-		sta $0a							; $0a=2 if 2 players
+		sta restart_flag				; restart = 2 after init
 notgame:lda state
 		bne checkey						; branch if not game state
-		lda $0e
+		lda game_over_flag
 		beq chkfkey						; game runs - check only f-keys
-		lda $0c
+		lda atract_timer_ATARI
 		bne checkey
 		lda #$04
-		bne SetState4					; set state to 4
+		bne SetState					; set ATARI attract mode state = 4 - NOT on Commodore
 !ifdef 	P500{
 checkey:ldy #$00
 		lda (CIA),y						; load CIA Port A
@@ -649,10 +672,10 @@ debounc:cmp pressed_key
 }
 ; start new game
 newgame:lda #$00						; start new game
-		sta $0e
+		sta game_over_flag
 		sta state						; state = 0 game mode
 		lda #$01
-		sta $0a
+		sta restart_flag				; restart = 1 for new game
 		jmp mainlp						; start the new game in next main loop
 ; -------------------------------------------------------------------------------------------------
 ; $855c toogle players
@@ -663,7 +686,7 @@ TogglePlayers:
 ; $8562	set state=menu -> return to main loop	
 SetStateMenu:
 		lda #$03
-SetState4:
+SetState:
 		sta state
 		jmp notgame
 ; -------------------------------------------------------------------------------------------------
@@ -730,7 +753,7 @@ setrast:ldy #VR_RASTER
 		lda #$81
 		ldy #VR_IRQ
 		sta (VIC),y						; clear VIC raster interrupt
-		dec $30							;
+		dec bounce_timer_ATARI							;
 		jsr UpdateScreen				; sub: Update screen: Startup, Menu, Game
 
 		lda $a4
@@ -791,7 +814,7 @@ endirq: pla
 		sta $d012						; set VIC raster reg again to $32 (start)
 		lda #$81
 		sta $d019						; clear VIC raster interrupt
-		dec $30							;
+		dec bounce_timer_ATARI							;
 		jsr UpdateScreen				; sub: Update screen: Startup, Menu, Game
 		lda $a4
 		bne ichkkey						; skip if $a4 is not 0
@@ -932,11 +955,11 @@ nogame:	cpy #$01
 		txa
 		sta $02c5
 		lda #$80
-cmenulp:sta $0c00,x						; clear menu screen
-		sta $0d00,x
-		sta $0e00,x
-		sta $0f00,x
-		sta $0750,x						; clear lower part game screen
+cmenulp:sta MenuScreen,x				; clear menu screen
+		sta MenuScreen+$100,x
+		sta MenuScreen+$200,x
+		sta MenuScreen+$300,x
+		sta GameScreen+$350,x			; clear lower part game screen
 		dex
 		bne cmenulp
 		ldx #$0d
@@ -1039,7 +1062,7 @@ spposlp:lda sprite_x,x					; load x
 spnomsb:and SpriteClearMSBMask,x		; clear bit with bit-clear-table
 spnoclr:sta (VIC),y						; store new X-MSB-byte to VIC
 		ldy temp						; restore Y
-		lda sprite_y,x					; load y
+		lda sprite_vpos,x					; load y
 		clc
 		adc #$1b						; calc sprite y postion
 		sta (VIC01),y					; set VIC sprite y
@@ -1062,7 +1085,7 @@ spposlp:lda sprite_x,x					; load x
 		bne spnoclr						; skip nextx instruction
 spnomsb:and SpriteClearMSBMask,x		; clear bit with bit-clear-table
 spnoclr:sta $d010						; store new X-MSB-byte to VIC
-		lda sprite_y,x					; load y
+		lda sprite_vpos,x					; load y
 		clc
 		adc #$1b						; calc sprite y postion
 		sta $d001,y						; set VIC sprite y
@@ -1080,7 +1103,7 @@ sdpcopy:sta SpriteDataPointer,x
 		dex
 		bpl sdpcopy
 ; $874d copy pacman sprite data		
-		lda sprite_y+4					; set data pointer to $5345 (pacman $5348-$5351)
+		lda sprite_vpos+4					; set data pointer to $5345 (pacman $5348-$5351)
 		sta spritedata_pointer
 		lda #$53
 		sta spritedata_pointer+1
@@ -1097,7 +1120,7 @@ spmcopy:lda (spritedata_pointer),y		; copy pacman sprite data
 		dey
 		cpy #$02						; reach last byte
 		bne spmcopy
-		lda sprite_y+0
+		lda sprite_vpos+0
 		jsr SetMonsterDataEnd				; sub: Calc pointer, set last row, last byte of monster
 ; $876a copy sprite data of 4 monsters
 sm0copy:lda (spritedata_pointer),y		; copy monster 0 sprite data
@@ -1108,7 +1131,7 @@ sm0copy:lda (spritedata_pointer),y		; copy monster 0 sprite data
 		dey
 		cpy #$01						; reach last byte
 		bne sm0copy
-		lda sprite_y+1
+		lda sprite_vpos+1
 		jsr SetMonsterDataEnd				; sub: Calc pointer, set last row, last byte of monster
 sm1copy:lda (spritedata_pointer),y		; copy monster 1 sprite data
 		sta SpriteData+$40,x
@@ -1118,7 +1141,7 @@ sm1copy:lda (spritedata_pointer),y		; copy monster 1 sprite data
 		dey
 		cpy #$01						; reach last byte
 		bne sm1copy
-		lda sprite_y+2
+		lda sprite_vpos+2
 		jsr SetMonsterDataEnd				; sub: Calc pointer, set last row, last byte of monster
 sm2copy:lda (spritedata_pointer),y		; copy monster 2 sprite data
 		sta SpriteData+$80,x
@@ -1128,7 +1151,7 @@ sm2copy:lda (spritedata_pointer),y		; copy monster 2 sprite data
 		dey
 		cpy #$01						; reach last byte
 		bne sm2copy
-		lda sprite_y+3
+		lda sprite_vpos+3
 		jsr SetMonsterDataEnd			; sub: Calc pointer, set last row, last byte of monster
 sm3copy:lda (spritedata_pointer),y		; copy monster 3 sprite data
 		sta SpriteData+$c0,x
@@ -1157,24 +1180,24 @@ sm3copy:lda (spritedata_pointer),y		; copy monster 3 sprite data
 		and #$10
 		bne +
 }
-		lda pause
+		lda pause_flag
 		eor #$80						; toggle pause -> $80 = pause
-		sta pause
+		sta pause_flag
 
-+		lda $0c
++		lda atract_timer_ATARI
 		beq chkpaus
-		dec $0c
+		dec atract_timer_ATARI			; decrease attract timer - only for ATARI
 
-chkpaus:lda pause
+chkpaus:lda pause_flag
 		beq blk12up						; skip if 0 = no pause
 		jmp SoundOff					; JUMP to Sound off in pause and return from game cycle!
 blk12up:jsr Blink12Up					; sub: blink 1/2up of active player
-		lda $0a
+		lda restart_flag
 		beq l87d8
 		cmp #$02
-		beq l87f6
-l87d8:	lda $0e
-		beq l87e6
+		beq l87f6						; branch if 2 to get ready
+l87d8:	lda game_over_flag
+		beq l87e6						
 		lda players
 		beq wr1up						; skip if 1 player
 		jsr Write2Up
@@ -1183,17 +1206,17 @@ wr1up:	jmp Write1Up
 l87e6:	lda $14
 		beq l87ed
 		jmp l8c5c
-l87ed:	lda $0f
+l87ed:	lda ready_flag
 		bne l8837
-		lda $10
+		lda intro_flag
 		bne l880a
 l87f5:	rts
 ; -------------------------------------------------------------------------------------------------
 ; $87f6
-l87f6:	inc $10
+l87f6:	inc intro_flag
 		lda #$00
-		sta $03
-		sta $0a
+		sta attract_ATARI				; NOT USED in Commodore - prevents Atari screen saver
+		sta restart_flag
 		jmp Ready						; sub: print READY: and level fruits
 ; -------------------------------------------------------------------------------------------------
 ; $8801 calc new monster data pointer
@@ -1236,20 +1259,20 @@ l880a:	lda jiffy
 		bne l87f5						; return if notes_counter not = $28
 		jmp PlayerDead					; sub: Player dead: die-animation, decrease lives
 ; $8830
-l8830:	inc $0f
+l8830:	inc ready_flag
 l8832:	inc $8a
 		jsr l8da2
 ; $ 8837
-l8837:	lda $12
+l8837:	lda reset_flag
 		beq l885e
 		cmp #$01
 		bne l8851
 		jsr l8a78
-		lda $11
+		lda swap_player_flag
 		bne l87f5
-		lda $0e
+		lda game_over_flag
 		bne l87f5
-		inc $12
+		inc reset_flag
 		lda #$40
 		sta $13
 		rts
@@ -1260,7 +1283,7 @@ l8851:	lda $13
 		dec $13
 		rts
 l8858:	lda #$00
-		sta $12
+		sta reset_flag
 		beq l8832
 l885e:	jsr l959f
 		lda $ac
@@ -1293,23 +1316,23 @@ l888c:	lda $8a,x
 		bit $bf
 		beq l88be
 		lda $4a
-		cmp $46,x
+		cmp sprite_hpos,x
 		bcs l88a4
 		sec
-		lda $46,x
+		lda sprite_hpos,x
 		sbc $4a
 		jmp l88a6
-l88a4:	sbc $46,x
+l88a4:	sbc sprite_hpos,x
 l88a6:	cmp #$04
 		bcs l88be
 		lda $45
-		cmp sprite_y,x
+		cmp sprite_vpos,x
 		bcs l88b8
 		sec
-		lda sprite_y,x
+		lda sprite_vpos,x
 		sbc $45
 		jmp l88ba
-l88b8:	sbc sprite_y,x
+l88b8:	sbc sprite_vpos,x
 l88ba:	cmp #$05
 		bcc l88c9
 l88be:	tya
@@ -1348,7 +1371,7 @@ l88d0:	lda #$42
 		sta $d027,x						; set VIC sprite color = white (monster)
 }
 		lda $45
-		cmp sprite_y,x
+		cmp sprite_vpos,x
 		beq l8909
 		bcc l8904
 		lda #$fe
@@ -1356,8 +1379,8 @@ l88d0:	lda #$42
 l8904:	lda #$02
 l8906:	clc
 		adc $45
-l8909:	sta $26
-		sta $28
+l8909:	sta score_pointer1
+		sta score_pointer2
 		lda #$53
 		sta $27
 		txa
@@ -1434,8 +1457,8 @@ l897b:	lda $5b
 		lda $45
 		cmp #$84
 		bne l89da
-		ldx actual_player
-		lda level,x						; load level
+		ldx player_number
+		lda maze_count1,x				; load maze number
 		cmp #$0c
 		bcc l8995
 		lda #$0c						; limit to $0c
@@ -1461,8 +1484,8 @@ l899c:	lda FruitScores,x
 		sta $b6
 		lda #$10
 		sta $b7
-		ldx actual_player
-		lda level,x
+		ldx player_number
+		lda maze_count1,x
 		cmp #$0c
 		bcc l89ca
 		lda #$0c
@@ -1523,10 +1546,10 @@ l8a34:	lda $8a,x
 		lda $8a,x
 		asl
 		bmi l8a74
-		lda sprite_y,x
+		lda sprite_vpos,x
 		cmp #$74
 		bne l8a4f
-		lda $46,x
+		lda sprite_hpos,x
 		cmp #$a7
 		bcs l8a53
 		cmp #$52
@@ -1536,13 +1559,13 @@ l8a4f:	lda $8a,x
 l8a53:	jsr l95e0
 		cmp #$00
 		bne l8a74
-		ldy $34,x
+		ldy monster_delay,x
 		cpy #$01
 		bne l8a64
-		sta $34,x
+		sta monster_delay,x
 		beq l8a71
 l8a64:	lda #$01
-		sta $34,x
+		sta monster_delay,x
 		bne l8a74
 l8a6a:	jsr l95e0
 		cmp #$00
@@ -1554,7 +1577,7 @@ l8a77:	rts
 ; -------------------------------------------------------------------------------------------------
 ; $8a78
 l8a78:	jsr l95aa
-		lda $11
+		lda swap_player_flag
 		beq l8ae8
 		ldx $13
 		beq ChangePlayer
@@ -1578,7 +1601,7 @@ l8a8c:	lda ScreenBackup1,x				; restore player  screen
 		bne l8a8c
 		jsr Write2Up
 		lda #$00						; change to player 1
-		sta actual_player
+		sta player_number
 		beq l8ae3
 l8ab0:	cmp #$02
 		bne l8ada
@@ -1595,27 +1618,27 @@ l8ab6:	lda ScreenBackup2,x				; restore player 2 screen
 		bne l8ab6
 		jsr Write1Up
 		lda #$01						; change to player 2
-		sta actual_player
+		sta player_number
 		bne l8ae3
 l8ada:	jsr l95aa
 		lda #$00
-		sta $11
+		sta swap_player_flag
 		beq l8b2b
 l8ae3:	lda #$03
-l8ae5:	sta $11
+l8ae5:	sta swap_player_flag
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $8ae8
 l8ae8:	lda players
 		beq l8b2b
-		lda actual_player
+		lda player_number
 		bne l8b0d
-		lda lives+1
+		lda extra_pacman2
 		beq l8b2b
-		lda lives
+		lda extra_pacman1
 		bne l8b02
 		lda #$02
-		sta $11
+		sta swap_player_flag
 		lda #$30
 		sta $13
 		bne l8b3a
@@ -1624,12 +1647,12 @@ l8b02:	jsr BackupGameScreen1			; sub: init game screen player1 $4400
 		sta $13
 		lda #$02
 		bne l8ae5
-l8b0d:	lda lives
+l8b0d:	lda extra_pacman1
 		beq l8b2b
-		lda lives+1
+		lda extra_pacman2
 		bne l8b1f
 		lda #$01
-		sta $11
+		sta swap_player_flag
 		lda #$30
 		sta $13
 		bne l8b3a
@@ -1637,15 +1660,15 @@ l8b1f:	jsr BackupGameScreen2			; sub: init game screen player2 $4800
 		lda #$30
 		sta $13
 		lda #$01
-		sta $11
+		sta swap_player_flag
 l8b2a:	rts
 ; -------------------------------------------------------------------------------------------------
 ; $8b2b
-l8b2b:	ldx actual_player
-		lda lives,x
+l8b2b:	ldx player_number
+		lda extra_pacman1,x
 		beq l8b3a
 		jsr InitNewGame					; sub: init new game
-		jsr Ready						; sub: print READY: and level fruits
+		jsr Ready						; sub: print READY: and difficulty fruits
 		jmp PlayerDead					; sub: Player dead: die-animation, decrease lives
 l8b3a:	lda #$2c
 		ldx #$00
@@ -1663,18 +1686,18 @@ l8b3e:	sta $063d,x
 } else{
 		sta $d02b						; set VIC sprite 4 color = red (pacman)
 }
-		lda $11
+		lda swap_player_flag
 		bne l8b2a
 		ldx #$2a						; score 1 screen position
 		jsr CheckHighscore
 		ldx #$47						; score 2 screen position
 		jsr CheckHighscore
 		lda #$00
-		sta $12
+		sta reset_flag
 		lda #$01
-		sta $0e
+		sta game_over_flag
 		lda #$e2
-		sta $0c
+		sta atract_timer_ATARI			; set attract timer start value - only ATARI
 		jsr Write1Up
 		jmp l95aa
 ; $8b71 check for new highsore
@@ -1710,7 +1733,7 @@ chnonew:rts
 ; $8b93
 SpriteDirectionCompareLoop:
 		ldx #$04
-l8b95:	lda sprite_y,x
+l8b95:	lda sprite_vpos,x
 		cmp #$74
 		bne l8b9e
 		jsr l8ba2
@@ -1719,17 +1742,17 @@ l8b9e:	dex
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $8ba2
-l8ba2:	sta $32
+l8ba2:	sta ATARI_32
 		txa
 		cmp #$04
 		bne l8bab
 		lda #$ff
 l8bab:	clc
 		adc #$54
-		sta $33
+		sta ATARI_33
 		lda #$ff
 		sta $bd
-		lda $46,x
+		lda sprite_hpos,x
 		sta $be
 		cmp #$c0
 		bcc l8be2
@@ -1739,17 +1762,17 @@ l8bbe:	cmp $be
 		dec $be
 		asl $bd
 		bcs l8bbe
-		lda $46,x
+		lda sprite_hpos,x
 		cmp #$ca
 		bcc l8c0c
-		lda $4b,x
+		lda sprite_direction,x
 		cmp #$08
 		bne l8c0c
 		lda #$2a
-		sta $46,x
+		sta sprite_hpos,x
 		cpx #$04
 		bne l8c0c
-		dec $3d
+		dec pacman_screen_ptr+1
 		lda #$df
 		bne l8c0a
 l8be2:	cmp #$39
@@ -1760,19 +1783,19 @@ l8be6:	lda #$38
 		inc $be
 		lsr $bd
 		bcs l8be6
-		lda $46,x
+		lda sprite_hpos,x
 		cmp #$2a
 		bne l8c0c
-		lda $4b,x
+		lda sprite_direction,x
 		cmp #$04
 		bne l8c0c
 		lda #$ca
-		sta $46,x
+		sta sprite_hpos,x
 		cpx #$04
 		bne l8c0c
-		inc $3d
+		inc pacman_screen_ptr+1
 		lda #$07
-l8c0a:	sta $3c
+l8c0a:	sta pacman_screen_ptr
 l8c0c:	rts
 ; -------------------------------------------------------------------------------------------------
 ; $8c0d
@@ -1897,21 +1920,21 @@ l8caf:	cmp #$03
 ; -------------------------------------------------------------------------------------------------
 ; $8cb9
 l8cb9:	jsr l8e49
-		ldx actual_player
-		inc lives,x
-		inc level,x
-		jsr Ready						; sub: print READY: and level fruits
+		ldx player_number
+		inc extra_pacman1,x
+		inc maze_count1,x
+		jsr Ready						; sub: print READY: and difficulty fruits
 		jsr PlayerDead					; sub: Player dead: die-animation, decrease lives
 		lda #$00
 		sta $14
 		sta $15
 		lda #$02
-		sta $12
+		sta reset_flag
 		lda #$40
 		sta $13
 		rts
 ; -------------------------------------------------------------------------------------------------
-; $8cd7 print READY: and level fruits
+; $8cd7 print READY: and difficulty fruits
 Ready:	lda #$22						; first READY: char ( $22-$2b )
 		ldx #$00
 readycp:sta $063f,x						; screen position for READY:
@@ -1920,8 +1943,8 @@ readycp:sta $063f,x						; screen position for READY:
 		inx
 		cpx #$0a						; 10 chars
 		bne readycp
-		ldx actual_player
-		lda level,x						; load player difficulty
+		ldx player_number
+		lda maze_count1,x						; load player difficulty
 		cmp #$06
 		bcc l8cf6
 		cmp #$0a
@@ -1992,12 +2015,12 @@ l8d51:
 ; $8d52 Player dead: die-animation, decrease lives
 PlayerDead:
 		jsr _SpriteMovementAnimationLoop
-		ldx actual_player
-		dec lives,x						; decrease lives of actual player
+		ldx player_number
+		dec extra_pacman1,x				; decrease lives of actual player
 ; $8d59 update lives display -> draw mini-pacmans
 UpdateLivesDisplay:
-		ldx actual_player
-		lda lives,x
+		ldx player_number
+		lda extra_pacman1,x
 		ldx #$00						; char $00 = <space>
 		ldy #$1b						; Char $1b = mini pacman	
 		cmp #$03
@@ -2026,7 +2049,7 @@ _SpriteMovementAnimationLoop:
 		lda #$01
 		sta $6a
 		ldx #$03
-l8d93:	lda $4b,x
+l8d93:	lda sprite_direction,x
 		jsr _SpriteMovementAnimation
 		dex
 		bpl l8d93
@@ -2051,7 +2074,7 @@ Blink12Up:
 		bne +							; branch always
 blink0:	lda #$00
 		sta blink_counter				; set blink to 0
-+		lda actual_player
++		lda player_number
 		beq wc1up						; branch to 1 player
 		lda blink_counter
 		bne Write2Up					; if blink counter > 0 write 2UP
@@ -2091,17 +2114,17 @@ InitNewGame:
 		dex
 		bne -							; clear ZP $3c - $c5
 		jsr InitColors					; sub: init color RAM and VIC Sprite colors
-		ldx actual_player
-		lda level,x						; load player difficulty
+		ldx player_number
+		lda maze_count1,x				; load player difficulty
 		cmp #$06
 		bcc +
 		lda #$06						; limit A to 6 and move it to Y
 +		tay
-		lda LevelTable1,y				; load from table as index
+		lda DifficultyTable1,y				; load from table as index
 		tax
 		lda $4dae,x						; copy data from RAM to ZP with index
 		sta $75
-		lda LevelTable2,y
+		lda DifficultyTable2,y
 		tay
 		ldx #$03
 -		lda $4dae,y
@@ -2109,8 +2132,8 @@ InitNewGame:
 		dex
 		bpl -
 		ldx #$13
--		lda IniDat,x
-		sta $3c,x
+-		lda SpriteInitData,x
+		sta pacman_screen_ptr,x
 		dex
 		bpl -
 		ldy #$00
@@ -2129,17 +2152,17 @@ InitNewGame:
 ; $8e38 Init game variables: lives, level, score...
 InitGameVariables:
 		lda #LIVES						; start with 3 lives
-		sta lives
-		sta lives+1
+		sta extra_pacman1
+		sta extra_pacman2
 		lda difficulty
-		sta level
-		sta level+1
+		sta maze_count1
+		sta maze_count2
 		ldx #$01
 		jsr inzersc						; zero score
 l8e49:	jsr InitGameScreen				; sub: copy game screen to screen RAM
 		jsr UpdateLivesDisplay			; sub: update lives display -> draw mini-pacmans
-		ldx actual_player
-		lda level,x
+		ldx player_number
+		lda maze_count1,x
 		tay
 		bne +
 		lda jiffy
@@ -2148,13 +2171,13 @@ l8e49:	jsr InitGameScreen				; sub: copy game screen to screen RAM
 		jmp ++
 +		iny
 		bne -
-++		ldx actual_player
+++		ldx player_number
 inzersc:lda #$0f						; zero score
-		sta $20,x
+		sta bigdot_status,x
 		lda #$00
-		sta $2e,x
-		sta $22,x
-		sta $24,x
+		sta fruit_counter,x
+		sta dots_eaten_lo,x
+		sta dots_eaten_hi,x
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $8e72 copies data from table to $87-$89
@@ -2178,7 +2201,7 @@ l8e84:	lda $ac
 		beq l8e9e
 		jsr l8c49
 		ldx #$03
-l8e93:	lda $4b,x
+l8e93:	lda sprite_direction,x
 		jsr _SpriteMovementAnimation
 		dex
 		bpl l8e93
@@ -2290,7 +2313,7 @@ l8f33:	rts
 ; $8f34
 l8f34:	lda $b0
 		bne l8f3b
-		inc $12
+		inc reset_flag
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $8f3b
@@ -2402,8 +2425,8 @@ l8fa6:	lda $bc
 l8faf:	lda $b1
 		bne l8f9a
 		jmp l9558
-l8fb6:	ldx actual_player
-		lda level,x
+l8fb6:	ldx player_number
+		lda maze_count1,x
 		tax
 		lda $4c72,x
 		cmp $bb
@@ -2446,7 +2469,7 @@ l8fe9:	dex
 		sta $69
 		rts
 ; -------------------------------------------------------------------------------------------------
-; $8ff9
+; $8ff9 Toggle monster color blue/white
 l8ff9:	lda $ba
 		bne l9003
 		inc $bb
@@ -2455,29 +2478,29 @@ l8ff9:	lda $ba
 l9003:	dec $ba
 l9005:	lda $bb
 		lsr
-		bcc ghwhite						; color monsters white
+		bcc mwhite						; color monsters white
 !ifdef 	P500{
 		ldx #BLUE
 		bne +							; blue loaded, skip white
-ghwhite:ldx #WHITE
+mwhite: ldx #WHITE
 +		ldy #$03						; 3-0 monsters
-ghcollp:lda $8a,y
-		bpl ghskip						; skip reborn monster
+mcolrlp:lda $8a,y
+		bpl mskip						; skip reborn monster
 		txa
 		sta (VIC27),y					; set VIC monster sprites color 3-0
-ghskip:	dey
+mskip:	dey
 } else{
 		ldy #BLUE
 		bne +							; blue loaded, skip white
-ghwhite:ldy #WHITE
+mwhite: ldy #WHITE
 +		ldx #$03						; 3-0 monsters
-ghcollp:lda $8a,x
-		bpl ghskip						; skip reborn monster
+mcolrlp:lda $8a,x
+		bpl mskip						; skip reborn monster
 		tya
 		sta $d027,x						; set VIC monster sprites color 3-0
-ghskip:	dex
+mskip:	dex
 }
-		bpl ghcollp
+		bpl mcolrlp
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $901e
@@ -2796,7 +2819,7 @@ l91bd:	lda $66
 		sty $64
 l91df:	lda $68
 		sta $4f
-l91e3:	ldx actual_player
+l91e3:	ldx player_number
 !ifdef 	P500{
 		ldy #$01
 		lda (CIA),y						; load CIA port b bit#0-3 = joystick 1 movement
@@ -2818,7 +2841,7 @@ l91f8:	dex
 		pla
 		cpy #$02
 		beq l920a
-		sta $03
+		sta attract_ATARI				; NOT USED in Commodore - prevents Atari screen saver
 		sta $68
 		bit temp
 		beq l920a
@@ -2849,15 +2872,15 @@ l9229:	lda $63
 l923b:	dec $62
 		bne l9252
 		lda $45
-		cmp $3f
+		cmp pacman_vpos_save
 		beq l9252
 		sec
-		lda $3c
+		lda pacman_screen_ptr
 		sbc #$28
-		sta $3c
-		lda $3d
+		sta pacman_screen_ptr
+		lda pacman_screen_ptr+1
 		sbc #$00
-		sta $3d
+		sta pacman_screen_ptr+1
 l9252:	ldy #$06
 		jmp l931d
 l9257:	lda $63
@@ -2870,15 +2893,15 @@ l9257:	lda $63
 		lda #$00
 		sta $62
 		lda $45
-		cmp $3f
+		cmp pacman_vpos_save
 		beq l9280
 		clc
-		lda $3c
+		lda pacman_screen_ptr
 		adc #$28
-		sta $3c
-		lda $3d
+		sta pacman_screen_ptr
+		lda pacman_screen_ptr+1
 		adc #$00
-		sta $3d
+		sta pacman_screen_ptr+1
 		bne l9280
 l927e:	inc $62
 l9280:	ldy #$08
@@ -2891,22 +2914,22 @@ l9285:	lda $63
 		lda #$2a
 		sta $4a
 		lda #$df
-		sta $3c
-		dec $3d
+		sta pacman_screen_ptr
+		dec pacman_screen_ptr+1
 l9299:	inc $4a
-l929b:	lda $3e
+l929b:	lda pacman_byte_ctr
 		cmp #$03
 		bne l92b3
 		lda #$00
-		sta $3e
+		sta pacman_byte_ctr
 		lda $4a
-		cmp $40
+		cmp pacman_hpos_save
 		beq l92b5
-		inc $3c
+		inc pacman_screen_ptr
 		bne l92b5
-		inc $3d
+		inc pacman_screen_ptr+1
 		bne l92b5
-l92b3:	inc $3e
+l92b3:	inc pacman_byte_ctr
 l92b5:	ldy #$02
 		bne l931d
 l92b9:	lda $63
@@ -2917,26 +2940,26 @@ l92b9:	lda $63
 		lda #$ca
 		sta $4a
 		lda #$07
-		sta $3c
-		inc $3d
+		sta pacman_screen_ptr
+		inc pacman_screen_ptr+1
 l92cd:	dec $4a
-		lda $3e
+		lda pacman_byte_ctr
 		bne l92d9
 		lda #$03
-		sta $3e
+		sta pacman_byte_ctr
 		bne l92f0
-l92d9:	dec $3e
+l92d9:	dec pacman_byte_ctr
 		bne l92f0
 		lda $4a
-		cmp $40
+		cmp pacman_hpos_save
 		beq l92f0
 		sec
-		lda $3c
+		lda pacman_screen_ptr
 		sbc #$01
-		sta $3c
-		lda $3d
+		sta pacman_screen_ptr
+		lda pacman_screen_ptr+1
 		sbc #$00
-		sta $3d
+		sta pacman_screen_ptr+1
 l92f0:	ldy #$04
 		bne l931d
 l92f4:	lda $4f
@@ -3022,25 +3045,25 @@ l937c:	lda (pointer1),y
 l9383:	rts
 ; -------------------------------------------------------------------------------------------------
 ; $9384
-l9384:	lda $3e
+l9384:	lda pacman_byte_ctr
 		bne l93e8
 		lda $62
 		bne l93e8
 		lda $4a
-		cmp $40
+		cmp pacman_hpos_save
 		bne l9398
 		lda $45
-		cmp $3f
+		cmp pacman_vpos_save
 		beq l9383
 l9398:	lda $45
-		sta $3f
+		sta pacman_vpos_save
 		lda $4a
-		sta $40
+		sta pacman_hpos_save
 		ldy #$00
 !ifdef 	P500{				; Y already $00
 		sty IndirectBank				; select bank 0 for pointer operations
 }
-		lda ($3c),y
+		lda (pacman_screen_ptr),y
 !ifdef 	P500{
 		ldx #SYSTEMBANK
 		stx IndirectBank				; switch back to bank 15
@@ -3053,7 +3076,7 @@ l9398:	lda $45
 !ifdef 	P500{				; Y already $00
 		sty IndirectBank				; select bank 0 for pointer operations
 }
-		sta ($3c),y
+		sta (pacman_screen_ptr),y
 !ifdef 	P500{				; X already $0f
 		stx IndirectBank				; switch back to bank 15
 }
@@ -3078,19 +3101,19 @@ l93c9:	sta $b5
 !ifdef 	P500{				; Y already $00
 		sty IndirectBank				; select bank 0 for pointer operations
 }
-		sta ($3c),y
+		sta (pacman_screen_ptr),y
 !ifdef 	P500{
 		ldx #SYSTEMBANK
 		stx IndirectBank				; switch back to bank 15
 }
-l93d0:	ldx actual_player
-		inc $22,x
+l93d0:	ldx player_number
+		inc dots_eaten_lo,x
 		bne l93d8
-		inc $24,x
-l93d8:	ldx actual_player
-		lda $24,x
+		inc dots_eaten_hi,x
+l93d8:	ldx player_number
+		lda dots_eaten_hi,x
 		beq l93e8
-		lda $22,x
+		lda dots_eaten_lo,x
 		cmp #$04
 		bne l93e8
 		lda #$01
@@ -3098,8 +3121,8 @@ l93d8:	ldx actual_player
 l93e8:	rts
 ; -------------------------------------------------------------------------------------------------
 ; $93e9
-l93e9:	ldx actual_player
-		lda $20,x
+l93e9:	ldx player_number
+		lda bigdot_status,x
 		sta temp
 		ldx $45
 		ldy $4a
@@ -3133,8 +3156,8 @@ l941b:	asl
 		bne l93e8
 l9428:	eor #$0f
 		and temp
-		ldx actual_player
-		sta $20,x
+		ldx player_number
+		sta bigdot_status,x
 		lda #$05
 		sta $54
 		jsr l946d
@@ -3142,8 +3165,8 @@ l9428:	eor #$0f
 		sta $bb
 		lda #$ff
 		sta $a8
-		ldx actual_player
-		lda level,x
+		ldx player_number
+		lda maze_count1,x
 		tax
 		lda BlueTimerValues,x
 		sta $bc
@@ -3160,17 +3183,17 @@ l944b:	lda $8a,x
 		bcs l9467
 		and #$3b
 		beq l9467
-		lda $4b,x
+		lda sprite_direction,x
 		tay
 		lda $4dcf,y
-		sta $4b,x
+		sta sprite_direction,x
 l9467:	dex
 		bpl l944b
 		jmp l93d0
 l946d:	lda #$00
 		sta $56
 		sed
-		lda actual_player
+		lda player_number
 		beq l947a
 		ldx #$4c
 		bne l947c
@@ -3194,7 +3217,7 @@ l9490:	sta $56
 		bne l94a0
 		tya
 		beq l94ab
-l94a0:	lda $03ff,x
+l94a0:	lda GameScreen-1,x
 		bne l94a9
 		lda $56
 		beq l94ab
@@ -3210,8 +3233,8 @@ l94ab:	ora #$90
 l94b9:	sta $50,x
 		dex
 		bpl l94b9
-		ldx actual_player
-		lda $1c,x
+		ldx player_number
+		lda bonus_pacman,x
 		bne l94cf
 		cpx #$00
 		bne l94d0
@@ -3224,12 +3247,12 @@ l94cf:	rts
 l94d0:	lda $0448
 		cmp #$90
 		beq l94cf
-l94d7:	inc $1c,x
-		inc lives,x
+l94d7:	inc bonus_pacman,x
+		inc extra_pacman1,x
 		jmp UpdateLivesDisplay			; sub: update lives display -> draw mini-pacmans
-l94de:	lda $46,x
+l94de:	lda sprite_hpos,x
 		sta $61
-		lda sprite_y,x
+		lda sprite_vpos,x
 		stx temp
 		ldx #$09
 l94e8:	cmp VTable,x
@@ -3277,15 +3300,15 @@ l9523:	ldx temp
 		php
 		cpx #$04
 		beq l9554
-		lda $4b,x
+		lda sprite_direction,x
 		tay
 		lda temp
 		and $4dc6,y
 		sta temp
-		lda sprite_y,x
+		lda sprite_vpos,x
 		cmp #$64
 		bne l9554
-		lda $46,x
+		lda sprite_hpos,x
 		cmp #$76
 		beq l9546
 		cmp #$82
@@ -3357,8 +3380,8 @@ l959f:	lda jiffy
 ; -------------------------------------------------------------------------------------------------
 ; $95aa
 l95aa:	ldy #$02
-		ldx actual_player
-		lda $20,x
+		ldx player_number
+		lda bigdot_status,x
 		sta temp
 		lda #$01
 		bit temp
@@ -3398,17 +3421,17 @@ l95e7:	lda $6c,x
 		lda #$ff
 		sta $6c,x
 l95f1:	inc $6c,x
-		ldy actual_player
-		lda $0000+level,y			; load player difficulty in A
+		ldy player_number
+		lda $0000+maze_count1,y			; load maze in A
 		cmp #$06
 		bcc +
 		lda #$06						; limit A to 6 and move it to Y
 +		tay
 		cpx #$04
 		bne l9608
-		lda LevelTable1,y
+		lda DifficultyTable1,y
 		bpl +							; skip always
-l9608:	lda LevelTable2,y
+l9608:	lda DifficultyTable2,y
 +		clc
 		adc $6c,x
 		tay
@@ -3424,14 +3447,14 @@ l9617:	lda jiffy
 		lda $69
 		beq l9623
 		dec $69
-l9623:	ldx actual_player
-		lda $24,x
+l9623:	ldx player_number
+		lda dots_eaten_hi,x
 		beq l9632
 l9629:	ldx #$03
 		jsr l9666
 		lda #$05
 		bne l964f
-l9632:	lda $22,x
+l9632:	lda dots_eaten_lo,x
 		cmp #$f0
 		bcs l9629
 		cmp #$e0
@@ -3493,10 +3516,10 @@ l9695:	rts
 ; $9696
 l9696:	lda $5b
 		bne l96d4
-		ldx actual_player
-		lda $22,x
+		ldx player_number
+		lda dots_eaten_lo,x
 		tay
-		lda $2e,x
+		lda fruit_counter,x
 		beq l96a8
 		cmp #$01
 		beq l96ac
@@ -3507,8 +3530,8 @@ l96a8:	cpy #$50
 		beq l96b0
 l96ac:	cpy #$a0
 		bne l9695
-l96b0:	inc $2e,x
-		lda level,x
+l96b0:	inc fruit_counter,x
+		lda maze_count1,x
 		cmp #$0c
 		bcc l96ba
 		lda #$0c						; max difficulty = $0c
@@ -3555,19 +3578,19 @@ l96f4:	lda $8a,x
 		cpx $a7
 		beq l973e
 		inc $b1
-		lda $46,x
+		lda sprite_hpos,x
 		tay
-		lda sprite_y,x
+		lda sprite_vpos,x
 		cpy #$7c
 		bne l9728
 		cmp #$64
 		bne l9728
-		lda $4b,x
+		lda sprite_direction,x
 		cmp #$01
 		bne l971e
 		lda #$04
-		sta $4b,x
-		lda sprite_y,x
+		sta sprite_direction,x
+		lda sprite_vpos,x
 		bne l9728
 l971e:	lda #$44
 		sta $8a,x
@@ -3582,7 +3605,7 @@ l9728:	jsr l94de
 		lda #$64
 		sta $82,x
 		jsr l99e9
-l9739:	lda $4b,x
+l9739:	lda sprite_direction,x
 		jsr _SpriteMovementAnimation
 l973e:	dex
 		bpl l96f4
@@ -3623,7 +3646,7 @@ l9784:	dex
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $9788
-l9788:	lda sprite_y,x
+l9788:	lda sprite_vpos,x
 		cmp #$64
 		bne l97a9
 		lda $8a,x
@@ -3637,13 +3660,13 @@ l9796:	and #$80
 		ldy #$08
 		bne l97a4
 l97a2:	ldy #$04
-l97a4:	sty $4b,x
+l97a4:	sty sprite_direction,x
 		sta $8a,x
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $97a9
 l97a9:	lda #$01
-l97ab:	sta $4b,x
+l97ab:	sta sprite_direction,x
 		jmp _SpriteMovementAnimation
 l97b0:	lda $8a,x
 		and #$0f
@@ -3662,17 +3685,17 @@ l97b0:	lda $8a,x
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $97bd
-l97bd:	lda $46,x
+l97bd:	lda sprite_hpos,x
 		cmp #$7c
 		beq l9788
 l97c3:	lda #$08
 		bne l97ab
-l97c7:	lda $46,x
+l97c7:	lda sprite_hpos,x
 		cmp #$7c
 		beq l9788
 l97cd:	lda #$04
 		bne l97ab
-l97d1:	lda sprite_y,x
+l97d1:	lda sprite_vpos,x
 		cmp #$74
 		bne l97e1
 		cpx #$02
@@ -3682,11 +3705,11 @@ l97d1:	lda sprite_y,x
 		bne l97b0
 l97e1:	lda #$02
 		bne l97ab
-l97e5:	lda $46,x
+l97e5:	lda sprite_hpos,x
 		cmp #$70
 		bne l97cd
 		beq l97b0
-l97ed:	lda $46,x
+l97ed:	lda sprite_hpos,x
 		cmp #$88
 		bne l97c3
 		beq l97b0
@@ -3714,20 +3737,20 @@ l9820:	inx
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $9826
-l9826:	lda $4b,x
+l9826:	lda sprite_direction,x
 		cmp #$01
 		bne l9836
-		lda sprite_y,x
+		lda sprite_vpos,x
 		cmp #$70
 		bne l9840
 		lda #$02
 		bne l983e
-l9836:	lda sprite_y,x
+l9836:	lda sprite_vpos,x
 		cmp #$78
 		bne l9840
 		lda #$01
-l983e:	sta $4b,x
-l9840:	lda $4b,x
+l983e:	sta sprite_direction,x
+l9840:	lda sprite_direction,x
 		jmp _SpriteMovementAnimation
 l9845:	lda $8a,x
 		bpl l984f
@@ -3810,7 +3833,7 @@ l98a1:	lda #$08
 		lda #$96
 		sta $86,x
 		bne l98c8
-l98c3:	sta $4b,x
+l98c3:	sta sprite_direction,x
 		jmp _SpriteMovementAnimation
 l98c8:	lda $86,x
 		bne l98cf
@@ -3847,7 +3870,7 @@ l98f6:	lda $76,x
 		lda PatternIndex,y
 		tay
 		lda $4cae,y
-l9910:	sta $4b,x
+l9910:	sta sprite_direction,x
 		jmp l9950
 l9915:	lda #$20
 		sta $8a,x
@@ -3878,35 +3901,36 @@ l993f:	lda $4a
 		bcc l9950
 		clc
 		jsr l99e9
-l9950:	lda $4b,x
-_SpriteMovementAnimation:	cmp #$01
+l9950:	lda sprite_direction,x
+_SpriteMovementAnimation:
+		cmp #$01
 		bne l9962
 		ldy $6a
 		bne l995e
-		dec sprite_y,x
-		dec sprite_y,x
+		dec sprite_vpos,x
+		dec sprite_vpos,x
 l995e:	lda #$00
 		beq l998f
 l9962:	cmp #$02
 		bne l9972
 		ldy $6a
 		bne l996e
-		inc sprite_y,x
-		inc sprite_y,x
+		inc sprite_vpos,x
+		inc sprite_vpos,x
 l996e:	lda #$0a
 		bne l998f
 l9972:	cmp #$04
 		bne l9980
 		ldy $6a
 		bne l997c
-		dec $46,x
+		dec sprite_hpos,x
 l997c:	lda #$14
 		bne l998f
 l9980:	cmp #$08
 		bne l998e
 		ldy $6a
 		bne l998a
-		inc $46,x
+		inc sprite_hpos,x
 l998a:	lda #$1e
 		bne l998f
 l998e:	rts
@@ -3948,9 +3972,9 @@ l99bc:	lda (pointer1),y
 		sta pointer1
 		lda #$58
 		sta pointer1+1
-		lda $46,x
+		lda sprite_hpos,x
 		sta sprite_x,x
-		lda sprite_y,x
+		lda sprite_vpos,x
 		sta pointer2
 		lda #$54
 		sta pointer2+1
@@ -3970,7 +3994,7 @@ l99e1:	lda (pointer1),y
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $99e9
-l99e9:	lda sprite_y,x
+l99e9:	lda sprite_vpos,x
 		cmp $82,x
 		beq l9a01
 		bcc l99f9
@@ -3984,7 +4008,7 @@ l99fd:	lda #$02
 		bne l9a03
 l9a01:	lda #$00
 l9a03:	sta $92,x
-		lda $46,x
+		lda sprite_hpos,x
 		cmp $7e,x
 		beq l9a1d
 		bcs l9a15
@@ -4042,15 +4066,15 @@ l9a5b:	lsr
 		lda #$04
 		bne l9a64
 l9a62:	lda #$08
-l9a64:	sta $4b,x
-		lda $4b,x
+l9a64:	sta sprite_direction,x
+		lda sprite_direction,x
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $9a69
-l9a69:	lda sprite_y,x
+l9a69:	lda sprite_vpos,x
 		cmp $45
 		beq l9a76
-		lda $46,x
+		lda sprite_hpos,x
 		cmp $4a
 		beq l9abb
 		rts
@@ -4065,16 +4089,16 @@ l9a78:	lda VTable,y
 l9a82:	rts
 ; -------------------------------------------------------------------------------------------------
 ; $9a83
-l9a83:	lda $46,x
+l9a83:	lda sprite_hpos,x
 		cmp $4a
 		bcs l9aa2
-		lda $4b,x
+		lda sprite_direction,x
 		cmp #$08
 		bne l9a82
 l9a8f:	lda HWalls,y
 		cmp #$ff
 		beq l9aff
-		cmp $46,x
+		cmp sprite_hpos,x
 		bcs l9a9d
 		iny
 		bne l9a8f
@@ -4083,7 +4107,7 @@ l9a9d:	cmp $4a
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $9aa2
-l9aa2:	lda $4b,x
+l9aa2:	lda sprite_direction,x
 		cmp #$04
 		bne l9a82
 l9aa8:	lda HWalls,y
@@ -4093,7 +4117,7 @@ l9aa8:	lda HWalls,y
 		bcs l9ab6
 		iny
 		bne l9aa8
-l9ab6:	cmp $46,x
+l9ab6:	cmp sprite_hpos,x
 		bcs l9aff
 		rts
 ; -------------------------------------------------------------------------------------------------
@@ -4107,10 +4131,10 @@ l9abd:	lda HTable,y
 l9ac7:	rts
 ; -------------------------------------------------------------------------------------------------
 ; $9ac8
-l9ac8:	lda sprite_y,x
+l9ac8:	lda sprite_vpos,x
 		cmp $45
 		bcc l9ae7
-		lda $4b,x
+		lda sprite_direction,x
 		cmp #$01
 		bne l9ac7
 l9ad4:	lda VWalls,y
@@ -4120,18 +4144,18 @@ l9ad4:	lda VWalls,y
 		bcs l9ae2
 		iny
 		bne l9ad4
-l9ae2:	cmp sprite_y,x
+l9ae2:	cmp sprite_vpos,x
 		bcs l9aff
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $9ae7
-l9ae7:	lda $4b,x
+l9ae7:	lda sprite_direction,x
 		cmp #$02
 		bne l9ac7
 l9aed:	lda VWalls,y
 		cmp #$ff
 		beq l9aff
-		cmp sprite_y,x
+		cmp sprite_vpos,x
 		bcs l9afb
 		iny
 		bne l9aed
@@ -4191,8 +4215,8 @@ PacmanDataPointers:
 		!word PacmanLeft
 		!word PacmanTop
 		!word PacmanBottom
-; $9bbf
-IniDat:
+; $9bbf Sprite init data: positions/directions -> copied to $3c-$4f
+SpriteInitData:
 		!byte $e3, (>GameScreen)+2 
 		!byte $02, $a6, $7a, $64, $74, $74, $74, $a4
 		!byte $7c, $7c, $70, $88, $7c, $04, $02, $01
@@ -4237,8 +4261,8 @@ VWalls:
 		!byte $03, $00
 ; $9c32 SpriteColors Sprite color table
 SpriteColors:
-		!byte RED, LIGHTRED, GREEN, ORANGE
-		!byte YELLOW, BROWN, ORANGE, GRAY3
+		!byte RED, LIGHTRED, GREEN, ORANGE	; Lightred=Pinky, Lightred=Pinky
+		!byte YELLOW, BROWN, ORANGE, GRAY3	; Green=Inky, Orange=Clyde
 ; $9c3a	colors - not used	
 		!byte $0f, $0a, $0f, $0d
 ; $9c3e Timer values for blue monsters
@@ -4365,10 +4389,10 @@ UserFontTiles:
 		!byte $df, $81, $70, $9f, $87, $07, $bc
 ; -------------------------------------------------------------------------------------------------
 ; $9e05
-LevelTable1:
+DifficultyTable1:
 		!byte $08, $08, $08, $0c, $10, $14, $14
 ; $9e0c
-LevelTable2:
+DifficultyTable2:
 		!byte $00, $04, $08, $08, $0c, $10, $10
 ; $9e13 unused
 Text_HighScore
