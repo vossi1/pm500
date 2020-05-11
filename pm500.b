@@ -15,7 +15,7 @@ P500 = 1		; P500 bank 0 file
 ;
 ; ########################################### BUGS ################################################
 ;
-; Nuggets in menu are not in multicolor so they look like zebra ;)
+; Fruits in menu are not in multicolor so they look like zebra ;)
 ; Background color 2 for multicolor is not set to 2 but works on C64 because its VIC init value
 ; ######################################### P500 MODS #############################################
 ; Indirect reg standard = $15, switch only to $0 for game indirect pointer instructions 
@@ -27,7 +27,7 @@ P500 = 1		; P500 bank 0 file
 ; Menu screen is at $0c00, menu font at $2800
 ; Game screen is at $0400, game font at $2000, multicolor
 ; First two lines of game screen are not multicolor
-; Sprites 0-3 are ghosts, sprite 4 is pacman, sprites are 10/11 px heigh, 6px wide + xpanded -> 12px
+; Sprites 0-3 are monsters, sprite 4 is pacman, sprites are 10/11 px heigh, 6px wide + xpanded -> 12px
 ; Sprite data pointer are static = $c0-$c4 -> $3000-$3100, sprites are not multicolor
 ; Sprite source data is at $5300,$5400-$57ff and will copied in each cycle to the VIC sprite data
 ; First half of char ROM copied to lower half of user fonts
@@ -46,7 +46,7 @@ P500 = 1		; P500 bank 0 file
 ;				$2c-$39	= GAME OVER
 ;				$4e-$60	= Points 1,3,5,7,10,20,30,50,00,0
 ;				$61-$64 = Maze parts
-; Both fonts:	$3a-$4d = 10 Nuggets (MCM)
+; Both fonts:	$3a-$4d = 10 fruits (MCM)
 ;				$80-$bf = Font CharROM -$8f signs, $90-$99 numbers, $a1-$bf letters
 ; ***************************************** CONSTANTS *********************************************
 FILL					= $aa		; fills free memory areas with $aa
@@ -67,8 +67,8 @@ LIGHTBLUE				= $0e
 GRAY3					= $0f
 MCM						= $08		; bit#3 for multicolor character
 ; game
-RASTERLINE1				= $32+11*8	; just above the menu nugget in line 11 
-RASTERLINE2				= $33+12*8	; just below the menu nugget in line 11 
+RASTERLINE1				= $32+11*8	; just above the menu fruit in line 11 
+RASTERLINE2				= $33+12*8	; just below the menu fruit in line 11 
 LIVES					= 3			; start lives
 ; ************************************** P500 REGISTER ********************************************
 VR_MODEY				= $11
@@ -125,7 +125,7 @@ SR_RANDOM				= $1b
 !addr ScreenBackup1		= $4400		; Game screen backup player 1
 !addr ScreenBackup2		= $4800		; Game screen backup player 2
 !addr MazeData			= $4000		; Maze data
-!addr LookUpTable		= $4c00		; LookUp Table 484 nibbles
+!addr NibbleTable		= $4c00		; LookUp Table 484 nibbles
 !addr SpriteRAM			= $5300		; 5x Sprite RAM -$57ff
 
 ; ***************************************** ZERO PAGE *********************************************
@@ -149,6 +149,7 @@ SR_RANDOM				= $1b
 !addr data_tb1			= $3c		; 20 bytes from $9bbf
 !addr sprite_y			= $41		; -$45 sprite y postion 
 !addr pause				= $57		; $80 = pause
+!addr notes_counter		= $5f		; counter for music			
 !addr jiffy				= $a2		; jiffy clock 20ms counter from raster interrupt = Vsync
 ;						= $04		 ; 0 -> Sprite Direction loop
 !addr blink_counter		= $b9		; blink counter 1up/2up 0/1=off/on
@@ -389,15 +390,15 @@ mazbit6:and #$3f						; clear ident bits#7,6
 mazchar:jsr StoreIncPointer2			; copy byte to maze
 		jsr IncPointer1
 		jmp mazcopy						; read next byte
-; $8401 Copy and decode LookUpTable Nibbles
-lookupt:lda #<cLookUpTable
+; $8401 Copy and decode NibbleTable Nibbles
+lookupt:lda #<CompressedNibbles
 		sta pointer1
-		lda #>cLookUpTable
+		lda #>CompressedNibbles
 		sta pointer1+1					; set source pointer = $9f0e
-		lda #<LookUpTable
+		lda #<NibbleTable
 		sta pointer2
-		lda #>LookUpTable
-		sta pointer2+1					; set target pointer = LookUpTable
+		lda #>NibbleTable
+		sta pointer2+1					; set target pointer = NibbleTable
 		ldy #$00
 		ldx #$00
 lutcopy:jsr LoadHiNibblePointer1		; load and shift high nibble 4 bits right
@@ -1001,8 +1002,8 @@ mskp2pl:sta MenuScreen+$14f				; write 2/1 player for F3 to screen
 		dex
 		bpl -
 		ldx difficulty
-		lda DifficultyNuggetsMenu,x
-		sta MenuScreen+$1cc				; write two chars for the difficulty nugget
+		lda DifficultyFruitsMenu,x
+		sta MenuScreen+$1cc				; write two chars for the difficulty fruit
 		clc
 		adc #$01
 		sta MenuScreen+$1cd
@@ -1097,46 +1098,46 @@ spmcopy:lda (spritedata_pointer),y		; copy pacman sprite data
 		cpy #$02						; reach last byte
 		bne spmcopy
 		lda sprite_y+0
-		jsr SetGhostDataEnd				; sub: Calc pointer, set last row, last byte of ghost
-; $876a copy sprite data of 4 ghosts
-sg0copy:lda (spritedata_pointer),y		; copy ghost 0 sprite data
+		jsr SetMonsterDataEnd				; sub: Calc pointer, set last row, last byte of monster
+; $876a copy sprite data of 4 monsters
+sm0copy:lda (spritedata_pointer),y		; copy monster 0 sprite data
 		sta SpriteData,x
 		dex
 		dex
 		dex
 		dey
 		cpy #$01						; reach last byte
-		bne sg0copy
+		bne sm0copy
 		lda sprite_y+1
-		jsr SetGhostDataEnd				; sub: Calc pointer, set last row, last byte of ghost
-sg1copy:lda (spritedata_pointer),y		; copy ghost 1 sprite data
+		jsr SetMonsterDataEnd				; sub: Calc pointer, set last row, last byte of monster
+sm1copy:lda (spritedata_pointer),y		; copy monster 1 sprite data
 		sta SpriteData+$40,x
 		dex
 		dex
 		dex
 		dey
 		cpy #$01						; reach last byte
-		bne sg1copy
+		bne sm1copy
 		lda sprite_y+2
-		jsr SetGhostDataEnd				; sub: Calc pointer, set last row, last byte of ghost
-sg2copy:lda (spritedata_pointer),y		; copy ghost 2 sprite data
+		jsr SetMonsterDataEnd				; sub: Calc pointer, set last row, last byte of monster
+sm2copy:lda (spritedata_pointer),y		; copy monster 2 sprite data
 		sta SpriteData+$80,x
 		dex
 		dex
 		dex
 		dey
 		cpy #$01						; reach last byte
-		bne sg2copy
+		bne sm2copy
 		lda sprite_y+3
-		jsr SetGhostDataEnd				; sub: Calc pointer, set last row, last byte of ghost
-sg3copy:lda (spritedata_pointer),y		; copy ghost 3 sprite data
+		jsr SetMonsterDataEnd			; sub: Calc pointer, set last row, last byte of monster
+sm3copy:lda (spritedata_pointer),y		; copy monster 3 sprite data
 		sta SpriteData+$c0,x
 		dex
 		dex
 		dex
 		dey
 		cpy #$01						; reach last byte
-		bne sg3copy
+		bne sm3copy
 !ifdef 	P500{
 		lda #SYSTEMBANK
 		sta IndirectBank				; restore to bank 15
@@ -1193,45 +1194,46 @@ l87f6:	inc $10
 		lda #$00
 		sta $03
 		sta $0a
-		jmp Ready						; sub: print READY: and level nuggets
+		jmp Ready						; sub: print READY: and level fruits
 ; -------------------------------------------------------------------------------------------------
-; $8801 calc new ghost data pointer
-SetGhostDataEnd:
+; $8801 calc new monster data pointer
+SetMonsterDataEnd:
 		sta spritedata_pointer
 		inc spritedata_pointer+1
 ; $8805 Set last row, last byte of pacman
 SetPacmanDataEnd:
-		ldy #$0c						; last sprite line ghosts/pacman
-		ldx #$22						; last data byte ghosts/pacman row 11 byte 2
+		ldy #$0c						; last sprite line monsters/pacman
+		ldx #$22						; last data byte monsters/pacman row 11 byte 2
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $880a
 l880a:	lda jiffy
 		and #$03
 		bne l87f5						; frequency change every 4 jiffy
-		ldx $5f
+; Play music
+		ldx notes_counter
 		cpx #$40
 		beq l8830						; skip if end of frequency table
-		lda FrequencyHi,x
+		lda NotesHi,x
 !ifdef 	P500{
 		ldy #SR_V1FREQ+1
 		sta (SID),y						; SID voice 1 frequency hi
 		dey
-		lda FrequencyLo,x
+		lda NotesLo,x
 		sta (SID),y						; SID voice 1 frequency lo
 		lda #$21
 		ldy #SR_V1CTRL
 		sta (SID),y						; SID voice 1 control
 } else{
 		sta $d401						; SID voice 1 frequency hi
-		lda FrequencyLo,x
+		lda NotesLo,x
 		sta $d400						; SID voice 1 frequency lo
 		lda #$21
 		sta $d404						; SID voice 1 control
 }
-		inc $5f
+		inc notes_counter
 		cpx #$28
-		bne l87f5						; return if $5f not = $28
+		bne l87f5						; return if notes_counter not = $28
 		jmp PlayerDead					; sub: Player dead: die-animation, decrease lives
 ; $8830
 l8830:	inc $0f
@@ -1282,7 +1284,7 @@ l8875:	jsr l967e
 		sta $bf
 		and #$10
 		beq l88c6
-		ldx #$00						; start with sprite/ghost 0
+		ldx #$00						; start with sprite/monster 0
 		ldy #$01
 l888c:	lda $8a,x
 		asl
@@ -1314,8 +1316,8 @@ l88be:	tya
 		asl
 		tay
 		inx
-		cpx #$04						; check if last ghost
-		bne l888c						; next ghost
+		cpx #$04						; check if last monster
+		bne l888c						; next monster
 l88c6:	jmp l897b
 l88c9:	lda $8a,x
 		bmi l88d0
@@ -1341,9 +1343,9 @@ l88d0:	lda #$42
 !ifdef 	P500{
 		stx temp
 		ldy temp
-		sta (VIC27),y					; set VIC sprite color = white (ghost)
+		sta (VIC27),y					; set VIC sprite color = white (monster)
 } else{
-		sta $d027,x						; set VIC sprite color = white (ghost)
+		sta $d027,x						; set VIC sprite color = white (monster)
 }
 		lda $45
 		cmp sprite_y,x
@@ -1366,10 +1368,10 @@ l8909:	sta $26
 		lda $a8
 		asl
 		tay
-		lda PointsSpriteIndex,y
+		lda BlueScorePointers,y
 		sta pointer1
 		iny
-		lda PointsSpriteIndex,y
+		lda BlueScorePointers,y
 		sta pointer1+1
 !ifdef 	P500{
 		lda #GAMEBANK
@@ -1378,7 +1380,7 @@ l8909:	sta $26
 		ldy #$0f
 -		lda (pointer1),y
 		sta ($26),y
-		lda PointsSpriteData,y
+		lda BlueScore0,y
 		sta ($28),y
 		dey
 		bpl -
@@ -1438,10 +1440,10 @@ l897b:	lda $5b
 		bcc l8995
 		lda #$0c						; limit to $0c
 l8995:	tax
-		lda NuggetPointsIndex,x			; load index from table
+		lda FruitScoresIndex,x			; load index from table
 		tax
 		ldy #$00
-l899c:	lda NuggetPoints,x
+l899c:	lda FruitScores,x
 		sta $0641,y						; fruit middle of screen
 		inx
 		iny
@@ -1643,7 +1645,7 @@ l8b2b:	ldx actual_player
 		lda lives,x
 		beq l8b3a
 		jsr InitNewGame					; sub: init new game
-		jsr Ready						; sub: print READY: and level nuggets
+		jsr Ready						; sub: print READY: and level fruits
 		jmp PlayerDead					; sub: Player dead: die-animation, decrease lives
 l8b3a:	lda #$2c
 		ldx #$00
@@ -1898,7 +1900,7 @@ l8cb9:	jsr l8e49
 		ldx actual_player
 		inc lives,x
 		inc level,x
-		jsr Ready						; sub: print READY: and level nuggets
+		jsr Ready						; sub: print READY: and level fruits
 		jsr PlayerDead					; sub: Player dead: die-animation, decrease lives
 		lda #$00
 		sta $14
@@ -1909,7 +1911,7 @@ l8cb9:	jsr l8e49
 		sta $13
 		rts
 ; -------------------------------------------------------------------------------------------------
-; $8cd7 print READY: and level nuggets
+; $8cd7 print READY: and level fruits
 Ready:	lda #$22						; first READY: char ( $22-$2b )
 		ldx #$00
 readycp:sta $063f,x						; screen position for READY:
@@ -1943,16 +1945,16 @@ l8cf8:	sty $5c
 !ifdef 	P500{				; X already $00
 		stx IndirectBank				; select bank 0 for pointer operations
 }
-l8d0c:	lda LevelNuggets,x				; load nugget char from table
-		sta (pointer2),y				; store nugget code to screen
+l8d0c:	lda FruitChars,x				; load fruit char from table
+		sta (pointer2),y				; store fruit code to screen
 		inc pointer2					; screen pointer to second char
 		clc
-		adc #$01						; add 1 to char code for second nugget char
+		adc #$01						; add 1 to char code for second fruit char
 		sta (pointer2),y
 		cpx temp
 		beq l8d51
 		inx
-		dec pointer2					; next nugget position to the left
+		dec pointer2					; next fruit position to the left
 		dec pointer2
 		dec pointer2
 		bne l8d0c
@@ -1963,10 +1965,10 @@ l8d2b:	sec
 		sbc #$06						; substract $06 -> value 0 - $0c
 		sta temp
 		sec
-		lda #<(LevelNuggets+$18)			; = $8a
+		lda #<(HighFruitChars)			; = $8a
 		sbc temp
 		sta pointer1
-		lda #>(LevelNuggets+$18)			; pointer to end of table = $9d8a (min -$0c)
+		lda #>(HighFruitChars)			; pointer to end of table = $9d8a (min -$0c)
 		sbc #$00
 		sta pointer1+1
 		ldx #$00
@@ -2107,7 +2109,7 @@ InitNewGame:
 		dex
 		bpl -
 		ldx #$13
--		lda Table01,x
+-		lda IniDat,x
 		sta $3c,x
 		dex
 		bpl -
@@ -2161,7 +2163,7 @@ Init87_89:
 		bcc +
 		ldy #$03
 +		ldx #$02
--		lda Table03,y
+-		lda BlueStartValues,y
 		sta $87,x
 		iny
 		dex
@@ -2319,14 +2321,14 @@ l8f5e:	lda $aa
 		beq l8f81
 		tax
 		dex
-		lda LookUpTable,x
+		lda NibbleTable,x
 		tay
 		dey
 !ifdef 	P500{
 		lda #GAMEBANK
 		sta IndirectBank				; select bank 0 for pointer operations
 }
-		lda SpriteData2,x
+		lda FizzieData,x
 		sta (pointer2),y
 !ifdef 	P500{
 		lda #SYSTEMBANK
@@ -2341,7 +2343,7 @@ l8f73:	ldy #$0c			; already bank 0 selected
 		lda #GAMEBANK
 		sta IndirectBank				; select bank 0 for pointer operations
 }
-l8f77:	lda SpriteDataTable+$78,x
+l8f77:	lda PacmanTop+$0a,x
 		sta (pointer2),y
 		dey
 		dex
@@ -2359,7 +2361,7 @@ l8f81:	ldy #$0f			; already bank 0 selected
 		lda #GAMEBANK
 		sta IndirectBank				; select bank 0 for pointer operations
 }
-l8f85:	lda Table09,x
+l8f85:	lda PacmanExplosion,x
 		sta (pointer2),y
 		dey
 		dex
@@ -2406,7 +2408,7 @@ l8fb6:	ldx actual_player
 		lda $4c72,x
 		cmp $bb
 		bne l8ff9
-		ldx #$03						; 3-0 ghosts
+		ldx #$03						; 3-0 monsters
 !ifdef 	P500{
 		ldy #VR_MOBCOL+3
 l8fc4:	lda $8a,x
@@ -2453,26 +2455,26 @@ l8ff9:	lda $ba
 l9003:	dec $ba
 l9005:	lda $bb
 		lsr
-		bcc ghwhite						; color ghosts white
+		bcc ghwhite						; color monsters white
 !ifdef 	P500{
 		ldx #BLUE
 		bne +							; blue loaded, skip white
 ghwhite:ldx #WHITE
-+		ldy #$03						; 3-0 ghosts
++		ldy #$03						; 3-0 monsters
 ghcollp:lda $8a,y
-		bpl ghskip						; skip reborn ghost
+		bpl ghskip						; skip reborn monster
 		txa
-		sta (VIC27),y					; set VIC ghost sprites color 3-0
+		sta (VIC27),y					; set VIC monster sprites color 3-0
 ghskip:	dey
 } else{
 		ldy #BLUE
 		bne +							; blue loaded, skip white
 ghwhite:ldy #WHITE
-+		ldx #$03						; 3-0 ghosts
++		ldx #$03						; 3-0 monsters
 ghcollp:lda $8a,x
-		bpl ghskip						; skip reborn ghost
+		bpl ghskip						; skip reborn monster
 		tya
-		sta $d027,x						; set VIC ghost sprites color 3-0
+		sta $d027,x						; set VIC monster sprites color 3-0
 ghskip:	dex
 }
 		bpl ghcollp
@@ -2596,14 +2598,14 @@ l90bc:	jsr SoundOff
 		lda #$0f
 		sta $02c7
 !ifdef 	P500{
-		ldy #$03						; 3-0 ghosts
-l90cc:	lda (VIC27),y					; load VIC sprites color 3-0 (ghosts)
+		ldy #$03						; 3-0 monsters
+l90cc:	lda (VIC27),y					; load VIC sprites color 3-0 (monsters)
 		cmp #$f1
 		beq l90d7
 		dey
 } else{
-		ldx #$03						; 3-0 ghosts
-l90cc:	lda $d027,x						; load VIC sprites color 3-0 (ghosts)
+		ldx #$03						; 3-0 monsters
+l90cc:	lda $d027,x						; load VIC sprites color 3-0 (monsters)
 		cmp #$f1
 		beq l90d7
 		dex
@@ -2628,9 +2630,9 @@ l90e3:	lda $b3
 		beq l9109
 l90f5:	lda $b5
 		bne l90ff
-		lda $9d24,x
+		lda EatingDotsSoundData1,x
 		jmp l9102
-l90ff:	lda $9d2b,x
+l90ff:	lda EatingDotsSoundData2,x
 l9102:	inc $b4
 !ifdef 	P500{
 		ldy #SR_V1FREQ+1
@@ -2702,7 +2704,7 @@ coinlp2:sta (ColorRAM0),y				; init lines 0-1 with white
 		bpl coinlp2
 		ldy #7							; sprite 7-0
 coinlp3:lda SpriteColors,y
-		sta (VIC27),y						; init VIC Sprite colors from table
+		sta (VIC27),y					; init VIC Sprite colors from table
 		dey
 		bpl coinlp3
 		rts
@@ -2963,17 +2965,17 @@ l931d:	ldx $67
 		inc $67
 		bne l9318
 l9325:	dex
-		lda SpriteData3,x
+		lda PacmanIndex,x
 		cpx #$02
 		bne l9331
 		ldx #$ff
 		stx $67
 l9331:	inc $67
 l9333:	tax
-		lda SpriteDataTablePointer,y
+		lda PacmanDataPointers,y
 		sta pointer1
 		iny
-		lda SpriteDataTablePointer,y
+		lda PacmanDataPointers,y
 		sta pointer1+1
 		txa
 		clc
@@ -3143,7 +3145,7 @@ l9428:	eor #$0f
 		ldx actual_player
 		lda level,x
 		tax
-		lda LevelTable4,x
+		lda BlueTimerValues,x
 		sta $bc
 		ldx #$03
 l944b:	lda $8a,x
@@ -3230,19 +3232,19 @@ l94de:	lda $46,x
 		lda sprite_y,x
 		stx temp
 		ldx #$09
-l94e8:	cmp Table04,x
+l94e8:	cmp VTable,x
 		beq l94fc
 		dex
 		bpl l94e8
 		lda $61
 		ldy #$09
-l94f4:	cmp Table05,y
+l94f4:	cmp HTable,y
 		beq l950d
 		dey
 		bpl l94f4
 l94fc:	ldy #$09
 		lda $61
-l9500:	cmp Table05,y
+l9500:	cmp HTable,y
 		beq l9512
 		dey
 		bpl l9500
@@ -3255,10 +3257,10 @@ l950d:	lda #$03
 l9512:	txa
 		asl
 		tax
-		lda PointerTable2,x
+		lda HorizontalTablePointers,x
 		sta pointer1
 		inx
-		lda PointerTable2,x
+		lda HorizontalTablePointers,x
 		sta pointer1+1
 !ifdef 	P500{
 		lda #GAMEBANK
@@ -3511,7 +3513,7 @@ l96b0:	inc $2e,x
 		bcc l96ba
 		lda #$0c						; max difficulty = $0c
 l96ba:	tax
-		lda LevelNuggets,x
+		lda FruitChars,x
 		sta $0643
 		clc
 		adc #$01
@@ -3763,10 +3765,10 @@ l9877:	jsr l94de
 l987f:	txa
 		asl
 		tay
-		lda PointerTable4,y
+		lda MonsterStartPointer,y
 		sta pointer1
 		iny
-		lda PointerTable4,y
+		lda MonsterStartPointer,y
 		sta pointer1+1
 		lda $8e,x
 		tay
@@ -3800,10 +3802,10 @@ l98a1:	lda #$08
 		sta $76,x
 		asl
 		tay
-		lda Table10,y
+		lda PatternStartHV,y
 		sta $7e,x
 		iny
-		lda Table10,y
+		lda PatternStartHV,y
 		sta $82,x
 		lda #$96
 		sta $86,x
@@ -3834,7 +3836,7 @@ l98ea:	lda $86,x
 		inc $7a,x
 l98f6:	lda $76,x
 		tay
-		lda Table06,y
+		lda PatternIndex,y
 		adc $7a,x
 		tay
 		lda $4cae,y
@@ -3842,7 +3844,7 @@ l98f6:	lda $76,x
 		sta $7a,x
 		lda $76,x
 		tay
-		lda Table06,y
+		lda PatternIndex,y
 		tay
 		lda $4cae,y
 l9910:	sta $4b,x
@@ -3852,10 +3854,10 @@ l9915:	lda #$20
 		txa
 		asl
 		tay
-		lda Table11,y
+		lda HomePositionHV,y
 		sta $7e,x
 		iny
-		lda Table11,y
+		lda HomePositionHV,y
 		sta $82,x
 		jsr l94de
 		bcc l9950
@@ -3928,10 +3930,10 @@ l99a8:	lda #$32
 		ldy #$00
 l99ac:	sty $581c
 		clc
-		adc #<SpriteDataTable
+		adc #<MonsterUp
 		sta pointer1
 		lda #$00
-		adc #>SpriteDataTable			; pointer to table at $9b10
+		adc #>MonsterUp					; pointer to sprite data
 		sta pointer1+1
 		ldy #$09
 !ifdef 	P500{
@@ -4055,7 +4057,7 @@ l9a69:	lda sprite_y,x
 ; -------------------------------------------------------------------------------------------------
 ; $9a76
 l9a76:	ldy #$09
-l9a78:	lda Table04,y
+l9a78:	lda VTable,y
 		cmp $45
 		beq l9a83
 		dey
@@ -4069,7 +4071,7 @@ l9a83:	lda $46,x
 		lda $4b,x
 		cmp #$08
 		bne l9a82
-l9a8f:	lda Table07,y
+l9a8f:	lda HWalls,y
 		cmp #$ff
 		beq l9aff
 		cmp $46,x
@@ -4084,7 +4086,7 @@ l9a9d:	cmp $4a
 l9aa2:	lda $4b,x
 		cmp #$04
 		bne l9a82
-l9aa8:	lda Table07,y
+l9aa8:	lda HWalls,y
 		cmp #$ff
 		beq l9aff
 		cmp $4a
@@ -4097,7 +4099,7 @@ l9ab6:	cmp $46,x
 ; -------------------------------------------------------------------------------------------------
 ; $9abb
 l9abb:	ldy #$09
-l9abd:	lda Table05,y
+l9abd:	lda HTable,y
 		cmp $4a
 		beq l9ac8
 		dey
@@ -4111,7 +4113,7 @@ l9ac8:	lda sprite_y,x
 		lda $4b,x
 		cmp #$01
 		bne l9ac7
-l9ad4:	lda Table08,y
+l9ad4:	lda VWalls,y
 		cmp #$ff
 		beq l9aff
 		cmp $45
@@ -4126,7 +4128,7 @@ l9ae2:	cmp sprite_y,x
 l9ae7:	lda $4b,x
 		cmp #$02
 		bne l9ac7
-l9aed:	lda Table08,y
+l9aed:	lda VWalls,y
 		cmp #$ff
 		beq l9aff
 		cmp sprite_y,x
@@ -4147,57 +4149,63 @@ l9b0f:	rts
 ; ***************************************** ZONE DATA2 ********************************************
 !zone data2
 ;*= $9b10
-; $9b10 Sprite data
-SpriteDataTable:
-		!byte $38, $7c, $d6, $d6, $d6, $fe, $fe, $fe
-		!byte $fe, $fe, $38, $7c, $fe, $fe, $fe, $fe
-		!byte $d6, $d6, $d6, $fe, $38, $7c, $fe, $fe
-		!byte $ae, $ae, $ae, $fe, $fe, $fe, $38, $7c
-		!byte $fe, $fe, $ea, $ea, $ea, $fe, $fe, $fe
-		!byte $38, $7c, $fe, $d6, $d6, $d6, $fe, $d6
-		!byte $aa, $fe, $00, $00, $00, $28, $28, $28
-		!byte $00, $00, $00, $00, $38, $7c, $fe, $fe
-		!byte $fe, $fe, $fe, $fe, $7c, $38, $38, $7c
-		!byte $fe, $f8, $e0, $e0, $f8, $fe, $7c, $38
-		!byte $38, $7c, $f8, $f0, $e0, $e0, $f0, $f8
-		!byte $7c, $38, $38, $7c, $fe, $3e, $0e, $0e
-		!byte $3e, $fe, $7c, $38, $38, $7c, $3e, $1e
-		!byte $0e, $0e, $1e, $3e, $7c, $38, $00, $44
-		!byte $c6, $c6, $ee, $ee, $fe, $fe, $7c, $38
-		!byte $00, $00, $82, $c6, $ee, $ee, $fe, $fe
-		!byte $7c, $38, $38, $7c, $fe, $fe, $ee, $ee
-		!byte $c6, $c6, $44, $00, $38, $7c, $fe, $fe
-		!byte $ee, $ee, $c6, $82, $00
+; $9b10 Monster data
+MonsterUp:
+		!byte $38, $7c, $d6, $d6, $d6, $fe, $fe, $fe, $fe, $fe
+MonsterDown:
+		!byte $38, $7c, $fe, $fe, $fe, $fe, $d6, $d6, $d6, $fe
+MonsterLeft:
+		!byte $38, $7c, $fe, $fe, $ae, $ae, $ae, $fe, $fe, $fe
+MonsterRight:
+		!byte $38, $7c, $fe, $fe, $ea, $ea, $ea, $fe, $fe, $fe
+MonsterFlight:
+		!byte $38, $7c, $fe, $d6, $d6, $d6, $fe, $d6, $aa, $fe
+MonsterEyes:
+		!byte $00, $00, $00, $28, $28, $28, $00, $00, $00, $00
+; $9b4c Pacman shape data
+PacmanDot:
+		!byte $38, $7c, $fe, $fe, $fe, $fe, $fe, $fe, $7c, $38
+PacmanRight:
+		!byte $38, $7c, $fe, $f8, $e0, $e0, $f8, $fe, $7c, $38
+		!byte $38, $7c, $f8, $f0, $e0, $e0, $f0, $f8, $7c, $38		
+PacmanLeft:
+		!byte $38, $7c, $fe, $3e, $0e, $0e, $3e, $fe, $7c, $38
+		!byte $38, $7c, $3e, $1e, $0e, $0e, $1e, $3e, $7c, $38
+PacmanTop:
+		!byte $00, $44, $c6, $c6, $ee, $ee, $fe, $fe, $7c, $38
+		!byte $00, $00, $82, $c6, $ee, $ee, $fe, $fe, $7c, $38
+PacmanBottom:
+		!byte $38, $7c, $fe, $fe, $ee, $ee, $c6, $c6, $44, $00
+		!byte $38, $7c, $fe, $fe, $ee, $ee, $c6, $82, $00
 ; $9ba5
-SpriteData3:
+PacmanIndex:
 		!byte $00, $0a
 ; $9ba7
-SpriteData2:
-		!byte $00
-		!byte $82, $00, $c6, $82, $00, $7c, $38, $10
+FizzieData:
+		!byte $00, $82, $00, $c6, $82, $00, $7c, $38, $10
 		!byte $7c, $38, $38, $10, $10
-; $9bb5
-SpriteDataTablePointer:
-		!byte <(SpriteDataTable+$3c), >(SpriteDataTable+$3c)
-		!byte <(SpriteDataTable+$46), >(SpriteDataTable+$46)
-		!byte <(SpriteDataTable+$5a), >(SpriteDataTable+$5a)
-		!byte <(SpriteDataTable+$6e), >(SpriteDataTable+$6e)
-		!byte <(SpriteDataTable+$82), >(SpriteDataTable+$82)
+; $9bb5 Pacman sprite data pointers
+PacmanDataPointers:
+		!word PacmanDot
+		!word PacmanRight
+		!word PacmanLeft
+		!word PacmanTop
+		!word PacmanBottom
 ; $9bbf
-Table01:
-		!byte $e3, $06, $02, $a6, $7a, $64, $74, $74
-		!byte $74, $a4, $7c, $7c, $70, $88, $7c, $04
-		!byte $02, $01, $01, $04
-; $9bd3
-Table04:
-		!byte $2c, $44, $54, $64, $74, $84, $94, $a4
-		!byte $b4, $c4
+IniDat:
+		!byte $e3, (>GameScreen)+2 
+		!byte $02, $a6, $7a, $64, $74, $74, $74, $a4
+		!byte $7c, $7c, $70, $88, $7c, $04, $02, $01
+		!byte $01, $04
+; $9bd3 Pacman maze direction data
+; 		This data is used to determine which direction is permitted
+VTable:
+		!byte $2c, $44, $54, $64, $74, $84, $94, $a4, $b4, $c4
 ; $9bdd
-Table05:
-		!byte $3a, $46, $52, $62, $76, $82, $96, $a6
-		!byte $b2, $be
-; $9be7
-PointerTable2:
+HTable:
+		!byte $3a, $46, $52, $62, $76, $82, $96, $a6, $b2, $be
+; $9be7 Horizontal table address pointers
+HorizontalTablePointers:
 		!word $4c0e
 		!word $4c18
 		!word $4c22
@@ -4208,50 +4216,56 @@ PointerTable2:
 		!word $4c54
 		!word $4c5e
 		!word $4c68
-; $9bfb
-		!byte $7c, $ff, $58, $7c, $9e, $ff, $58, $9e
-		!byte $ff, $3c, $ac, $ff, $ff
+; $9bfb HWALL1-5
+HWall1:	!byte $7c, $ff
+HWall2: !byte $58, $7c, $9e, $ff
+HWall3: !byte $58, $9e, $ff
+HWall4:	!byte $3c, $ac, $ff
+HWall5: !byte $ff
 ; $9c08
-Table07:
-		!byte $00, $0c, $02, $06, $00, $06, $00, $09
-		!byte $02, $0c, $64, $84, $ff, $38, $4c, $64
-		!byte $84, $9c, $bc, $ff, $3c, $ff, $38, $5c
-		!byte $9c, $bc, $ff, $4c, $74, $8c, $ac, $ff
+HWalls:
+		!byte $00, $0c, $02, $06, $00, $06, $00, $09, $02, $0c
+;
+VWall1:	!byte $64, $84, $ff
+VWall2:	!byte $38, $4c, $64, $84, $9c, $bc, $ff
+VWall3:	!byte $3c, $ff
+VWall4:	!byte $38, $5c, $9c, $bc, $ff
+VWall5:	!byte $4c, $74, $8c, $ac, $ff
 ; $9C28
-Table08:
+VWalls:
 		!byte $00, $03, $0a, $0c, $11, $11, $0c, $0a
 		!byte $03, $00
 ; $9c32 SpriteColors Sprite color table
 SpriteColors:
 		!byte RED, LIGHTRED, GREEN, ORANGE
 		!byte YELLOW, BROWN, ORANGE, GRAY3
-; $9c3a		
+; $9c3a	colors - not used	
 		!byte $0f, $0a, $0f, $0d
-; $9c3e from offset +3 copied to $87-$89
-Table03:
+; $9c3e Timer values for blue monsters
+BlueStartValues:
 		!byte $90, $60, $30, $04, $00, $00
 ; $9c44
-LevelTable4:
-		!byte $ff, $c0, $80, $40, $00, $c0, $00, $00
-		!byte $00, $c0, $00, $00, $00
-; $9c51
-		!byte $40, $00
-; $9c53
-Table09:
+BlueTimerValues:
+		!byte $ff, $c0, $80, $40, $00
+		!byte $c0, $00, $00, $00, $c0
+		!byte $00, $00, $00, $40, $00
+; $9c53 Pacman explosion
+PacmanExplosion:
 		!byte $00, $00, $00, $00, $00, $92, $54, $00
 		!byte $c6, $00, $54, $92
-; $9c5f Sprite data for points -> Pacman sprite
-PointsSpriteData:
-		!byte $00, $00, $00, $00, $c6, $29, $29, $29	; x00
-		!byte $29, $29, $c6, $00, $00, $00, $00, $00
-		!byte $38, $45, $05, $19, $21, $41, $7c, $00	; 2x
-		!byte $00, $00, $00, $00, $08, $19, $29, $49	; 4x
-		!byte $7d, $09, $08, $00, $00, $00, $00, $00
-		!byte $38, $45, $45, $39, $45, $45, $38, $00	; 8x
-		!byte $00, $00, $00, $00, $8c, $91, $a1, $b9	; 16x
-		!byte $a5, $a5, $98, $00, $00
-; $9c9c
-FrequencyHi:
+; $9c5f Score data for Pacman eating blue monsters -> pacman sprite
+BlueScore0:	; Right half of all scores
+		!byte $00, $00, $00, $00, $c6, $29, $29, $29, $29, $29, $c6, $00
+BlueScore1:	; Left half of 200
+		!byte $00, $00, $00, $00, $38, $45, $05, $19, $21, $41, $7c, $00
+BlueScore2:	; Left half of 400
+		!byte $00, $00, $00, $00, $08, $19, $29, $49, $7d, $09, $08, $00
+BlueScore3: ; Left half of 800
+		!byte $00, $00, $00, $00, $38, $45, $45, $39, $45, $45, $38, $00
+BlueScore4:	; Left half of 1600
+		!byte $00, $00, $00, $00, $8c, $91, $a1, $b9, $a5, $a5, $98, $00, $00
+; $9c9c Hi notes for intro
+NotesHi:
 		!byte $0c, $08, $08, $21, $00, $19, $00, $15
 		!byte $0c, $21, $19, $08, $00, $15, $15, $00
 		!byte $0d, $08, $08, $23, $00, $1a, $00, $16
@@ -4260,8 +4274,8 @@ FrequencyHi:
 		!byte $0c, $21, $19, $08, $00, $15, $15, $00
 		!byte $0c, $15, $16, $17, $00, $17, $19, $1a
 		!byte $00, $1a, $1c, $1d, $00, $21, $21, $00
-; $9cdc
-FrequencyLo:
+; $9cdc Lo notes for intro
+NotesLo:
 		!byte $8f, $61, $61, $87, $00, $1e, $00, $1f
 		!byte $8f, $87, $1e, $61, $00, $1f, $1f, $00
 		!byte $4e, $e1, $e1, $86, $00, $9c, $00, $60
@@ -4270,45 +4284,63 @@ FrequencyLo:
 		!byte $8f, $87, $1e, $61, $00, $1f, $1f, $00
 		!byte $8f, $1f, $60, $b5, $00, $b5, $1e, $9c
 		!byte $00, $9c, $31, $df, $00, $87, $87, $00
-; $9d1c Index to points sprite data -> pacman sprite
-PointsSpriteIndex:
-		!word PointsSpriteData+$0c						; 200
-		!word PointsSpriteData+$18						; 400
-		!word PointsSpriteData+$24						; 800
-		!word PointsSpriteData+$30						; 1600
-; $9d24
-
+; $9d1c Blue Score Pointers -> pacman sprite
+BlueScorePointers:
+		!word BlueScore1	; 200
+		!word BlueScore2	; 400
+		!word BlueScore3	; 800
+		!word BlueScore4	; 1600
+; $9d24 Eating dots sounds data
+EatingDotsSoundData1:
 		!byte $19, $1a, $1c, $1d, $20, $23, $00
-; $9d2b
-
+; $9d2b 
+EatingDotsSoundData2:
 		!byte $23, $1d, $1a, $17, $15, $12, $00
 ; $9d32
-PointerTable4:
+MonsterStartPointer:
 		!word $4c86
 		!word $4c93
 		!word $4c9b
 		!word $4ca3
-; $9d3a
-Table10:
-		!byte $96, $a4, $62, $74, $82, $64, $62, $64
-		!byte $62, $94, $52, $74, $96, $94, $a6, $74
-		!byte $96, $54, $52, $b4, $be, $c4, $82, $44
-		!byte $52, $a4, $b2, $b4, $82, $44, $52, $44
-; $9d5a
-Table11:
-		!byte $be, $2c, $3a, $2c, $be, $c4, $3a, $c4
-; $9d62
-Table06:
+; $9d3a Pattern start H-Pposition & V-Position
+PatternStartHV:
+		!byte $96, $a4	; #1
+		!byte $62, $74	; #2
+		!byte $82, $64	; #3
+		!byte $62, $64	; #4
+		!byte $62, $94	; #5
+		!byte $52, $74	; #6
+		!byte $96, $94	; #7
+		!byte $a6, $74	; #8
+		!byte $96, $54	; #9
+		!byte $52, $b4	; #10
+		!byte $be, $c4	; #11
+		!byte $82, $44	; #12
+		!byte $52, $a4	; #13
+		!byte $b2, $b4	; #14
+		!byte $82, $44	; #15
+		!byte $52, $44	; #16
+; $9d5a Home corner H-position & V-position
+HomePositionHV:
+		!byte $be, $2c
+		!byte $3a, $2c
+		!byte $be, $c4
+		!byte $3a, $c4
+; $9d62 Pattern index values
+PatternIndex:
 		!byte $00, $0b, $16, $21, $2c, $33, $3a, $41
 		!byte $48, $53, $60, $6d, $80, $99, $b6, $c9
-; $9d72
-LevelNuggets:
-		!byte $3a, $3c, $3e, $3e, $40, $40, $42, $42 ; first of two nugget chars: $3a,$3b = cherry
-		!byte $46, $46, $4a, $4a, $4c, $4c, $4c, $4c
-		!byte $4c, $4c, $4c, $4a, $4a, $48, $48, $44
+; $9d72 Fruit chars for screen
+FruitChars:
+		!byte $3a, $3c, $3e, $3e, $40, $40	; first of two fruit chars: $3a,$3b = cherry
+		!byte $42, $42, $46, $46, $4a, $4a
+; Fruit data for fruit line when maze count > 5
+		!byte $4c, $4c, $4c, $4c, $4c, $4c
+		!byte $4c, $4a, $4a, $48, $48, $44
+HighFruitChars:
 		!byte $44, $40, $40, $3e, $3e, $3c, $3a
-; $9d91
-NuggetPoints:
+; $9d91 Fruit scores
+FruitScores:
 		!byte $00, $4e, $4f, $5f, $60	; $00 chars for 100 points
 		!byte $00, $50, $51, $5f, $60	; $05 chars for 300 points
 		!byte $00, $52, $53, $5f, $60	; $0a chars for 500 points
@@ -4317,8 +4349,8 @@ NuggetPoints:
 		!byte $58, $59, $5e, $5f, $60	; $19 chars for 2000 points
 		!byte $5a, $5b, $5e, $5f, $60	; $1e chars for 3000 points
 		!byte $5c, $5d, $5e, $5f, $60	; $23 chars for 5000 points
-; $9db9 
-NuggetPointsIndex:	; Index for level 0-12 nugget points
+; $9db9 Index values for fruit scores
+FruitScoresIndex:
 		!byte $00, $05, $0a, $0a, $0f, $0f, $14, $14, $19, $19, $1e, $1e, $23
 ; -------------------------------------------------------------------------------------------------
 ; $9dc6 User font tiles 0 - $3e
@@ -4366,8 +4398,8 @@ Text_ChangeDifficulty:
 		!byte $a9, $a6, $a6, $a9, $a3, $b5, $ac, $b4
 		!byte $b9
 ; $9e74
-DifficultyNuggetsMenu:
-		!byte $3a, $3c, $3e, $3e, $40, $40, $44, $44 ; first of two nugget chars: $3a,$3b = cherry
+DifficultyFruitsMenu:
+		!byte $3a, $3c, $3e, $3e, $40, $40, $44, $44 ; first of two fruit chars: $3a,$3b = cherry
 		!byte $48, $48, $4a, $4a, $4c, $4c
 ; -------------------------------------------------------------------------------------------------
 ; $9e82 encoded menu user font (bytes 0-$3f from FontData, bit 6+7 = count)
@@ -4400,39 +4432,57 @@ SpriteSetMSBMask:
 SpriteClearMSBMask:
 		!byte $fe, $fd, $fb, $f7, $ef
 ; -------------------------------------------------------------------------------------------------
-; $9f0e LookUp Table
-cLookUpTable:
-		!byte $67, $78, $88, $99, $9a, $ab, $ab, $ac
-		!byte $ec, $6a, $ce, $c6, $bc, $fe, $dd, $ef
-		!byte $c7, $9c, $79, $6a, $5b, $c5, $00, $3a
-		!byte $dd, $63, $00, $cc, $f7, $00, $bf, $cc
-		!byte $00, $3b, $cc, $73, $00, $ac, $fd, $6a
-		!byte $df, $c6, $96, $be, $dd, $e7, $a5, $ad
-		!byte $59, $6a, $59, $d6, $9c, $cc, $dd, $cc
-		!byte $c5, $bb, $bb, $bb, $bb, $7b, $b7, $77
-		!byte $b7, $17, $11, $44, $24, $11, $18, $88
-		!byte $88, $f4, $42, $41, $11, $f8, $82, $22
-		!byte $82, $f8, $82, $24, $44, $24, $2f, $24
-		!byte $24, $14, $18, $88, $01, $88, $82, $24
-		!byte $44, $10, $44, $22, $88, $81, $14, $08
-		!byte $14, $14, $22, $28, $10, $82, $44, $18
-		!byte $08, $22, $41, $10, $42, $88, $14, $04
-		!byte $22, $81, $10, $18, $22, $24, $14, $18
-		!byte $01, $82, $82, $44, $44, $18, $80, $14
-		!byte $41, $42, $42, $88, $88, $01, $88, $24
-		!byte $24, $24, $42, $41, $11, $88, $80, $14
-		!byte $42, $82, $42, $88, $88, $14, $18, $14
-		!byte $11, $42, $22, $01, $81, $44, $22, $88
-		!byte $24, $44, $41, $81, $41, $81, $18, $22
-		!byte $22, $80, $82, $42, $82, $24, $44, $11
-		!byte $81, $41, $88, $02, $44, $18, $81, $88
-		!byte $28, $18, $88, $82, $44, $42, $42, $41
-		!byte $41, $40, $01, $03, $05, $05, $07, $07
-		!byte $10, $10, $20, $20, $30, $30, $50, $33
-		!byte $33, $32, $32, $22, $23, $22, $22, $22
-		!byte $21, $12, $12, $0d, $e0, $70, $00, $b0
-		!byte $21, $08, $00, $04, $57, $41, $42, $58
-		!byte $9b, $4c
+; $9f0e Nibble Table
+CompressedNibbles:
+; FizzieIndex
+		!byte $67, $78, $88, $99, $9a, $ab, $ab
+; HTab01-10
+		!byte $ac, $ec, $6a, $ce, $c6
+		!byte $bc, $fe, $dd, $ef, $c7 
+		!byte $9c, $79, $6a, $5b, $c5
+		!byte $00, $3a, $dd, $63, $00
+		!byte $cc, $f7, $00, $bf, $cc
+		!byte $00, $3b, $cc, $73, $00
+		!byte $ac, $fd, $6a, $df, $c6
+		!byte $96, $be, $dd, $e7, $a5
+		!byte $ad, $59, $6a, $59, $d6
+		!byte $9c, $cc, $dd, $cc, $c5
+; Timer values for flashing monsters		
+		!byte $bb, $bb, $bb, $bb, $7b
+		!byte $b7, $77, $b7, $17, $11
+; Startup paths for monsters leaving box in center (red,pink,green,yellow each ends with $f)
+		!byte $44, $24, $11, $18, $88, $88, $f4, $42
+		!byte $41, $11, $f8, $82, $22, $82, $f8, $82, $24, $44, $24, $2f
+; Patterns for monsters to run Pattern01-16 (each ends with 0)
+		!byte $24, $24, $14, $18, $88, $01, $88, $82
+		!byte $24, $44, $10, $44, $22, $88, $81, $14
+		!byte $08, $14, $14, $22, $28, $10, $82, $44
+		!byte $18, $08, $22, $41, $10, $42, $88, $14
+		!byte $04, $22, $81, $10, $18, $22, $24, $14
+		!byte $18, $01, $82, $82, $44, $44, $18, $80
+		!byte $14, $41, $42, $42, $88, $88, $01, $88
+		!byte $24, $24, $24, $42, $41, $11, $88, $80
+		!byte $14, $42, $82, $42, $88, $88, $14, $18
+		!byte $14, $11, $42, $22, $01, $81, $44, $22
+		!byte $88, $24, $44, $41, $81, $41, $81, $18
+		!byte $22, $22, $80, $82, $42, $82, $24, $44
+		!byte $11, $81, $41, $88, $02, $44, $18, $81
+		!byte $88, $28, $18, $88, $82, $44, $42, $42
+		!byte $41, $41, $40
+; Fruit score table for computing score for active player - 2 #S
+		!byte $01, $03, $05, $05, $07, $07, $10, $10
+		!byte $20, $20, $30, $30, $50
+; Speed sequencing values Speed1-6
+		!byte $33, $33
+		!byte $32, $32
+		!byte $22, $23
+		!byte $22, $22
+		!byte $22, $21
+		!byte $12, $12
+; RevTab, BlueTab (each 9 nibbles)
+		!byte $0d, $e0, $70, $00, $b0, $21, $08, $00, $04
+; ?
+		!byte $57, $41, $42, $58, $9b, $4c
 ; ***************************************** ZONE P500 *********************************************
 !zone p500
 !ifdef 	P500{
