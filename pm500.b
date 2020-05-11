@@ -521,7 +521,7 @@ ucmcopy:lda UserCharMenu,x				; copy 32 bytes to menu user font
 ; P500 SID init							; x already $ff
 		lda #SYSTEMBANK
 		sta IndirectBank	; select bank 15 - from here as STANDARD!
-		ldx #$ff
+		lda #$ff
 		ldy #SR_V3FREQ
 		sta (SID),y						; SID voice 3 frequency lo to $ff 
 		iny
