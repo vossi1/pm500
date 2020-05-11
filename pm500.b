@@ -544,7 +544,7 @@ ucmcopy:lda UserCharMenu,x				; copy 32 bytes to menu user font
 		sta $d406						; SID voice 1 SR to $f0
 		sta $d40d						; SID voice 2 SR To $f0
 }
-; $849d Copy user chars from game to menu user font
+; $849d Copy fruit chars from game font to menu font
 		ldx #$a1						; copy $a1 bytes
 charcpy:lda CharGame+$1cf,x
 		sta CharMenu+$1cf,x
@@ -2110,9 +2110,9 @@ Write2Up:
 		lda #$92						; code 2, U, P
 		ldx #$b5
 		ldy #$b0
-wclr2up:sta $0421						; write to screen right side
-		stx $0422
-		sty $0423
+wclr2up:sta GameScreen+$21				; write to screen right side
+		stx GameScreen+$22
+		sty GameScreen+$23
 		rts
 ; $8ddb
 wc1up:	lda blink_counter
@@ -2125,9 +2125,9 @@ Write1Up:
 		lda #$91						; code 1, U, P
 		ldx #$b5
 		ldy #$b0
-wclr1up:sta $0404						; write to screen left side
-		stx $0405
-		sty $0406
+wclr1up:sta GameScreen+$04						; write to screen left side
+		stx GameScreen+$05
+		sty GameScreen+$06
 blnkskp:rts
 ; -------------------------------------------------------------------------------------------------
 ; $8df3 init new game
