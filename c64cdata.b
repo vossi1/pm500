@@ -1,6 +1,5 @@
 ; ************************************** USER ADDRESSES *******************************************
 ; addresses for ROM version
-!ifndef P500{
 !addr MazeData			= $4000		; Maze data
 !addr NibbleTable		= $4c00		; Nibble table
 !addr FizzieIndex		= $4c00
@@ -24,10 +23,8 @@
 !addr HTab08			= $4c54
 !addr HTab09			= $4c5e
 !addr HTab10			= $4c68
-}
 ; -------------------------------------------------------------------------------------------------
 ; $8011 Encoded game user font (bytes 0-$3f from FontData, bit 6+7 = count)
-!ifndef P500{
 EncodedUserFontGame:
 		!byte $c0, $c0, $80, $57, $80, $57, $ee, $57
 		!byte $40, $01, $c4, $04, $40, $19, $ca, $ca
@@ -145,4 +142,3 @@ CompressedMazeData:
 		!byte $1d, $14, $00, $00, $13, $0f, $a1, $01
 		!byte $0d, $14, $00, $00, $12, $1d, $a1, $0c
 		!byte $1f, $21, $a8, $00, $ff
-}
