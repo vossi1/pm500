@@ -7,7 +7,7 @@
 P500 = 1		; P500 bank 0 file
 ;CRT = 1		; CRT header for VICE
 !ifdef 	P500{!to "pm500.prg", cbm
-} else	{ !ifdef CRT {!to "pm500.crt", plain
+} else{ !ifdef CRT {!to "pm500.crt", plain
 		} else{ !to "pm500.rom", plain }}
 ; ########################################### TODO ################################################
 ;
@@ -23,7 +23,7 @@ P500 = 1		; P500 bank 0 file
 ; Added unused highscore text above highscore digits
 ; Added rasterirq -> switch to multicolor-mode in menu to display the fruits correctly
 ; Set backgroundcolor 2 correctly
-; Added uncompressed Maze and User chars
+; Added uncompressed Maze, user chars and nibble tables
 ; ******************************************* INFO ************************************************
 ; Menu screen is at $0c00, menu font at $2800
 ; Game screen is at $0400, game font at $2000, multicolor
