@@ -37,7 +37,7 @@ P500 = 1		; P500 bank 0 file
 ; Menu font is encoded at $9e82-> decoded to $2800
 ; Encoded font data are 2bit count + 6bit tile numbers of table at $9dc6
 ; - 00-7f char, 80-bf next char repeated 0-3f, c0-fe low nib - next byte high-low nib, ff end
-; 512 Nibbles table lo+hi decoded -> $4c00
+; Nibble table lo+hi decoded -> $4c00
 ; Only SID voices 1+2 are used with sawtooth+triangle
 ; SID voice 3 with noise and reg $1b used for random number generation 
 ; Monsters/Ghosts/Goblins: Lightred=Pinky, Lightred=Pinky, Green=Inky, Orange=Clyde
@@ -125,11 +125,32 @@ SR_RANDOM				= $1b
 !addr SpriteData		= $3000		; Sprite data 5x $40
 !addr Player1Save		= $4400		; Game screen bac‚kup player 1
 !addr Player2Save		= $4800		; Game screen backup player 2
-!addr NibbleTable		= $4c00		; LookUp Table 484 nibbles
 !addr SpriteRAM			= $5300		; 5x Sprite RAM -$57ff
 
 !ifndef P500{
 !addr MazeData			= $4000		; Maze data
+!addr NibbleTable		= $4c00		; Nibble table
+!addr FizzieIndex		= $4c00
+!addr FlashingTimerTable= $4c72
+!addr Pattern			= $4cae
+!addr FruitScoreTable	= $4d94
+!addr Speed				= $4dae
+!addr ReverseTable		= $4dc6
+!addr BlueReverseTable	= $4dcf
+!addr RedStart			= $4c86
+!addr PinkStart			= $4c93
+!addr GreenStart		= $4c9b
+!addr YellowStart		= $4ca3
+!addr HTab01			= $4c0e
+!addr HTab02			= $4c18
+!addr HTab03			= $4c22
+!addr HTab04			= $4c2c
+!addr HTab05			= $4c36
+!addr HTab06			= $4c40
+!addr HTab07			= $4c4a
+!addr HTab08			= $4c54
+!addr HTab09			= $4c5e
+!addr HTab10			= $4c68
 }
 ; ***************************************** ZERO PAGE *********************************************
 !addr attract_ATARI		= $03		; Atari ATTRACT FLAG for screen saver - not used on Commodore
@@ -298,9 +319,7 @@ EncodedUserFontGame:
 		!byte $e6, $26, $17, $00, $40, $1e, $40, $1d
 		!byte $c1, $1d, $40, $1e, $c0, $1e, $40, $0d
 		!byte $d9, $0d, $40, $1e, $40, $ff
-}
 ; -------------------------------------------------------------------------------------------------
-!ifndef P500{
 ; $81ef Compressed Maze data
 CompressedMazeData:
 		!byte $00, $11, $1c, $8f, $0c, $15, $16, $8f
@@ -359,7 +378,7 @@ CompressedMazeData:
 }
 ; ***************************************** ZONE CODE *********************************************
 !zone code
-*= $8394 ; game code
+; game code
 Start:
 !ifdef 	P500{ 
 		lda #SYSTEMBANK
@@ -368,6 +387,7 @@ Start:
 		lda #GAMEBANK
 		sta IndirectBank				; select bank 0 for data copy and init
 } else{
+*= $8394
 		jsr ioinit 						; IRQ init
 		jsr ramtas 						; RAM init
 		jsr restor 						; hardware I/O vector init
@@ -420,7 +440,6 @@ mazbit6:and #$3f						; clear ident bits#7,6
 mazchar:jsr StoreIncPointer2			; copy byte to maze
 		jsr IncPointer1
 		jmp mazcopy						; read next byte
-}
 ; $8401 Copy and decode Nibbles
 lookupt:lda #<CompressedNibbles
 		sta pointer1
@@ -439,6 +458,7 @@ lutcopy:jsr LoadHiNibblePointer1		; load and shift high nibble 4 bits right
 		jsr StoreIncPointer2			; store low nibble
 		inx
 		bne lutcopy						; next byte
+}
 !ifdef 	P500{
 ; P500 Copy chars $00-$3f of the first (graphic) fontset to $80 of tboth custom fonts
 		lda #SYSTEMBANK					; select bank 15 to get font from char ROM
@@ -1515,10 +1535,10 @@ l899c:	lda FruitScores,x
 		lda #$0c
 l89ca:	asl
 		tax
-		lda $4d94,x
+		lda FruitScoreTable,x
 		sta $52
 		inx
-		lda $4d94,x
+		lda FruitScoreTable,x
 		sta $53
 		jsr l946d
 l89da:	lda $ac
@@ -2146,12 +2166,12 @@ InitNewGame:
 +		tay
 		lda DifficultyTable1,y				; load from table as index
 		tax
-		lda $4dae,x						; copy data from RAM to ZP with index
+		lda Speed,x						; copy data from RAM to ZP with index
 		sta $75
 		lda DifficultyTable2,y
 		tay
 		ldx #$03
--		lda $4dae,y
+-		lda Speed,y
 		sta $71,x
 		dex
 		bpl -
@@ -2368,7 +2388,7 @@ l8f5e:	lda $aa
 		beq l8f81
 		tax
 		dex
-		lda NibbleTable,x
+		lda FizzieIndex,x
 		tay
 		dey
 !ifdef 	P500{
@@ -2452,7 +2472,7 @@ l8faf:	lda $b1
 l8fb6:	ldx player_number
 		lda maze_count1,x
 		tax
-		lda $4c72,x
+		lda FlashingTimerTable,x
 		cmp $bb
 		bne l8ff9
 		ldx #$03						; 3-0 monsters
@@ -3209,7 +3229,7 @@ l944b:	lda $8a,x
 		beq l9467
 		lda sprite_direction,x
 		tay
-		lda $4dcf,y
+		lda BlueReverseTable,y
 		sta sprite_direction,x
 l9467:	dex
 		bpl l944b
@@ -3327,7 +3347,7 @@ l9523:	ldx temp
 		lda sprite_direction,x
 		tay
 		lda temp
-		and $4dc6,y
+		and ReverseTable,y
 		sta temp
 		lda sprite_vpos,x
 		cmp #$64
@@ -3459,7 +3479,7 @@ l9608:	lda DifficultyTable2,y
 +		clc
 		adc $6c,x
 		tay
-		lda $4dae,y
+		lda Speed,y
 		sta $71,x
 		lda #$00
 		rts
@@ -3886,14 +3906,14 @@ l98f6:	lda $76,x
 		lda PatternIndex,y
 		adc $7a,x
 		tay
-		lda $4cae,y
+		lda Pattern,y
 		bne l9910
 		sta $7a,x
 		lda $76,x
 		tay
 		lda PatternIndex,y
 		tay
-		lda $4cae,y
+		lda Pattern,y
 l9910:	sta sprite_direction,x
 		jmp l9950
 l9915:	lda #$20
@@ -4254,16 +4274,16 @@ HTable:
 		!byte $3a, $46, $52, $62, $76, $82, $96, $a6, $b2, $be
 ; $9be7 Horizontal table address pointers
 HorizontalTablePointers:
-		!word $4c0e
-		!word $4c18
-		!word $4c22
-		!word $4c2c
-		!word $4c36
-		!word $4c40
-		!word $4c4a
-		!word $4c54
-		!word $4c5e
-		!word $4c68
+		!word HTab01
+		!word HTab02
+		!word HTab03
+		!word HTab04
+		!word HTab05
+		!word HTab06
+		!word HTab07
+		!word HTab08
+		!word HTab09
+		!word HTab10
 ; $9bfb HWALL1-5
 HWall1:	!byte $7c, $ff
 HWall2: !byte $58, $7c, $9e, $ff
@@ -4346,10 +4366,10 @@ EatingDotsSoundData2:
 		!byte $23, $1d, $1a, $17, $15, $12, $00
 ; $9d32
 MonsterStartPointer:
-		!word $4c86
-		!word $4c93
-		!word $4c9b
-		!word $4ca3
+		!word RedStart
+		!word PinkStart
+		!word GreenStart
+		!word YellowStart
 ; $9d3a Pattern start H-Pposition & V-Position
 PatternStartHV:
 		!byte $96, $a4	; #1
@@ -4592,6 +4612,75 @@ IOPointerTable:
 		!word TPI2base
 		!word CharROMbase
 		!word CharROMbase+$100
+; -------------------------------------------------------------------------------------------------
+; Nibble tables
+FizzieIndex:
+	 	!byte $06,$07,$07,$08,$08,$08,$09
+ 		!byte $09,$09,$0A,$0A,$0B,$0A,$0B
+; Horizontal table
+HTab01:	!byte $0A,$0C,$0E,$0C,$06,$0A,$0C,$0E,$0C,$06
+HTab02:	!byte $0B,$0C,$0F,$0E,$0D,$0D,$0E,$0F,$0C,$07
+HTab03:	!byte $09,$0C,$07,$09,$06,$0A,$05,$0B,$0C,$05
+HTab04:	!byte $00,$00,$03,$0A,$0D,$0D,$06,$03,$00,$00
+HTab05: !byte $0C,$0C,$0F,$07,$00,$00,$0B,$0F,$0C,$0C
+HTab06:	!byte $00,$00,$03,$0B,$0C,$0C,$07,$03,$00,$00
+HTab07: !byte $0A,$0C,$0F,$0D,$06,$0A,$0D,$0F,$0C,$06
+HTab08:	!byte $09,$06,$0B,$0E,$0D,$0D,$0E,$07,$0A,$05
+HTab09: !byte $0A,$0D,$05,$09,$06,$0A,$05,$09,$0D,$06
+HTab10:	!byte $09,$0C,$0C,$0C,$0D,$0D,$0C,$0C,$0C,$05
+; Timer values for flashing monsters
+FlashingTimerTable:
+		!byte $0B,$0B,$0B,$0B,$0B
+		!byte $0B,$0B,$0B,$07,$0B
+		!byte $0B,$07,$07,$07,$0B
+		!byte $07,$01,$07,$01,$01
+; Start up path for monsters leaving box in center
+RedStart:
+		!byte $04,$04,$02,$04,$01,$01,$01,$08,$08,$08,$08,$08,$0F
+PinkStart:	
+		!byte $04,$04,$02,$04,$01,$01,$01,$0F
+GreenStart:	
+		!byte $08,$08,$02,$02,$02,$08,$02,$0F
+YellowStart:	
+		!byte $08,$08,$02,$02,$04,$04,$04,$02,$04,$02,$0F
+; Patterns 1-16 for monsters to run
+Pattern:
+		!byte 2,4,2,4,1,4,1,8,8,8,0
+		!byte 1,8,8,8,2,2,4,4,4,1,0
+		!byte 4,4,2,2,8,8,8,1,1,4,0
+		!byte 8,1,4,1,4,2,2,2,8,1,0
+		!byte 8,2,4,4,1,8,0
+		!byte 8,2,2,4,1,1,0
+		!byte 4,2,8,8,1,4,0
+		!byte 4,2,2,8,1,1,0
+		!byte 1,8,2,2,2,4,1,4,1,8,0
+		!byte 1,8,2,8,2,4,4,4,4,1,8,8,0
+		!byte 1,4,4,1,4,2,4,2,8,8,8,8,0
+		!byte 1,8,8,2,4,2,4,2,4,4,2,4,1,1,1,8,8,8,0
+		!byte 1,4,4,2,8,2,4,2,8,8,8,8,1,4,1,8,1,4,1,1,4,2,2,2,0
+		!byte 1,8,1,4,4,2,2,8,8,2,4,4,4,4,1,8,1,4,1,8,1,1,8,2,2,2,2,8,0
+		!byte 8,2,4,2,8,2,2,4,4,4,1,1,8,1,4,1,8,8,0
+		!byte 2,4,4,1,8,8,1,8,8,2,8,1,8,8,8,8,2,4,4,4,2,4,2,4,1,4,1,4,0
+; Fruit score table for computing - score for active player - 2 #s
+FruitScoreTable:
+		!byte $00,$01,$00,$03,$00,$05,$00,$05
+		!byte $00,$07,$00,$07,$01,$00,$01,$00
+		!byte $02,$00,$02,$00,$03,$00,$03,$00
+		!byte $05,$00
+; Speed sequencing values
+Speed:
+		!byte 3,3,3,3	; Speed1
+		!byte 3,2,3,2	; Speed2
+		!byte 2,2,2,3	; Speed3
+		!byte 2,2,2,2	; Speed4
+		!byte 2,2,2,1	; Speed5
+		!byte 1,2,1,2	; Speed6
+;
+ReverseTable:
+		!byte $00,$0D,$0E,$00,$07,$00,$00,$00,$0B
+;
+BlueReverseTable:
+		!byte $00,$02,$01,$00,$08,$00,$00,$00,$04
 ; -------------------------------------------------------------------------------------------------
 ; Maze data 23 lines x 40 columns
 MazeData:
