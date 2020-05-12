@@ -189,9 +189,9 @@ SR_RANDOM				= $1b
 !addr pacman_byte_ctr	= $3e		;
 !addr pacman_vpos_save	= $3f		;
 !addr pacman_hpos_save	= $40		;
-!addr sprite_vpos		= $41 ; -$45  Sprite y position
-!addr sprite_hpos		= $46 ; -$4a  Sprite x position
-!addr sprite_direction	= $4b ; -$4f  Sprite direction
+!addr sprite_vpos		= $41 ; -$45  Monster 1-4, Pacman y position (VIC: -$1b)
+!addr sprite_hpos		= $46 ; -$4a  Monster 1-4, Pacman x position
+!addr sprite_direction	= $4b ; -$4f  Monster 1-4, Pacman direction
 
 !addr pause_flag		= $57		; $80 = pause
 
@@ -202,7 +202,7 @@ SR_RANDOM				= $1b
 !addr spritedata_pointer= $c0		; 16bit pointer for sprite data copy
 !addr pressed_key		= $c5		; Pressed key from interrupt
 ; ***************************************** VARIABLES *********************************************
-!addr sprite_x			= $02d0		; -$02d4 sprite x positions (>>1 +$2c)
+!addr sprite_x			= $02d0	; -$02d4 sprite 0-4 x positions (VIC >>1 +$2c)
 ; ************************************** P500 ZERO PAGE *******************************************
 !addr ColorRAM0			= $e6
 !addr ColorRAM1			= $e8
@@ -1106,7 +1106,7 @@ spposlp:lda sprite_x,x					; load x
 spnomsb:and SpriteClearMSBMask,x		; clear bit with bit-clear-table
 spnoclr:sta (VIC),y						; store new X-MSB-byte to VIC
 		ldy temp						; restore Y
-		lda sprite_vpos,x					; load y
+		lda sprite_vpos,x				; load y
 		clc
 		adc #$1b						; calc sprite y postion
 		sta (VIC01),y					; set VIC sprite y
@@ -1129,7 +1129,7 @@ spposlp:lda sprite_x,x					; load x
 		bne spnoclr						; skip nextx instruction
 spnomsb:and SpriteClearMSBMask,x		; clear bit with bit-clear-table
 spnoclr:sta $d010						; store new X-MSB-byte to VIC
-		lda sprite_vpos,x					; load y
+		lda sprite_vpos,x				; load y
 		clc
 		adc #$1b						; calc sprite y postion
 		sta $d001,y						; set VIC sprite y
@@ -4616,33 +4616,33 @@ IOPointerTable:
 ; Nibble tables
 FizzieIndex:
 	 	!byte $06,$07,$07,$08,$08,$08,$09
- 		!byte $09,$09,$0A,$0A,$0B,$0A,$0B
+ 		!byte $09,$09,$0a,$0a,$0b,$0a,$0b
 ; Horizontal table
-HTab01:	!byte $0A,$0C,$0E,$0C,$06,$0A,$0C,$0E,$0C,$06
-HTab02:	!byte $0B,$0C,$0F,$0E,$0D,$0D,$0E,$0F,$0C,$07
-HTab03:	!byte $09,$0C,$07,$09,$06,$0A,$05,$0B,$0C,$05
-HTab04:	!byte $00,$00,$03,$0A,$0D,$0D,$06,$03,$00,$00
-HTab05: !byte $0C,$0C,$0F,$07,$00,$00,$0B,$0F,$0C,$0C
-HTab06:	!byte $00,$00,$03,$0B,$0C,$0C,$07,$03,$00,$00
-HTab07: !byte $0A,$0C,$0F,$0D,$06,$0A,$0D,$0F,$0C,$06
-HTab08:	!byte $09,$06,$0B,$0E,$0D,$0D,$0E,$07,$0A,$05
-HTab09: !byte $0A,$0D,$05,$09,$06,$0A,$05,$09,$0D,$06
-HTab10:	!byte $09,$0C,$0C,$0C,$0D,$0D,$0C,$0C,$0C,$05
+HTab01:	!byte $0a,$0c,$0e,$0c,$06,$0a,$0c,$0e,$0c,$06
+HTab02:	!byte $0b,$0c,$0f,$0e,$0d,$0d,$0e,$0f,$0c,$07
+HTab03:	!byte $09,$0c,$07,$09,$06,$0a,$05,$0b,$0c,$05
+HTab04:	!byte $00,$00,$03,$0a,$0d,$0d,$06,$03,$00,$00
+HTab05: !byte $0c,$0c,$0f,$07,$00,$00,$0b,$0f,$0c,$0c
+HTab06:	!byte $00,$00,$03,$0b,$0c,$0c,$07,$03,$00,$00
+HTab07: !byte $0a,$0c,$0f,$0d,$06,$0a,$0d,$0f,$0c,$06
+HTab08:	!byte $09,$06,$0b,$0e,$0d,$0d,$0e,$07,$0a,$05
+HTab09: !byte $0a,$0d,$05,$09,$06,$0a,$05,$09,$0d,$06
+HTab10:	!byte $09,$0c,$0c,$0c,$0d,$0d,$0c,$0c,$0c,$05
 ; Timer values for flashing monsters
 FlashingTimerTable:
-		!byte $0B,$0B,$0B,$0B,$0B
-		!byte $0B,$0B,$0B,$07,$0B
-		!byte $0B,$07,$07,$07,$0B
+		!byte $0b,$0b,$0b,$0b,$0b
+		!byte $0b,$0b,$0b,$07,$0b
+		!byte $0b,$07,$07,$07,$0b
 		!byte $07,$01,$07,$01,$01
 ; Start up path for monsters leaving box in center
 RedStart:
-		!byte $04,$04,$02,$04,$01,$01,$01,$08,$08,$08,$08,$08,$0F
+		!byte $04,$04,$02,$04,$01,$01,$01,$08,$08,$08,$08,$08,$0f
 PinkStart:	
-		!byte $04,$04,$02,$04,$01,$01,$01,$0F
+		!byte $04,$04,$02,$04,$01,$01,$01,$0f
 GreenStart:	
-		!byte $08,$08,$02,$02,$02,$08,$02,$0F
+		!byte $08,$08,$02,$02,$02,$08,$02,$0f
 YellowStart:	
-		!byte $08,$08,$02,$02,$04,$04,$04,$02,$04,$02,$0F
+		!byte $08,$08,$02,$02,$04,$04,$04,$02,$04,$02,$0f
 ; Patterns 1-16 for monsters to run
 Pattern:
 		!byte 2,4,2,4,1,4,1,8,8,8,0
@@ -4677,7 +4677,7 @@ Speed:
 		!byte 1,2,1,2	; Speed6
 ;
 ReverseTable:
-		!byte $00,$0D,$0E,$00,$07,$00,$00,$00,$0B
+		!byte $00,$0d,$0e,$00,$07,$00,$00,$00,$0b
 ;
 BlueReverseTable:
 		!byte $00,$02,$01,$00,$08,$00,$00,$00,$04
