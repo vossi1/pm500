@@ -4,7 +4,7 @@
 ; Converted for P500 by Vossi 05/2020
 !cpu 6502
 ; switches
-P500 = 1		; P500 bank 0 file
+;P500 = 1		; P500 bank 0 file
 ;CRT = 1		; CRT header for VICE
 !ifdef 	P500{!to "pm500.prg", cbm
 } else{ !ifdef CRT {!to "pm500.crt", plain
@@ -126,32 +126,6 @@ SR_RANDOM				= $1b
 !addr Player1Save		= $4400		; Game screen bac‚kup player 1
 !addr Player2Save		= $4800		; Game screen backup player 2
 !addr SpriteRAM			= $5300		; 5x Sprite RAM -$57ff
-
-!ifndef P500{
-!addr MazeData			= $4000		; Maze data
-!addr NibbleTable		= $4c00		; Nibble table
-!addr FizzieIndex		= $4c00
-!addr FlashingTimerTable= $4c72
-!addr Pattern			= $4cae
-!addr FruitScoreTable	= $4d94
-!addr Speed				= $4dae
-!addr ReverseTable		= $4dc6
-!addr BlueReverseTable	= $4dcf
-!addr RedStart			= $4c86
-!addr PinkStart			= $4c93
-!addr GreenStart		= $4c9b
-!addr YellowStart		= $4ca3
-!addr HTab01			= $4c0e
-!addr HTab02			= $4c18
-!addr HTab03			= $4c22
-!addr HTab04			= $4c2c
-!addr HTab05			= $4c36
-!addr HTab06			= $4c40
-!addr HTab07			= $4c4a
-!addr HTab08			= $4c54
-!addr HTab09			= $4c5e
-!addr HTab10			= $4c68
-}
 ; ***************************************** ZERO PAGE *********************************************
 !addr attract_ATARI		= $03		; Atari ATTRACT FLAG for screen saver - not used on Commodore
 !addr state				= $07		; 0 = game, 1 = startup, 2 = delay menu, 3 = menu
@@ -165,6 +139,7 @@ SR_RANDOM				= $1b
 !addr intro_flag		= $10		; 
 !addr swap_player_flag	= $11		; 
 !addr reset_flag		= $12		;
+!addr reset_timer		= $13		;
 !addr temp				= $18		; Temp byte
 !addr player_number		= $19		; Actual player 0=1, 1=2
 !addr extra_pacman1		= $1a		; Lives player 1 (starts with 3)
@@ -185,17 +160,29 @@ SR_RANDOM				= $1b
 !addr ATARI_33			= $33		; ATARI - not used
 !addr monster_delay		= $34 ; -$37  Monster 1-4 delay
 
-!addr pacman_screen_ptr	= $3c		;
+!addr pacman_screen_ptr	= $3c ; -$3d  Pointer to pacman screen address
 !addr pacman_byte_ctr	= $3e		;
 !addr pacman_vpos_save	= $3f		;
 !addr pacman_hpos_save	= $40		;
-!addr sprite_vpos		= $41 ; -$45  Monster 1-4, Pacman y position (VIC: -$1b)
-!addr sprite_hpos		= $46 ; -$4a  Monster 1-4, Pacman x position
-!addr sprite_direction	= $4b ; -$4f  Monster 1-4, Pacman direction
-
+!addr monster_vpos		= $41 ; -$44  Monster 1-4 y position (VIC: -$1b)
+!addr pacman_vpos		= $45 		; Pacman y position (VIC: -$1b)
+!addr monster_hpos		= $46 ; -$49  Monster 1-4 x position
+!addr pacman_hpos		= $4a		; Pacman x position
+!addr monster_direction	= $4b ; -$4e  Monster 1-4 direction
+!addr pacman_direction	= $4f 		; Pacman old direction
+!addr player_score_text = $50 ; -$55  Player score chars - 6 digits
+!addr score_carry_bit	= $56		; Player score carry bit for calculation
 !addr pause_flag		= $57		; $80 = pause
+!addr chase_whine_delta = $58		;
+!addr fruit_timer 		= $59	 	; fruit timer (10 secs)
+!addr fruit_display_flag= $5a	  	; fruit display flag
+!addr fruit_color		= $5b 		; fruit color
+!addr fruit_score_flag	= $5c	 	;fruit score flag - only stored, not used on Commodore 
+!addr fruit_score_timer = $5d 		;fruit score timer
+!addr notes_counter		= $5f		; Counter for music
+;!addr vpos_saver		= $60		; verical position saver - not used on Commodore
+!addr hpos_saver		= $61		; horizontal position saver
 
-!addr notes_counter		= $5f		; Counter for music			
 !addr jiffy				= $a2		; Jiffy clock 20ms counter from raster interrupt = Vsync
 ;						= $04		 ; 0 -> Sprite Direction loop
 !addr blink_counter		= $b9		; Blink counter 1up/2up 0/1=off/on
@@ -253,129 +240,9 @@ Cold:
 !zone data1
 *= $8008
 ; $8008 table unused
-		!byte $30, $02, $bb, $5a, $30, $5f, $ee, $3d
-		!byte $a8
-; -------------------------------------------------------------------------------------------------
-; $8011 Encoded game user font (bytes 0-$3f from FontData, bit 6+7 = count)
-!ifndef P500{
-EncodedUserFontGame:
-		!byte $c0, $c0, $80, $57, $80, $57, $ee, $57
-		!byte $40, $01, $c4, $04, $40, $19, $ca, $ca
-		!byte $4a, $19, $40, $c4, $04, $01, $c0, $1e
-		!byte $40, $1b, $44, $40, $19, $4a, $19, $c0
-		!byte $1e, $40, $05, $4a, $40, $01, $44, $01
-		!byte $c0, $2e, $c0, $80, $1e, $40, $1e, $40
-		!byte $c4, $c4, $40, $1e, $c0, $00, $ca, $ca
-		!byte $c0, $00, $1e, $c0, $40, $c1, $c1, $c0
-		!byte $c1, $c1, $d9, $d9, $40, $1e, $40, $1b
-		!byte $44, $40, $1e, $40, $05, $4a, $44, $1b
-		!byte $40, $1e, $40, $4a, $05, $40, $1e, $40
-		!byte $4a, $05, $40, $05, $4a, $44, $1b, $40
-		!byte $1b, $44, $17, $2e, $2f, $09, $2f, $2e
-		!byte $17, $80, $0d, $19, $00, $05, $ca, $05
-		!byte $00, $19, $0d, $c0, $1d, $01, $00, $1b
-		!byte $c4, $1b, $00, $01, $1d, $c0, $40, $d9
-		!byte $d9, $c0, $00, $2f, $57, $2f, $57, $00
-		!byte $00, $2b, $57, $6b, $17, $40, $2e, $2b
-		!byte $2e, $6b, $2e, $40, $25, $03, $89, $28
-		!byte $40, $2b, $2d, $49, $2e, $09, $40, $2f
-		!byte $d7, $2f, $40, $25, $2b, $57, $2b, $25
-		!byte $40, $6b, $2f, $89, $40, $6c, $26, $00
-		!byte $43, $40, $a5, $00, $65, $40, $2f, $6b
-		!byte $2c, $2b, $2f, $40, $2b, $00, $03, $ac
-		!byte $40, $17, $2e, $66, $2e, $26, $40, $49
-		!byte $e8, $40, $03, $28, $2e, $15, $43, $40
-		!byte $e8, $68, $40, $2d, $00, $2b, $40, $2d
-		!byte $80, $c3, $80, $2e, $e6, $2e, $40, $09
-		!byte $a8, $26, $80, $d7, $2b, $25, $40, $2e
-		!byte $2b, $2e, $6b, $2e, $40, $28, $c9, $28
-		!byte $40, $2d, $49, $2d, $17, $09, $40, $03
-		!byte $30, $91, $16, $11, $14, $2b, $14, $63
-		!byte $2a, $23, $00, $03, $09, $11, $13, $11
-		!byte $12, $07, $02, $00, $25, $21, $29, $61
-		!byte $1f, $00, $42, $09, $ef, $09, $40, $25
-		!byte $eb, $25, $03, $07, $d1, $11, $07, $00
-		!byte $1f, $61, $69, $21, $1f, $43, $07, $d1
-		!byte $07, $40, $1f, $e1, $1f, $43, $07, $d1
-		!byte $07, $40, $1f, $e1, $1f, $9e, $4d, $05
-		!byte $43, $9d, $5b, $19, $40, $9e, $4d, $05
-		!byte $43, $9d, $5b, $19, $40, $03, $08, $af
-		!byte $16, $12, $07, $00, $25, $ab, $24, $21
-		!byte $1f, $07, $06, $07, $c3, $03, $21, $0e
-		!byte $21, $25, $2b, $25, $2b, $25, $00, $03
-		!byte $c0, $03, $00, $25, $e6, $26, $2b, $00
-		!byte $2f, $40, $03, $00, $14, $09, $00, $2b
-		!byte $15, $66, $55, $25, $00, $2f, $14, $2f
-		!byte $40, $14, $09, $00, $2b, $03, $26, $95
-		!byte $25, $00, $2f, $40, $03, $b0, $00, $2b
-		!byte $15, $26, $83, $40, $03, $09, $c3, $09
-		!byte $00, $03, $f0, $30, $26, $00, $2f, $25
-		!byte $00, $09, $14, $25, $2e, $00, $03, $67
-		!byte $b0, $26, $00, $2e, $00, $03, $09, $00
-		!byte $25, $2f, $00, $26, $27, $70, $67, $03
-		!byte $00, $2e, $25, $2e, $40, $25, $2f, $00
-		!byte $26, $70, $a7, $03, $00, $25, $d5, $15
-		!byte $25, $00, $2b, $f0, $30, $2b, $00, $17
-		!byte $e6, $26, $17, $00, $40, $1e, $40, $1d
-		!byte $c1, $1d, $40, $1e, $c0, $1e, $40, $0d
-		!byte $d9, $0d, $40, $1e, $40, $ff
-; -------------------------------------------------------------------------------------------------
-; $81ef Compressed Maze data
-CompressedMazeData:
-		!byte $00, $11, $1c, $8f, $0c, $15, $16, $8f
-		!byte $0c, $1e, $20, $00, $00, $13, $0f, $8f
-		!byte $01, $0d, $0f, $8f, $01, $0d, $14, $00
-		!byte $00, $13, $cf, $13, $82, $0e, $c4, $13
-		!byte $85, $0e, $c4, $1d, $cf, $13, $85, $0e
-		!byte $c4, $13, $82, $0e, $c4, $1d, $14, $00
-		!byte $00, $13, $cf, $26, $82, $10, $c5, $16
-		!byte $85, $10, $c5, $16, $c5, $16, $85, $10
-		!byte $c5, $16, $82, $10, $c5, $2d, $14, $00
-		!byte $00, $13, $0f, $a1, $01, $0d, $14, $00
-		!byte $00, $13, $cf, $1a, $82, $0c, $08, $c1
-		!byte $3e, $c4, $1a, $83, $0c, $07, $09, $83
-		!byte $0c, $c8, $13, $ce, $41, $0a, $82, $0c
-		!byte $c8, $1d, $14, $00, $00, $13, $0f, $86
-		!byte $01, $cd, $0f, $85, $01, $0d, $0f, $85
-		!byte $01, $cd, $0f, $86, $01, $0d, $14, $00
-		!byte $00, $12, $1d, $83, $0c, $61, $c4, $1d
-		!byte $00, $19, $83, $0c, $c8, $06, $c5, $0a
-		!byte $83, $0c, $1a, $c0, $f1, $03, $63, $83
-		!byte $0c, $1f, $21, $87, $00, $13, $cf, $1d
-		!byte $00, $0f, $8d, $00, $cd, $0f, $01, $0d
-		!byte $14, $88, $00, $84, $0c, $62, $c5, $16
-		!byte $10, $c5, $03, $83, $0e, $0b, $0b, $83
-		!byte $0e, $04, $00, $06, $10, $c5, $16, $64
-		!byte $84, $0c, $8a, $00, $01, $83, $00, $0d
-		!byte $89, $00, $0f, $83, $00, $01, $8a, $00
-		!byte $84, $0c, $61, $c4, $13, $ce, $40, $06
-		!byte $89, $10, $c5, $03, $ce, $41, $03, $63
-		!byte $84, $0c, $88, $00, $13, $cf, $1d, $00
-		!byte $0f, $8d, $00, $cd, $0f, $01, $0d, $14
-		!byte $87, $00, $11, $1c, $83, $0c, $62, $c5
-		!byte $16, $10, $c5, $0a, $83, $0c, $07, $09
-		!byte $83, $0c, $c8, $06, $10, $c5, $16, $64
-		!byte $83, $0c, $1e, $20, $00, $00, $13, $0f
-		!byte $8f, $01, $0d, $0f, $8f, $01, $0d, $14
-		!byte $00, $00, $13, $cf, $1a, $0c, $0c, $15
-		!byte $c4, $1a, $85, $0c, $c8, $16, $c5, $1a
-		!byte $85, $0c, $c8, $13, $16, $cc, $c8, $01
-		!byte $0d, $14, $00, $00, $13, $0f, $02, $82
-		!byte $01, $0d, $0f, $89, $01, $00, $00, $89
-		!byte $01, $0d, $0f, $82, $01, $02, $0d, $14
-		!byte $00, $00, $13, $19, $cc, $c8, $c1, $65
-		!byte $c1, $3e, $c4, $1a, $83, $0c, $07, $09
-		!byte $83, $0c, $c8, $13, $ce, $41, $c6, $51
-		!byte $ca, $cc, $1a, $14, $00, $00, $13, $0f
-		!byte $86, $01, $cd, $0f, $85, $01, $0d, $0f
-		!byte $85, $01, $cd, $0f, $86, $01, $0d, $14
-		!byte $00, $00, $13, $cf, $1a, $84, $0c, $17
-		!byte $10, $18, $83, $0c, $c8, $16, $c5, $1a
-		!byte $83, $0c, $17, $10, $18, $84, $0c, $c8
-		!byte $1d, $14, $00, $00, $13, $0f, $a1, $01
-		!byte $0d, $14, $00, $00, $12, $1d, $a1, $0c
-		!byte $1f, $21, $a8, $00, $ff
-}
+		!byte $30, $02, $bb, $5a, $30, $5f, $ee, $3d, $a8
+; ONLY C64 ROM: Adresses to decoded ROM data, Encoded font, compressed maze
+!source "enc_data.b"
 ; ***************************************** ZONE CODE *********************************************
 !zone code
 ; game code
@@ -1106,7 +973,7 @@ spposlp:lda sprite_x,x					; load x
 spnomsb:and SpriteClearMSBMask,x		; clear bit with bit-clear-table
 spnoclr:sta (VIC),y						; store new X-MSB-byte to VIC
 		ldy temp						; restore Y
-		lda sprite_vpos,x				; load y
+		lda monster_vpos,x				; load y
 		clc
 		adc #$1b						; calc sprite y postion
 		sta (VIC01),y					; set VIC sprite y
@@ -1129,7 +996,7 @@ spposlp:lda sprite_x,x					; load x
 		bne spnoclr						; skip nextx instruction
 spnomsb:and SpriteClearMSBMask,x		; clear bit with bit-clear-table
 spnoclr:sta $d010						; store new X-MSB-byte to VIC
-		lda sprite_vpos,x				; load y
+		lda monster_vpos,x				; load y
 		clc
 		adc #$1b						; calc sprite y postion
 		sta $d001,y						; set VIC sprite y
@@ -1147,7 +1014,7 @@ sdpcopy:sta SpriteDataPointer,x
 		dex
 		bpl sdpcopy
 ; $874d copy pacman sprite data		
-		lda sprite_vpos+4					; set data pointer to $5345 (pacman $5348-$5351)
+		lda monster_vpos+4					; set data pointer to $5345 (pacman $5348-$5351)
 		sta spritedata_pointer
 		lda #$53
 		sta spritedata_pointer+1
@@ -1164,7 +1031,7 @@ spmcopy:lda (spritedata_pointer),y		; copy pacman sprite data
 		dey
 		cpy #$02						; reach last byte
 		bne spmcopy
-		lda sprite_vpos+0
+		lda monster_vpos+0
 		jsr SetMonsterDataEnd				; sub: Calc pointer, set last row, last byte of monster
 ; $876a copy sprite data of 4 monsters
 sm0copy:lda (spritedata_pointer),y		; copy monster 0 sprite data
@@ -1175,7 +1042,7 @@ sm0copy:lda (spritedata_pointer),y		; copy monster 0 sprite data
 		dey
 		cpy #$01						; reach last byte
 		bne sm0copy
-		lda sprite_vpos+1
+		lda monster_vpos+1
 		jsr SetMonsterDataEnd				; sub: Calc pointer, set last row, last byte of monster
 sm1copy:lda (spritedata_pointer),y		; copy monster 1 sprite data
 		sta SpriteData+$40,x
@@ -1185,7 +1052,7 @@ sm1copy:lda (spritedata_pointer),y		; copy monster 1 sprite data
 		dey
 		cpy #$01						; reach last byte
 		bne sm1copy
-		lda sprite_vpos+2
+		lda monster_vpos+2
 		jsr SetMonsterDataEnd				; sub: Calc pointer, set last row, last byte of monster
 sm2copy:lda (spritedata_pointer),y		; copy monster 2 sprite data
 		sta SpriteData+$80,x
@@ -1195,7 +1062,7 @@ sm2copy:lda (spritedata_pointer),y		; copy monster 2 sprite data
 		dey
 		cpy #$01						; reach last byte
 		bne sm2copy
-		lda sprite_vpos+3
+		lda monster_vpos+3
 		jsr SetMonsterDataEnd			; sub: Calc pointer, set last row, last byte of monster
 sm3copy:lda (spritedata_pointer),y		; copy monster 3 sprite data
 		sta SpriteData+$c0,x
@@ -1318,13 +1185,13 @@ l8837:	lda reset_flag
 		bne l87f5
 		inc reset_flag
 		lda #$40
-		sta $13
+		sta reset_timer
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $8851
-l8851:	lda $13
+l8851:	lda reset_timer
 		beq l8858
-		dec $13
+		dec reset_timer
 		rts
 l8858:	lda #$00
 		sta reset_flag
@@ -1359,24 +1226,24 @@ l888c:	lda $8a,x
 		tya
 		bit $bf
 		beq l88be
-		lda $4a
-		cmp sprite_hpos,x
+		lda pacman_hpos
+		cmp monster_hpos,x
 		bcs l88a4
 		sec
-		lda sprite_hpos,x
-		sbc $4a
+		lda monster_hpos,x
+		sbc pacman_hpos
 		jmp l88a6
-l88a4:	sbc sprite_hpos,x
+l88a4:	sbc monster_hpos,x
 l88a6:	cmp #$04
 		bcs l88be
-		lda $45
-		cmp sprite_vpos,x
+		lda pacman_vpos
+		cmp monster_vpos,x
 		bcs l88b8
 		sec
-		lda sprite_vpos,x
-		sbc $45
+		lda monster_vpos,x
+		sbc pacman_vpos
 		jmp l88ba
-l88b8:	sbc sprite_vpos,x
+l88b8:	sbc monster_vpos,x
 l88ba:	cmp #$05
 		bcc l88c9
 l88be:	tya
@@ -1394,7 +1261,7 @@ l88d0:	lda #$42
 		stx $a7
 		inc $a8
 		sec
-		lda $4a
+		lda pacman_hpos
 		sbc #$04
 		sta $02d4
 		clc
@@ -1414,15 +1281,15 @@ l88d0:	lda #$42
 } else{
 		sta $d027,x						; set VIC sprite color = white (monster)
 }
-		lda $45
-		cmp sprite_vpos,x
+		lda pacman_vpos
+		cmp monster_vpos,x
 		beq l8909
 		bcc l8904
 		lda #$fe
 		bmi l8906
 l8904:	lda #$02
 l8906:	clc
-		adc $45
+		adc pacman_vpos
 l8909:	sta score_pointer1
 		sta score_pointer2
 		lda #$53
@@ -1480,9 +1347,9 @@ l8955:	cmp #$02
 		lda #$08
 		bne l8963
 l895d:	lda #$01
-		sta $52
+		sta player_score_text+2
 		lda #$06
-l8963:	sta $53
+l8963:	sta player_score_text+3
 		jmp l946d
 l8968:	lda $66
 		ora #$80
@@ -1493,12 +1360,12 @@ l8968:	lda $66
 		sta $ac
 		lda #$60
 		sta $ad
-l897b:	lda $5b
+l897b:	lda fruit_color
 		beq l89da
-		lda $4a
+		lda pacman_hpos
 		cmp #$7c
 		bne l89da
-		lda $45
+		lda pacman_vpos
 		cmp #$84
 		bne l89da
 		ldx player_number
@@ -1511,19 +1378,19 @@ l8995:	tax
 		tax
 		ldy #$00
 l899c:	lda FruitScores,x
-		sta $0641,y						; fruit middle of screen
+		sta GameScreen+$241,y						; fruit middle of screen
 		inx
 		iny
 		cpy #$05
 		bne l899c
 		lda #$01
-		sta $5d
+		sta fruit_score_timer
 		lda #$40
 		sta $5e
 		lda #$00
-		sta $5b
-		sta $59
-		sta $5a
+		sta fruit_color
+		sta fruit_timer
+		sta fruit_display_flag
 		lda #$01
 		sta $b6
 		lda #$10
@@ -1536,10 +1403,10 @@ l899c:	lda FruitScores,x
 l89ca:	asl
 		tax
 		lda FruitScoreTable,x
-		sta $52
+		sta player_score_text+2
 		inx
 		lda FruitScoreTable,x
-		sta $53
+		sta player_score_text+3
 		jsr l946d
 l89da:	lda $ac
 		beq l89df
@@ -1590,10 +1457,10 @@ l8a34:	lda $8a,x
 		lda $8a,x
 		asl
 		bmi l8a74
-		lda sprite_vpos,x
+		lda monster_vpos,x
 		cmp #$74
 		bne l8a4f
-		lda sprite_hpos,x
+		lda monster_hpos,x
 		cmp #$a7
 		bcs l8a53
 		cmp #$52
@@ -1623,9 +1490,9 @@ l8a77:	rts
 l8a78:	jsr l95aa
 		lda swap_player_flag
 		beq l8ae8
-		ldx $13
+		ldx reset_timer
 		beq ChangePlayer
-		dec $13
+		dec reset_timer
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $8a86 change player
@@ -1684,11 +1551,11 @@ l8ae8:	lda players
 		lda #$02
 		sta swap_player_flag
 		lda #$30
-		sta $13
+		sta reset_timer
 		bne l8b3a
 l8b02:	jsr BackupGameScreen1			; sub: init game screen player1 $4400
 		lda #$30
-		sta $13
+		sta reset_timer
 		lda #$02
 		bne l8ae5
 l8b0d:	lda extra_pacman1
@@ -1698,11 +1565,11 @@ l8b0d:	lda extra_pacman1
 		lda #$01
 		sta swap_player_flag
 		lda #$30
-		sta $13
+		sta reset_timer
 		bne l8b3a
 l8b1f:	jsr BackupGameScreen2			; sub: init game screen player2 $4800
 		lda #$30
-		sta $13
+		sta reset_timer
 		lda #$01
 		sta swap_player_flag
 l8b2a:	rts
@@ -1716,7 +1583,7 @@ l8b2b:	ldx player_number
 		jmp PlayerDead					; sub: Player dead: die-animation, decrease lives
 l8b3a:	lda #$2c
 		ldx #$00
-l8b3e:	sta $063d,x
+l8b3e:	sta GameScreen+$23d,x
 		clc
 		adc #$01
 		inx
@@ -1777,7 +1644,7 @@ chnonew:rts
 ; $8b93
 SpriteDirectionCompareLoop:
 		ldx #$04
-l8b95:	lda sprite_vpos,x
+l8b95:	lda monster_vpos,x
 		cmp #$74
 		bne l8b9e
 		jsr l8ba2
@@ -1796,7 +1663,7 @@ l8bab:	clc
 		sta ATARI_33
 		lda #$ff
 		sta $bd
-		lda sprite_hpos,x
+		lda monster_hpos,x
 		sta $be
 		cmp #$c0
 		bcc l8be2
@@ -1806,14 +1673,14 @@ l8bbe:	cmp $be
 		dec $be
 		asl $bd
 		bcs l8bbe
-		lda sprite_hpos,x
+		lda monster_hpos,x
 		cmp #$ca
 		bcc l8c0c
-		lda sprite_direction,x
+		lda monster_direction,x
 		cmp #$08
 		bne l8c0c
 		lda #$2a
-		sta sprite_hpos,x
+		sta monster_hpos,x
 		cpx #$04
 		bne l8c0c
 		dec pacman_screen_ptr+1
@@ -1827,14 +1694,14 @@ l8be6:	lda #$38
 		inc $be
 		lsr $bd
 		bcs l8be6
-		lda sprite_hpos,x
+		lda monster_hpos,x
 		cmp #$2a
 		bne l8c0c
-		lda sprite_direction,x
+		lda monster_direction,x
 		cmp #$04
 		bne l8c0c
 		lda #$ca
-		sta sprite_hpos,x
+		sta monster_hpos,x
 		cpx #$04
 		bne l8c0c
 		inc pacman_screen_ptr+1
@@ -1975,20 +1842,20 @@ l8cb9:	jsr l8e49
 		lda #$02
 		sta reset_flag
 		lda #$40
-		sta $13
+		sta reset_timer
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $8cd7 print READY: and difficulty fruits
 Ready:	lda #$22						; first READY: char ( $22-$2b )
 		ldx #$00
-readycp:sta $063f,x						; screen position for READY:
+readycp:sta GameScreen+$23f,x			; screen position for READY:
 		clc
 		adc #$01
 		inx
 		cpx #$0a						; 10 chars
 		bne readycp
 		ldx player_number
-		lda maze_count1,x						; load player difficulty
+		lda maze_count1,x				; load player difficulty
 		cmp #$06
 		bcc l8cf6
 		cmp #$0a
@@ -1996,7 +1863,7 @@ readycp:sta $063f,x						; screen position for READY:
 		ldy #$0d
 		bne l8cf8
 l8cf6:	ldy #$0a
-l8cf8:	sty $5c
+l8cf8:	sty fruit_score_flag			; ATARI - only stored, not used on Commodore
 		ldy #$00
 !ifdef 	P500{				; Y already $00
 		sty IndirectBank				; select bank 0 for pointer operations
@@ -2093,7 +1960,7 @@ _SpriteMovementAnimationLoop:
 		lda #$01
 		sta $6a
 		ldx #$03
-l8d93:	lda sprite_direction,x
+l8d93:	lda monster_direction,x
 		jsr _SpriteMovementAnimation
 		dex
 		bpl l8d93
@@ -2102,7 +1969,7 @@ l8d93:	lda sprite_direction,x
 		jmp l9318
 l8da2:	ldx #$0d
 		lda #$00
-l8da6:	sta $063d,x
+l8da6:	sta GameScreen+$23d,x
 		dex
 		bpl l8da6
 		rts
@@ -2245,7 +2112,7 @@ l8e84:	lda $ac
 		beq l8e9e
 		jsr l8c49
 		ldx #$03
-l8e93:	lda sprite_direction,x
+l8e93:	lda monster_direction,x
 		jsr _SpriteMovementAnimation
 		dex
 		bpl l8e93
@@ -2368,7 +2235,7 @@ l8f3b:	dec $b0
 l8f3e:	
 		lda $a9
 		beq l8f9a
-		lda $45
+		lda pacman_vpos
 		sta pointer2
 		lda #$53
 		sta pointer2+1
@@ -2846,14 +2713,14 @@ l91bc:	rts
 l91bd:	lda $66
 		bmi l91bc
 		ldx #$04
-		jsr l94de
+		jsr MazeHandler
 		clc
 		lda $68
 		bit temp
 		beq l91e3
-		cmp $4f
+		cmp pacman_direction
 		beq l91df
-		ora $4f
+		ora pacman_direction
 		tay
 		and #$03
 		beq l91df
@@ -2862,7 +2729,7 @@ l91bd:	lda $66
 		beq l91df
 		sty $64
 l91df:	lda $68
-		sta $4f
+		sta pacman_direction
 l91e3:	ldx player_number
 !ifdef 	P500{
 		ldy #$01
@@ -2889,8 +2756,8 @@ l91f8:	dex
 		sta $68
 		bit temp
 		beq l920a
-		sta $4f
-l920a:	lda $4f
+		sta pacman_direction
+l920a:	lda pacman_direction
 		bit temp
 		bne l9213
 		jmp l92f4
@@ -2906,8 +2773,8 @@ l9222:	cmp #$08
 		jmp l9318
 l9229:	lda $63
 		bne l9252
-		dec $45
-		dec $45
+		dec pacman_vpos
+		dec pacman_vpos
 		lda $62
 		bne l923b
 		lda #$03
@@ -2915,7 +2782,7 @@ l9229:	lda $63
 		bne l9252
 l923b:	dec $62
 		bne l9252
-		lda $45
+		lda pacman_vpos
 		cmp pacman_vpos_save
 		beq l9252
 		sec
@@ -2929,14 +2796,14 @@ l9252:	ldy #$06
 		jmp l931d
 l9257:	lda $63
 		bne l9280
-		inc $45
-		inc $45
+		inc pacman_vpos
+		inc pacman_vpos
 		lda $62
 		cmp #$03
 		bne l927e
 		lda #$00
 		sta $62
-		lda $45
+		lda pacman_vpos
 		cmp pacman_vpos_save
 		beq l9280
 		clc
@@ -2952,21 +2819,21 @@ l9280:	ldy #$08
 		jmp l931d
 l9285:	lda $63
 		bne l92b5
-		lda $4a
+		lda pacman_hpos
 		cmp #$ca
 		bne l9299
 		lda #$2a
-		sta $4a
+		sta pacman_hpos
 		lda #$df
 		sta pacman_screen_ptr
 		dec pacman_screen_ptr+1
-l9299:	inc $4a
+l9299:	inc pacman_hpos
 l929b:	lda pacman_byte_ctr
 		cmp #$03
 		bne l92b3
 		lda #$00
 		sta pacman_byte_ctr
-		lda $4a
+		lda pacman_hpos
 		cmp pacman_hpos_save
 		beq l92b5
 		inc pacman_screen_ptr
@@ -2978,15 +2845,15 @@ l92b5:	ldy #$02
 		bne l931d
 l92b9:	lda $63
 		bne l92f0
-		lda $4a
+		lda pacman_hpos
 		cmp #$2a
 		bne l92cd
 		lda #$ca
-		sta $4a
+		sta pacman_hpos
 		lda #$07
 		sta pacman_screen_ptr
 		inc pacman_screen_ptr+1
-l92cd:	dec $4a
+l92cd:	dec pacman_hpos
 		lda pacman_byte_ctr
 		bne l92d9
 		lda #$03
@@ -2994,7 +2861,7 @@ l92cd:	dec $4a
 		bne l92f0
 l92d9:	dec pacman_byte_ctr
 		bne l92f0
-		lda $4a
+		lda pacman_hpos
 		cmp pacman_hpos_save
 		beq l92f0
 		sec
@@ -3006,7 +2873,7 @@ l92d9:	dec pacman_byte_ctr
 		sta pacman_screen_ptr+1
 l92f0:	ldy #$04
 		bne l931d
-l92f4:	lda $4f
+l92f4:	lda pacman_direction
 		cmp #$01
 		bne l92fe
 		ldy #$06
@@ -3064,12 +2931,12 @@ l934d:	lda (pointer1),y
 		sta pointer1
 		lda #$58
 		sta pointer1+1
-		lda $45
+		lda pacman_vpos
 		sta pointer2
 		lda #$53
 		sta pointer2+1
 		clc
-		lda $4a
+		lda pacman_hpos
 		sta $02d4
 		adc #$02
 		sta $02d7
@@ -3093,15 +2960,15 @@ l9384:	lda pacman_byte_ctr
 		bne l93e8
 		lda $62
 		bne l93e8
-		lda $4a
+		lda pacman_hpos
 		cmp pacman_hpos_save
 		bne l9398
-		lda $45
+		lda pacman_vpos
 		cmp pacman_vpos_save
 		beq l9383
-l9398:	lda $45
+l9398:	lda pacman_vpos
 		sta pacman_vpos_save
-		lda $4a
+		lda pacman_hpos
 		sta pacman_hpos_save
 		ldy #$00
 !ifdef 	P500{				; Y already $00
@@ -3127,7 +2994,7 @@ l9398:	lda $45
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $93b0
-l93b0:	sta $54
+l93b0:	sta player_score_text+4
 		jsr l946d
 		lda #$01
 		sta $b3
@@ -3168,8 +3035,8 @@ l93e8:	rts
 l93e9:	ldx player_number
 		lda bigdot_status,x
 		sta temp
-		ldx $45
-		ldy $4a
+		ldx pacman_vpos
+		ldy pacman_hpos
 		lda #$01
 		bit temp
 		beq l9401
@@ -3203,7 +3070,7 @@ l9428:	eor #$0f
 		ldx player_number
 		sta bigdot_status,x
 		lda #$05
-		sta $54
+		sta player_score_text+4
 		jsr l946d
 		lda #$01
 		sta $bb
@@ -3227,32 +3094,32 @@ l944b:	lda $8a,x
 		bcs l9467
 		and #$3b
 		beq l9467
-		lda sprite_direction,x
+		lda monster_direction,x
 		tay
 		lda BlueReverseTable,y
-		sta sprite_direction,x
+		sta monster_direction,x
 l9467:	dex
 		bpl l944b
 		jmp l93d0
 l946d:	lda #$00
-		sta $56
-		sed
+		sta score_carry_bit
+		sed								; set decimal mode
 		lda player_number
 		beq l947a
-		ldx #$4c
+		ldx #$4c						; player 2
 		bne l947c
-l947a:	ldx #$2f
-l947c:	ldy #$05
+l947a:	ldx #$2f						; palyer one
+l947c:	ldy #$05						; 6 digits
 l947e:	clc
-		lda GameScreen,x
+		lda GameScreen,x				; load score digit from screen and isolate lower nibble
 		and #$0f
-		adc $56
-		adc $0050,y
+		adc score_carry_bit
+		adc $0000+player_score_text,y	; add saved digit
 		pha
-		and #$10
-		beq l9490
-		lda #$01
-l9490:	sta $56
+		and #$10						; isolate bit#4
+		beq l9490						; skip if not > 9
+		lda #$01						; save 1 to carry_byte
+l9490:	sta score_carry_bit
 		pla
 		ora #$10
 		cmp #$10
@@ -3263,54 +3130,63 @@ l9490:	sta $56
 		beq l94ab
 l94a0:	lda GameScreen-1,x
 		bne l94a9
-		lda $56
+		lda score_carry_bit
 		beq l94ab
 l94a9:	lda #$10
 l94ab:	ora #$90
-		sta $0400,x
+		sta GameScreen,x
 		dex
 		dey
 		bpl l947e
 		cld
 		ldx #$05
 		lda #$00
-l94b9:	sta $50,x
+l94b9:	sta player_score_text,x
 		dex
 		bpl l94b9
 		ldx player_number
 		lda bonus_pacman,x
-		bne l94cf
+		bne nobonus
 		cpx #$00
 		bne l94d0
-		lda $042b
+		lda GameScreen+$2b
 		cmp #$90
 		bne l94d7
-l94cf:	rts
-; -------------------------------------------------------------------------------------------------
-; $94d0
-l94d0:	lda $0448
+nobonus:rts
+l94d0:	lda GameScreen+$48
 		cmp #$90
-		beq l94cf
+		beq nobonus
 l94d7:	inc bonus_pacman,x
 		inc extra_pacman1,x
 		jmp UpdateLivesDisplay			; sub: update lives display -> draw mini-pacmans
-l94de:	lda sprite_hpos,x
-		sta $61
-		lda sprite_vpos,x
+; -------------------------------------------------------------------------------------------------
+; $94de ATARI: Maze handler subroutine
+; entry: 	a reg value equals vpos
+;			y reg value equals hpos
+; exit:		a reg value equals permissible directions for any object from any position
+; bit 0 set - up ok
+; bit 1 set - dn ok
+; bit 2 set - rt ok
+; bit 3 set - lf ok
+; carry bit is set if decision point was reached otherwise it is cleared
+MazeHandler:
+		lda monster_hpos,x
+		sta hpos_saver
+		lda monster_vpos,x
 		stx temp
 		ldx #$09
 l94e8:	cmp VTable,x
 		beq l94fc
 		dex
 		bpl l94e8
-		lda $61
+		lda hpos_saver
 		ldy #$09
 l94f4:	cmp HTable,y
 		beq l950d
 		dey
 		bpl l94f4
 l94fc:	ldy #$09
-		lda $61
+		lda hpos_saver
 l9500:	cmp HTable,y
 		beq l9512
 		dey
@@ -3344,15 +3220,15 @@ l9523:	ldx temp
 		php
 		cpx #$04
 		beq l9554
-		lda sprite_direction,x
+		lda monster_direction,x
 		tay
 		lda temp
 		and ReverseTable,y
 		sta temp
-		lda sprite_vpos,x
+		lda monster_vpos,x
 		cmp #$64
 		bne l9554
-		lda sprite_hpos,x
+		lda monster_hpos,x
 		cmp #$76
 		beq l9546
 		cmp #$82
@@ -3387,7 +3263,7 @@ l956a:	lda $9b
 		lda #$02
 		sta $9b
 		bne l958f
-l957c:	lda $58
+l957c:	lda chase_whine_delta
 		clc
 		adc $9a
 		bne l9594
@@ -3399,7 +3275,7 @@ l9583:	lda $9a
 		bne l957c
 l958f:	sec
 		lda $9a
-		sbc $58
+		sbc chase_whine_delta
 l9594:	sta $9a
 !ifdef 	P500{
 		ldy #SR_V2FREQ
@@ -3430,15 +3306,15 @@ l95aa:	ldy #$02
 		lda #$01
 		bit temp
 		beq l95bb
-		sty $04cb
+		sty GameScreen+$cb
 l95bb:	asl
 		bit temp
 		beq l95c3
-		sty $04ec
+		sty GameScreen+$ec
 l95c3:	asl
 		bit temp
 		beq l95cb
-		sty $06d3
+		sty GameScreen+$2d3
 l95cb:	asl
 		bit temp
 		bne l95dc
@@ -3446,10 +3322,10 @@ l95cb:	asl
 ; -------------------------------------------------------------------------------------------------
 ; $95d1
 l95d1:	ldy #$00
-		sty $04cb
-		sty $04ec
-		sty $06d3
-l95dc:	sty $06f4
+		sty GameScreen+$cb
+		sty GameScreen+$ec
+		sty GameScreen+$2d3
+l95dc:	sty GameScreen+$2f4
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $95e0
@@ -3512,7 +3388,7 @@ l9645:	cmp #$b0
 		lda #$03
 		bne l964f
 l964d:	lda #$02
-l964f:	sta $58
+l964f:	sta chase_whine_delta
 		ldx #$03
 l9653:	lda $8a,x
 		cmp #$08
@@ -3541,14 +3417,14 @@ l9678:	dex
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $967e
-l967e:	lda $5d
+l967e:	lda fruit_score_timer
 		beq l9696
 		lda $5e
 		bne l9693
 		lda #$00
-		sta $5d
+		sta fruit_score_timer
 		ldx #$04
-l968c:	sta $0641,x
+l968c:	sta GameScreen+$241,x
 		dex
 		bpl l968c
 		rts
@@ -3558,7 +3434,7 @@ l9693:	dec $5e
 l9695:	rts
 ; -------------------------------------------------------------------------------------------------
 ; $9696
-l9696:	lda $5b
+l9696:	lda fruit_color
 		bne l96d4
 		ldx player_number
 		lda dots_eaten_lo,x
@@ -3581,33 +3457,33 @@ l96b0:	inc fruit_counter,x
 		lda #$0c						; max difficulty = $0c
 l96ba:	tax
 		lda FruitChars,x
-		sta $0643
+		sta GameScreen+$243
 		clc
 		adc #$01
-		sta $0644
+		sta GameScreen+$244
 		lda #$01
-		sta $5b
+		sta fruit_color
 		lda #$c0
-		sta $59
+		sta fruit_timer
 		lda #$02
-		sta $5a
+		sta fruit_display_flag
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $96d4
-l96d4:	lda $5a
+l96d4:	lda fruit_display_flag
 		bne l96e7
-		lda $59
+		lda fruit_timer
 		bne l96e7
 		lda #$00
-		sta $0643
-		sta $0644
-		sta $5b
+		sta GameScreen+$243
+		sta GameScreen+$244
+		sta fruit_color
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $96e7
-l96e7:	dec $59
+l96e7:	dec fruit_timer
 		bne l96ed
-		dec $5a
+		dec fruit_display_flag
 l96ed:	rts
 ; -------------------------------------------------------------------------------------------------
 ; $96ee
@@ -3622,26 +3498,26 @@ l96f4:	lda $8a,x
 		cpx $a7
 		beq l973e
 		inc $b1
-		lda sprite_hpos,x
+		lda monster_hpos,x
 		tay
-		lda sprite_vpos,x
+		lda monster_vpos,x
 		cpy #$7c
 		bne l9728
 		cmp #$64
 		bne l9728
-		lda sprite_direction,x
+		lda monster_direction,x
 		cmp #$01
 		bne l971e
 		lda #$04
-		sta sprite_direction,x
-		lda sprite_vpos,x
+		sta monster_direction,x
+		lda monster_vpos,x
 		bne l9728
 l971e:	lda #$44
 		sta $8a,x
 		lda #$ff
 		sta $8e,x
 		bne l973e
-l9728:	jsr l94de
+l9728:	jsr MazeHandler
 		bcc l9739
 		clc
 		lda #$7c
@@ -3649,7 +3525,7 @@ l9728:	jsr l94de
 		lda #$64
 		sta $82,x
 		jsr l99e9
-l9739:	lda sprite_direction,x
+l9739:	lda monster_direction,x
 		jsr _SpriteMovementAnimation
 l973e:	dex
 		bpl l96f4
@@ -3690,7 +3566,7 @@ l9784:	dex
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $9788
-l9788:	lda sprite_vpos,x
+l9788:	lda monster_vpos,x
 		cmp #$64
 		bne l97a9
 		lda $8a,x
@@ -3704,13 +3580,13 @@ l9796:	and #$80
 		ldy #$08
 		bne l97a4
 l97a2:	ldy #$04
-l97a4:	sty sprite_direction,x
+l97a4:	sty monster_direction,x
 		sta $8a,x
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $97a9
 l97a9:	lda #$01
-l97ab:	sta sprite_direction,x
+l97ab:	sta monster_direction,x
 		jmp _SpriteMovementAnimation
 l97b0:	lda $8a,x
 		and #$0f
@@ -3729,17 +3605,17 @@ l97b0:	lda $8a,x
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $97bd
-l97bd:	lda sprite_hpos,x
+l97bd:	lda monster_hpos,x
 		cmp #$7c
 		beq l9788
 l97c3:	lda #$08
 		bne l97ab
-l97c7:	lda sprite_hpos,x
+l97c7:	lda monster_hpos,x
 		cmp #$7c
 		beq l9788
 l97cd:	lda #$04
 		bne l97ab
-l97d1:	lda sprite_vpos,x
+l97d1:	lda monster_vpos,x
 		cmp #$74
 		bne l97e1
 		cpx #$02
@@ -3749,11 +3625,11 @@ l97d1:	lda sprite_vpos,x
 		bne l97b0
 l97e1:	lda #$02
 		bne l97ab
-l97e5:	lda sprite_hpos,x
+l97e5:	lda monster_hpos,x
 		cmp #$70
 		bne l97cd
 		beq l97b0
-l97ed:	lda sprite_hpos,x
+l97ed:	lda monster_hpos,x
 		cmp #$88
 		bne l97c3
 		beq l97b0
@@ -3781,20 +3657,20 @@ l9820:	inx
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $9826
-l9826:	lda sprite_direction,x
+l9826:	lda monster_direction,x
 		cmp #$01
 		bne l9836
-		lda sprite_vpos,x
+		lda monster_vpos,x
 		cmp #$70
 		bne l9840
 		lda #$02
 		bne l983e
-l9836:	lda sprite_vpos,x
+l9836:	lda monster_vpos,x
 		cmp #$78
 		bne l9840
 		lda #$01
-l983e:	sta sprite_direction,x
-l9840:	lda sprite_direction,x
+l983e:	sta monster_direction,x
+l9840:	lda monster_direction,x
 		jmp _SpriteMovementAnimation
 l9845:	lda $8a,x
 		bpl l984f
@@ -3825,7 +3701,7 @@ l986f:	cmp #$20
 l9876:	rts
 ; -------------------------------------------------------------------------------------------------
 ; $9877
-l9877:	jsr l94de
+l9877:	jsr MazeHandler
 		bcc l987f
 		clc
 		inc $8e,x
@@ -3877,12 +3753,12 @@ l98a1:	lda #$08
 		lda #$96
 		sta $86,x
 		bne l98c8
-l98c3:	sta sprite_direction,x
+l98c3:	sta monster_direction,x
 		jmp _SpriteMovementAnimation
 l98c8:	lda $86,x
 		bne l98cf
 		jmp l9915
-l98cf:	jsr l94de
+l98cf:	jsr MazeHandler
 		bcs l98d7
 l98d4:	jmp l9950
 l98d7:	clc
@@ -3897,7 +3773,7 @@ l98d7:	clc
 		bcc l98f6
 l98ea:	lda $86,x
 		beq l9915
-		jsr l94de
+		jsr MazeHandler
 		bcc l98f6
 		clc
 		inc $7a,x
@@ -3914,7 +3790,7 @@ l98f6:	lda $76,x
 		lda PatternIndex,y
 		tay
 		lda Pattern,y
-l9910:	sta sprite_direction,x
+l9910:	sta monster_direction,x
 		jmp l9950
 l9915:	lda #$20
 		sta $8a,x
@@ -3926,7 +3802,7 @@ l9915:	lda #$20
 		iny
 		lda HomePositionHV,y
 		sta $82,x
-		jsr l94de
+		jsr MazeHandler
 		bcc l9950
 		clc
 		jsr l99e9
@@ -3937,44 +3813,44 @@ l9915:	lda #$20
 		jmp l98a1
 l993b:	lda #$02
 		sta $8a,x
-l993f:	lda $4a
+l993f:	lda pacman_hpos
 		sta $7e,x
-		lda $45
+		lda pacman_vpos
 		sta $82,x
-		jsr l94de
+		jsr MazeHandler
 		bcc l9950
 		clc
 		jsr l99e9
-l9950:	lda sprite_direction,x
+l9950:	lda monster_direction,x
 _SpriteMovementAnimation:
 		cmp #$01
 		bne l9962
 		ldy $6a
 		bne l995e
-		dec sprite_vpos,x
-		dec sprite_vpos,x
+		dec monster_vpos,x
+		dec monster_vpos,x
 l995e:	lda #$00
 		beq l998f
 l9962:	cmp #$02
 		bne l9972
 		ldy $6a
 		bne l996e
-		inc sprite_vpos,x
-		inc sprite_vpos,x
+		inc monster_vpos,x
+		inc monster_vpos,x
 l996e:	lda #$0a
 		bne l998f
 l9972:	cmp #$04
 		bne l9980
 		ldy $6a
 		bne l997c
-		dec sprite_hpos,x
+		dec monster_hpos,x
 l997c:	lda #$14
 		bne l998f
 l9980:	cmp #$08
 		bne l998e
 		ldy $6a
 		bne l998a
-		inc sprite_hpos,x
+		inc monster_hpos,x
 l998a:	lda #$1e
 		bne l998f
 l998e:	rts
@@ -4016,9 +3892,9 @@ l99bc:	lda (pointer1),y
 		sta pointer1
 		lda #$58
 		sta pointer1+1
-		lda sprite_hpos,x
+		lda monster_hpos,x
 		sta sprite_x,x
-		lda sprite_vpos,x
+		lda monster_vpos,x
 		sta pointer2
 		lda #$54
 		sta pointer2+1
@@ -4038,7 +3914,7 @@ l99e1:	lda (pointer1),y
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $99e9
-l99e9:	lda sprite_vpos,x
+l99e9:	lda monster_vpos,x
 		cmp $82,x
 		beq l9a01
 		bcc l99f9
@@ -4052,7 +3928,7 @@ l99fd:	lda #$02
 		bne l9a03
 l9a01:	lda #$00
 l9a03:	sta $92,x
-		lda sprite_hpos,x
+		lda monster_hpos,x
 		cmp $7e,x
 		beq l9a1d
 		bcs l9a15
@@ -4110,100 +3986,100 @@ l9a5b:	lsr
 		lda #$04
 		bne l9a64
 l9a62:	lda #$08
-l9a64:	sta sprite_direction,x
-		lda sprite_direction,x
+l9a64:	sta monster_direction,x
+		lda monster_direction,x
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $9a69
-l9a69:	lda sprite_vpos,x
-		cmp $45
+l9a69:	lda monster_vpos,x
+		cmp pacman_vpos
 		beq l9a76
-		lda sprite_hpos,x
-		cmp $4a
+		lda monster_hpos,x
+		cmp pacman_hpos
 		beq l9abb
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $9a76
 l9a76:	ldy #$09
 l9a78:	lda VTable,y
-		cmp $45
+		cmp pacman_vpos
 		beq l9a83
 		dey
 		bpl l9a78
 l9a82:	rts
 ; -------------------------------------------------------------------------------------------------
 ; $9a83
-l9a83:	lda sprite_hpos,x
-		cmp $4a
+l9a83:	lda monster_hpos,x
+		cmp pacman_hpos
 		bcs l9aa2
-		lda sprite_direction,x
+		lda monster_direction,x
 		cmp #$08
 		bne l9a82
 l9a8f:	lda HWalls,y
 		cmp #$ff
 		beq l9aff
-		cmp sprite_hpos,x
+		cmp monster_hpos,x
 		bcs l9a9d
 		iny
 		bne l9a8f
-l9a9d:	cmp $4a
+l9a9d:	cmp pacman_hpos
 		bcs l9aff
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $9aa2
-l9aa2:	lda sprite_direction,x
+l9aa2:	lda monster_direction,x
 		cmp #$04
 		bne l9a82
 l9aa8:	lda HWalls,y
 		cmp #$ff
 		beq l9aff
-		cmp $4a
+		cmp pacman_hpos
 		bcs l9ab6
 		iny
 		bne l9aa8
-l9ab6:	cmp sprite_hpos,x
+l9ab6:	cmp monster_hpos,x
 		bcs l9aff
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $9abb
 l9abb:	ldy #$09
 l9abd:	lda HTable,y
-		cmp $4a
+		cmp pacman_hpos
 		beq l9ac8
 		dey
 		bpl l9abd
 l9ac7:	rts
 ; -------------------------------------------------------------------------------------------------
 ; $9ac8
-l9ac8:	lda sprite_vpos,x
-		cmp $45
+l9ac8:	lda monster_vpos,x
+		cmp pacman_vpos
 		bcc l9ae7
-		lda sprite_direction,x
+		lda monster_direction,x
 		cmp #$01
 		bne l9ac7
 l9ad4:	lda VWalls,y
 		cmp #$ff
 		beq l9aff
-		cmp $45
+		cmp pacman_vpos
 		bcs l9ae2
 		iny
 		bne l9ad4
-l9ae2:	cmp sprite_vpos,x
+l9ae2:	cmp monster_vpos,x
 		bcs l9aff
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $9ae7
-l9ae7:	lda sprite_direction,x
+l9ae7:	lda monster_direction,x
 		cmp #$02
 		bne l9ac7
 l9aed:	lda VWalls,y
 		cmp #$ff
 		beq l9aff
-		cmp sprite_vpos,x
+		cmp monster_vpos,x
 		bcs l9afb
 		iny
 		bne l9aed
-l9afb:	cmp $45
+l9afb:	cmp pacman_vpos
 		bcc l9b0f
 l9aff:	cpx #$02
 		bne l9b07
