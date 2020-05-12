@@ -17,5050 +17,5050 @@
 ;*                                  *
 ;************************************
 ;
- INCLUDE D2:SYSTEXT.ASM
+ include d2:systext.asm
 ;
- LIST I
+ list i
 ;
-;*******  ZERO PAGE VARIABLES  ******
+;*******  zero page variables  ******
 ;
- ORG $0018
+ org $0018
 ;
-DLICNT DS 1 ;DISPLAY LIST INT. COUNT
-OPTION DS 1 ;OPTION MODE FLAG	; 07
-NUMPLY DS 1 ;NUMBER OF PLAYERS	; 08
-DIFOPT DS 1 ;DIFFICULTY OPTION	; 09
-RSTRTF DS 1 ;RESTART FLAG		; 0a
-ATCLOK DS 1 ;ATTRACT COUNTDOWN CLOCK
-ATTIMR DS 1 ;ATTRACT MODE TIMER	; 0c
-ATSEQU DS 1 ;ATTRACT MODE SEQUENCE #
+dlicnt ds 1 ;display list int. count
+option ds 1 ;option mode flag	; 07
+numply ds 1 ;number of players	; 08
+difopt ds 1 ;difficulty option	; 09
+rstrtf ds 1 ;restart flag		; 0A
+atclok ds 1 ;attract countdown clock
+attimr ds 1 ;attract mode timer	; 0C
+atsequ ds 1 ;attract mode sequence #
 ;
-GMOVRF DS 1 ;GAME OVER FLAG	; 0e
-READYF DS 1 ;READY FLAG		; 0f
-INTROF DS 1 ;INTRO FLAG		; 10
-SWAPPF DS 1 ;SWAP PLAYER FLAG	; 11
-RESETF DS 1 ;RESET FLAG		: 12
-RESETT DS 1 ;RESET TIMER
-RRFLAG DS 1 ;RERACK FLAG
-RRSEQU DS 1 ;RERACK SEQUENCE #
-RRTIMR DS 1 ;RERACK TIMER
-RRFLCT DS 1 ;RERACK FLASH COUNT
-TEMLOC DS 1 ;TEMPORARY STORAGE	; 18
-PLYNUM DS 1 ;PLAYER # 0=1 1=2	; 19
-XPACP1 DS 1 ;EXTRA PACMAN PLAYER 1	; 1a
-XPACP2 DS 1 ;EXTRA PACMAN PLAYER 2	; 1b
-BPACP1 DS 1 ;BONUS PACMAN PLAYER 1	; 1c
-BPACP2 DS 1 ;BONUS PACMAN PLAYER 2	; 1d
-MAZCT1 DS 1 ;MAZE COUNT PLAYER 1	; 1e
-MAZCT2 DS 1 ;MAZE COUNT PLAYER 2	; 1f
-BIGDT1 DS 1 ;BIG DOT STATUS #1	; 20
-BIGDT2 DS 1 ;BIG DOT STATUS #2
-DTCTL1 DS 1 ;DOTS EATEN CTR LSB #1	; 22
-DTCTL2 DS 1 ;DOTS EATEN CTR LSB #2
-DTCTM1 DS 1 ;DOTS EATEN CTR MSB #1	; 24
-DTCTM2 DS 1 ;DOTS EATEN CTR MSB #2
-SCNSC1 DS 2 ;SCREEN SCORE 1 ADDRESS	; 26
-SCNSC2 DS 2 ;SCREEN SCORE 2 ADDRESS	; 28
-PIXGET DS 2 ;P/M PIX GET ADDRESS	; 2a
-PIXPUT DS 2 ;P/M PIX PUT ADDRESS	; 2c
-PACCLR DS 1 ;ATTRACT PACMAN COLOR
+gmovrf ds 1 ;game over flag				; 0E
+readyf ds 1 ;ready flag					; 0F
+introf ds 1 ;intro flag					; 10
+swappf ds 1 ;swap player flag			; 11
+resetf ds 1 ;reset flag					; 12
+resett ds 1 ;reset timer				; 13
+rrflag ds 1 ;rerack flag
+rrsequ ds 1 ;rerack sequence #
+rrtimr ds 1 ;rerack timer
+rrflct ds 1 ;rerack flash count
+temloc ds 1 ;temporary storage			; 18
+plynum ds 1 ;player # 0=1 1=2			; 19
+xpacp1 ds 1 ;extra pacman player 1		; 1A
+xpacp2 ds 1 ;extra pacman player 2		; 1B
+bpacp1 ds 1 ;bonus pacman player 1		; 1C
+bpacp2 ds 1 ;bonus pacman player 2		; 1D
+mazct1 ds 1 ;maze count player 1		; 1E
+mazct2 ds 1 ;maze count player 2		; 1F
+bigdt1 ds 1 ;big dot status #1			; 20
+bigdt2 ds 1 ;big dot status #2
+dtctl1 ds 1 ;dots eaten ctr lsb #1		; 22
+dtctl2 ds 1 ;dots eaten ctr lsb #2
+dtctm1 ds 1 ;dots eaten ctr msb #1		; 24
+dtctm2 ds 1 ;dots eaten ctr msb #2
+scnsc1 ds 2 ;screen score 1 address		; 26
+scnsc2 ds 2 ;screen score 2 address		; 28
+pixget ds 2 ;p/m pix get address		; 2A
+pixput ds 2 ;p/m pix put address		; 2C
+pacclr ds 1 ;attract pacman color
 ;
- ORG $0043
+ org $0043
 ;
-FRUTP1 DS 1 ;FRUIT COUNTER #1	; 2e
-FRUTP2 DS 1 ;FRUIT COUNTER #2	; 2f
-BCOUNT DS 1 ;BOUNCE TIMER COUNT	; 30
-SAVCNS DS 1 ;SAVE CONSOL DATA
-TUNLOC DS 2 ;USED FOR TUNNEL LOGIC
+frutp1 ds 1 ;fruit counter #1			; 2E
+frutp2 ds 1 ;fruit counter #2			; 2F
+bcount ds 1 ;bounce timer count			; 30
+savcns ds 1 ;save consol data
+tunloc ds 2 ;used for tunnel logic
 ;
- ORG $005A
-M1DELY DS 1 ;MONSTER 1 DELAY	; 34
-M2DELY DS 1 ;MONSTER 2 DELAY
-M3DELY DS 1 ;MONSTER 3 DELAY
-M4DELY DS 1 ;MONSTER 4 DELAY	; 37
-ACOLR1 DS 1 ;ATTRACT COLOR 1 - $3A
-ACOLR2 DS 1 ;ATTRACT COLOR 2 - $44
-ACOLR3 DS 1 ;ATTRACT COLOR 3 - $2A
-ACOLR4 DS 1 ;ATTRACT COLOR 4 - $DA
-INTCNT DS 1 ;INTERMISSION COUNTER
-INTCLK DS 1 ;INTERMISSION CLOCK
- ORG $0080
+ org $005a
+m1dely ds 1 ;monster 1 delay			; 34
+m2dely ds 1 ;monster 2 delay
+m3dely ds 1 ;monster 3 delay
+m4dely ds 1 ;monster 4 delay			; 37
+acolr1 ds 1 ;attract color 1 - $3a
+acolr2 ds 1 ;attract color 2 - $44
+acolr3 ds 1 ;attract color 3 - $2a
+acolr4 ds 1 ;attract color 4 - $da
+intcnt ds 1 ;intermission counter
+intclk ds 1 ;intermission clock
+ org $0080
 ;
-PACSCN DS 2 ;PACMAN SCREEN MEM ADDR		; 3c
-PACBYT DS 1 ;PACMAN BYTE COUNTER
-PVSAVE DS 1 ;PACMAN VPOS SAVE
-PHSAVE DS 1 ;PACMAN HPOS SAVE
-M1VPOS DS 1 ;MONSTER 1 VERTICAL POSIT
-M2VPOS DS 1 ;MONSTER 2 VERTICAL POSIT
-M3VPOS DS 1 ;MONSTER 3 VERTICAL POSIT
-M4VPOS DS 1 ;MONSTER 4 VERTICAL POSIT
-PMVPOS DS 1 ;PACMAN VERTICAL POSITION
-M1HPOS DS 1 ;MONSTER 1 HORIZ POSITION
-M2HPOS DS 1 ;MONSTER 2 HORIZ POSITION
-M3HPOS DS 1 ;MONSTER 3 HORIZ POSITION
-M4HPOS DS 1 ;MONSTER 4 HORIZ POSITION
-PMHPOS DS 1 ;PACMAN HORIZONTAL POSIT
-M1DIRT DS 1 ;MONSTER 1 DIRECTION
-M2DIRT DS 1 ;MONSTER 2 DIRECTION
-M3DIRT DS 1 ;MONSTER 3 DIRECTION
-M4DIRT DS 1 ;MONSTER 4 DIRECTION
-PMODIR DS 1 ;PACMAN OLD DIRECTION		; 4f
-SCOREX DS 6 ;PLAYER SCORE FOR TEXT
-CARRYB DS 1 ;CARRY BIT FOR ABOVE
-PAUSEF DS 1 ;PAUSE FLAG			; 57
-WHINEY DS 1 ;CHASE WHINE DELTA
-FRUTMR DS 2 ;FRUIT TIMER (10 SECS)
-FRUFLG DS 1 ;FRUIT DISPLAY FLAG
-FRUCLR DS 1 ;FRUIT COLOR
-FRSCRF DS 1 ;FRUIT SCORE FLAG
-FRSCRT DS 1 ;FRUIT SCORE TIMER
-NOTCNT DS 1 ;NOTE COUNT FOR TUNES
-VSAVER DS 1 ;VERTICAL POSIT SAVE
-HSAVER DS 1 ;HORIZONTAL POSIT SAVE
-PACMAP DS 1 ;PACMAN VERT MAP COUNTER
-PACCNT DS 1 ;PACMAN MOTION COUNT
-PACADV DS 1 ;PACMAN ADVANCE-TURNING
-PACDLY DS 1 ;PACMAN DELAY-EATING DOTS
-PMSTAT DS 1 ;PACMAN STATUS
-PMSEQU DS 1 ;PACMAN SEQUENCE (MOUTH)
-PMNDIR DS 1 ;PACMAN NEW DIRECTION
-CHASET DS 1 ;CHASE TIMER
-MSTILL DS 1 ;MONSTERS STILL FLAG
-MSKIRT DS 1 ;MONSTER SKIRT FLAG
-M1SPSQ DS 1 ;MONSTER 1 SPEED SEQUENCE
-M2SPSQ DS 1 ;MONSTER 2 SPEED SEQUENCE
-M3SPSQ DS 1 ;MONSTER 3 SPEED SEQUENCE
-M4SPSQ DS 1 ;MONSTER 4 SPEED SEQUENCE
-PMSPSQ DS 1 ;PACMAN SPEED SEQUENCE
-M1SPCT DS 1 ;MONSTER 1 SPEED COUNT
-M2SPCT DS 1 ;MONSTER 2 SPEED COUNT
-M3SPCT DS 1 ;MONSTER 3 SPEED COUNT
-M4SPCT DS 1 ;MONSTER 4 SPEED COUNT
-PMSPCT DS 1 ;PACMAN  SPEED COUNT
-M1PIDX DS 1 ;MONSTER 1 PATTERN INDEX
-M2PIDX DS 1 ;MONSTER 2 PATTERN INDEX
-M3PIDX DS 1 ;MONSTER 3 PATTERN INDEX
-M4PIDX DS 1 ;MONSTER 4 PATTERN INDEX
-M1PCNT DS 1 ;MONSTER 1 PATTERN COUNT
-M2PCNT DS 1 ;MONSTER 2 PATTERN COUNT
-M3PCNT DS 1 ;MONSTER 3 PATTERN COUNT
-M4PCNT DS 1 ;MONSTER 4 PATTERN COUNT
-M1THPS DS 1 ;MONSTER 1 TARGET HPOS
-M2THPS DS 1 ;MONSTER 2 TARGET HPOS
-M3THPS DS 1 ;MONSTER 3 TARGET HPOS
-M4THPS DS 1 ;MONSTER 4 TARGET HPOS
-M1TVPS DS 1 ;MONSTER 1 TARGET VPOS
-M2TVPS DS 1 ;MONSTER 2 TARGET VPOS
-M3TVPS DS 1 ;MONSTER 3 TARGET VPOS
-M4TVPS DS 1 ;MONSTER 4 TARGET VPOS
-M1TIMR DS 1 ;MONSTER 1 TIMER
-M2TIMR DS 1 ;MONSTER 2 TIMER
-M3TIMR DS 1 ;MONSTER 3 TIMER
-M4TIMR DS 1 ;MONSTER 4 TIMER
-M1STAT DS 1 ;MONSTER 1 STATUS
-M2STAT DS 1 ;MONSTER 2 STATUS
-M3STAT DS 1 ;MONSTER 3 STATUS
-M4STAT DS 1 ;MONSTER 4 STATUS
-M1SSEQ DS 1 ;MONSTER 1 START SEQUENCE
-M2SSEQ DS 1 ;MONSTER 2 START SEQUENCE
-M3SSEQ DS 1 ;MONSTER 3 START SEQUENCE
-M4SSEQ DS 1 ;MONSTER 4 START SEQUENCE
-M1VDIR DS 1 ;MONSTER 1 VERT CHOICE
-M2VDIR DS 1 ;MONSTER 2 VERT CHOICE
-M3VDIR DS 1 ;MONSTER 3 VERT CHOICE
-M4VDIR DS 1 ;MONSTER 4 VERT CHOICE
-M1HDIR DS 1 ;MONSTER 1 HORZ CHOICE
-M2HDIR DS 1 ;MONSTER 2 HORZ CHOICE
-M3HDIR DS 1 ;MONSTER 3 HORZ CHOICE
-M4HDIR DS 1 ;MONSTER 4 HORZ CHOICE
-VCHASF DS 1 ;CHASE FREQ
-VCHASD DS 1 ;DIRECTION 1=INC 2=DEC
-VCHASS DS 1 ;CHASE SOUND START
-VFLITF DS 1 ;FLIGHT FREQ
-VFLITD DS 1 ;DIRECTION SAME
-VFLITV DS 1 ;FLIGHT VOLUME
-VFLITS DS 1 ;FLIGHT SOUND START
-VFREEZ DS 1 ;FREEZE FLAG
-VGLPC1 DS 1 ;GULP COUNT1
-VGLPC2 DS 1 ;GULP COUNT2
-GULPED DS 1 ;LAST MONSTER EATEN
-GLPCNT DS 1 ;GULP COUNT
-FIZZLE DS 1 ;FIZZLE FLAG 1=FIZL
-FIZPTR DS 1 ;FIZZLE ADDR POINTER
-FIZTIM DS 1 ;FIZZLE TIMER
-VFIZST DS 1 ;FIZZLE STATUS
-VFIZSQ DS 1 ;FIZZLE SEQUENCE #
-VFIZBS DS 1 ;FIZZLE FREQ BASE
-VFIZFQ DS 1 ;FIZZLE CURRENT FREQ
-VFIZCT DS 1 ;FIZZLE COUNTER
-TWEETR DS 1 ;TWEET SOUND FLAG
-TWEETF DS 1 ;TWEET SOUND FREQ
-EATERF DS 1 ;EAT DOT SOUND FLAG
-EATERC DS 1 ;EAT DOT SOUND COUNT
-EATERT DS 1 ;EAT DOT TOGGLE
-GOBBLD DS 1 ;GOBBLE DIRCTN (FRUITS)
-GOBBLF DS 1 ;GOBBLE FREQUENCY
-BLINKT DS 1 ;BLINK TIMER
-FLSHUP DS 1 ;FLASH 1UP 2UP TIMER
-FLASHT DS 1 ;FLASH TIMER
-FLASHC DS 1 ;FLASH COUNT
-FLITMR DS 1 ;FLIGHT TIMER
-TUNMSK DS 1 ;TUNNEL BIT MASK
-TUNCNT DS 1 ;TUNNEL ITERATION COUNT
+pacscn ds 2 ;pacman screen mem addr		; 3c
+pacbyt ds 1 ;pacman byte counter		; 3e
+pvsave ds 1 ;pacman vpos save			; 3f
+phsave ds 1 ;pacman hpos save			; 40
+m1vpos ds 1 ;monster 1 vertical posit	; 41
+m2vpos ds 1 ;monster 2 vertical posit
+m3vpos ds 1 ;monster 3 vertical posit
+m4vpos ds 1 ;monster 4 vertical posit
+pmvpos ds 1 ;pacman vertical position	; 45
+m1hpos ds 1 ;monster 1 horiz position	; 46
+m2hpos ds 1 ;monster 2 horiz position
+m3hpos ds 1 ;monster 3 horiz position
+m4hpos ds 1 ;monster 4 horiz position
+pmhpos ds 1 ;pacman horizontal posit	; 4a
+m1dirt ds 1 ;monster 1 direction		; 4b
+m2dirt ds 1 ;monster 2 direction
+m3dirt ds 1 ;monster 3 direction
+m4dirt ds 1 ;monster 4 direction
+pmodir ds 1 ;pacman old direction		; 4f
+scorex ds 6 ;player score for text		; 50-55
+carryb ds 1 ;carry bit for above		; 56
+pausef ds 1 ;pause flag					; 57
+whiney ds 1 ;chase whine delta			; 58
+frutmr ds 2 ;fruit timer (10 secs)		; 59
+fruflg ds 1 ;fruit display flag			; 5b
+fruclr ds 1 ;fruit color				; 5c
+frscrf ds 1 ;fruit score flag			; 5d
+frscrt ds 1 ;fruit score timer			; 5e
+notcnt ds 1 ;note count for tunes		; 5f
+vsaver ds 1 ;vertical posit save		; 60
+hsaver ds 1 ;horizontal posit save		; 61
+pacmap ds 1 ;pacman vert map counter	; 62
+paccnt ds 1 ;pacman motion count
+pacadv ds 1 ;pacman advance-turning
+pacdly ds 1 ;pacman delay-eating dots
+pmstat ds 1 ;pacman status
+pmsequ ds 1 ;pacman sequence (mouth)
+pmndir ds 1 ;pacman new direction
+chaset ds 1 ;chase timer
+mstill ds 1 ;monsters still flag
+mskirt ds 1 ;monster skirt flag
+m1spsq ds 1 ;monster 1 speed sequence
+m2spsq ds 1 ;monster 2 speed sequence
+m3spsq ds 1 ;monster 3 speed sequence
+m4spsq ds 1 ;monster 4 speed sequence
+pmspsq ds 1 ;pacman speed sequence
+m1spct ds 1 ;monster 1 speed count
+m2spct ds 1 ;monster 2 speed count
+m3spct ds 1 ;monster 3 speed count
+m4spct ds 1 ;monster 4 speed count
+pmspct ds 1 ;pacman  speed count
+m1pidx ds 1 ;monster 1 pattern index
+m2pidx ds 1 ;monster 2 pattern index
+m3pidx ds 1 ;monster 3 pattern index
+m4pidx ds 1 ;monster 4 pattern index
+m1pcnt ds 1 ;monster 1 pattern count
+m2pcnt ds 1 ;monster 2 pattern count
+m3pcnt ds 1 ;monster 3 pattern count
+m4pcnt ds 1 ;monster 4 pattern count
+m1thps ds 1 ;monster 1 target hpos
+m2thps ds 1 ;monster 2 target hpos
+m3thps ds 1 ;monster 3 target hpos
+m4thps ds 1 ;monster 4 target hpos
+m1tvps ds 1 ;monster 1 target vpos
+m2tvps ds 1 ;monster 2 target vpos
+m3tvps ds 1 ;monster 3 target vpos
+m4tvps ds 1 ;monster 4 target vpos
+m1timr ds 1 ;monster 1 timer
+m2timr ds 1 ;monster 2 timer
+m3timr ds 1 ;monster 3 timer
+m4timr ds 1 ;monster 4 timer
+m1stat ds 1 ;monster 1 status
+m2stat ds 1 ;monster 2 status
+m3stat ds 1 ;monster 3 status
+m4stat ds 1 ;monster 4 status
+m1sseq ds 1 ;monster 1 start sequence
+m2sseq ds 1 ;monster 2 start sequence
+m3sseq ds 1 ;monster 3 start sequence
+m4sseq ds 1 ;monster 4 start sequence
+m1vdir ds 1 ;monster 1 vert choice
+m2vdir ds 1 ;monster 2 vert choice
+m3vdir ds 1 ;monster 3 vert choice
+m4vdir ds 1 ;monster 4 vert choice
+m1hdir ds 1 ;monster 1 horz choice
+m2hdir ds 1 ;monster 2 horz choice
+m3hdir ds 1 ;monster 3 horz choice
+m4hdir ds 1 ;monster 4 horz choice
+vchasf ds 1 ;chase freq
+vchasd ds 1 ;direction 1=inc 2=dec
+vchass ds 1 ;chase sound start
+vflitf ds 1 ;flight freq
+vflitd ds 1 ;direction same
+vflitv ds 1 ;flight volume
+vflits ds 1 ;flight sound start
+vfreez ds 1 ;freeze flag
+vglpc1 ds 1 ;gulp count1
+vglpc2 ds 1 ;gulp count2
+gulped ds 1 ;last monster eaten
+glpcnt ds 1 ;gulp count
+fizzle ds 1 ;fizzle flag 1=fizl
+fizptr ds 1 ;fizzle addr pointer
+fiztim ds 1 ;fizzle timer
+vfizst ds 1 ;fizzle status
+vfizsq ds 1 ;fizzle sequence #
+vfizbs ds 1 ;fizzle freq base
+vfizfq ds 1 ;fizzle current freq
+vfizct ds 1 ;fizzle counter
+tweetr ds 1 ;tweet sound flag
+tweetf ds 1 ;tweet sound freq
+eaterf ds 1 ;eat dot sound flag
+eaterc ds 1 ;eat dot sound count
+eatert ds 1 ;eat dot toggle
+gobbld ds 1 ;gobble dirctn (fruits)
+gobblf ds 1 ;gobble frequency
+blinkt ds 1 ;blink timer
+flshup ds 1 ;flash 1up 2up timer
+flasht ds 1 ;flash timer
+flashc ds 1 ;flash count
+flitmr ds 1 ;flight timer
+tunmsk ds 1 ;tunnel bit mask
+tuncnt ds 1 ;tunnel iteration count
 ;
- EJECT
+ eject
 ;
- ORG $0600
+ org $0600
 ;
-PACBUF DS 16 ; PACMAN IMAGE BUFFER
-MONBUF DS 16 ; MONSTER IMAGE BUFFER
+pacbuf ds 16 ; pacman image buffer
+monbuf ds 16 ; monster image buffer
 ;
-INTRDL EQU $0680;INTERMISSION DL
-INTMOD EQU $06C0;INTERMISSION MODE
-INTSEQ EQU $06C1;INTERMISSION SEQ
+intrdl equ $0680;intermission dl
+intmod equ $06c0;intermission mode
+intseq equ $06c1;intermission seq
 ;
 ;
-;****   SYSTEM VARIABLES    ****
+;****   system variables    ****
 ;
-BDELAY EQU 1  ;BOUNCE DELAY
-FDELAY EQU $FF;FRUIT TIMER VALUE
-ADELAY EQU $30;ATTRACT TIMER DELAY
+bdelay equ 1  ;bounce delay
+fdelay equ $ff;fruit timer value
+adelay equ $30;attract timer delay
 ;
-GAMMEM EQU $0800; GAME MEMORY
+gammem equ $0800; game memory
 ;
-PACMAZ EQU GAMMEM+$0C00
-P1SAVE EQU GAMMEM+$1000
-P2SAVE EQU GAMMEM+$1400
-OPTCHR EQU GAMMEM+$1800
-OPTSCN EQU GAMMEM+$1C00
-PMADDR EQU GAMMEM+$2000
-TEXT   EQU GAMMEM+$2000
-PATSCN EQU GAMMEM+$2800
-AMCSET EQU GAMMEM+$2C00
+pacmaz equ gammem+$0c00
+p1save equ gammem+$1000
+p2save equ gammem+$1400
+optchr equ gammem+$1800
+optscn equ gammem+$1c00
+pmaddr equ gammem+$2000
+text   equ gammem+$2000
+patscn equ gammem+$2800
+amcset equ gammem+$2c00
 ;
- EJECT
+ eject
 ;
- ORG $3FFD
+ org $3ffd
 ;
- JMP INIT
+ jmp init
 ;
- INCLUDE D2:PACDAT1.ASM
+ include d2:pacdat1.asm
 ;
- EJECT
+ eject
 ;
-INIT LDX #9
-INITL1 LDA HISCTX,X
- STA TEXT+$0F,X
- DEX
- BPL INITL1
- LDA #0
- LDX #$27
-INITL2 STA DLICNT,X
- DEX
- BPL INITL2
- LDX #$7F
-INIPZL STA $80,X
- DEX
- BPL INIPZL
+init ldx #9
+initl1 lda hisctx,x
+ sta text+$0f,x
+ dex
+ bpl initl1
+ lda #0
+ ldx #$27
+initl2 sta dlicnt,x
+ dex
+ bpl initl2
+ ldx #$7f
+inipzl sta $80,x
+ dex
+ bpl inipzl
 ;
- INC OPTION
- LDX RTCLOK+2
- DEX
- STX ATCLOK
+ inc option
+ ldx rtclok+2
+ dex
+ stx atclok
 ;
-; RELOCATE OPTION CHAR SET
+; relocate option char set
 ;
- LDX #0
-OCLOOP LDA PACTTL,X
- STA OPTCHR+8,X
- INX
- BNE OCLOOP
+ ldx #0
+ocloop lda pacttl,x
+ sta optchr+8,x
+ inx
+ bne ocloop
 ;
-; BUILD ATTRACT MODE CHAR SET
+; build attract mode char set
 ;
-ANCHRL LDA CHRORG,X
- STA AMCSET,X
- LDA CHRORG+$100,X
- STA AMCSET+$100,X
- INX
- BNE ANCHRL
- LDX #$1F
-ANCDTL LDA ATCHRS,X
- STA AMCSET+$18,X
- DEX
- BPL ANCDTL
+anchrl lda chrorg,x
+ sta amcset,x
+ lda chrorg+$100,x
+ sta amcset+$100,x
+ inx
+ bne anchrl
+ ldx #$1f
+ancdtl lda atchrs,x
+ sta amcset+$18,x
+ dex
+ bpl ancdtl
 ;
-; ENABLE KEYSCAN & SET VBI VECTOR
+; enable keyscan & set vbi vector
 ;
-PACINI SEI
- LDA POKMSK
- ORA #$40
- STA POKMSK
- STA IRQEN
- CLI
- LDY #LOW VBLANK
- LDX #HIGH VBLANK
- LDA #7
- STA SKCTL
- JSR SETVBV;GO SET VBLANK VECTOR
- LDA #$C0;ENABLE DLI AND VBI
- STA NMIEN
- LDA #$3E
- STA SDMCTL;ENABLE P/M GRAPHICS
- LDA #$3
- STA GRACTL
- LDA #HIGH PMADDR
- STA PMBASE
- LDA #LOW INIT
- STA DOSVEC
- LDA #HIGH INIT
- STA DOSVEC+1
- LDA #LOW INITAD
- STA DOSINI
- LDA #HIGH INITAD
- STA DOSINI+1
+pacini sei
+ lda pokmsk
+ ora #$40
+ sta pokmsk
+ sta irqen
+ cli
+ ldy #low vblank
+ ldx #high vblank
+ lda #7
+ sta skctl
+ jsr setvbv;go set vblank vector
+ lda #$c0;enable dli and vbi
+ sta nmien
+ lda #$3e
+ sta sdmctl;enable p/m graphics
+ lda #$3
+ sta gractl
+ lda #high pmaddr
+ sta pmbase
+ lda #low init
+ sta dosvec
+ lda #high init
+ sta dosvec+1
+ lda #low initad
+ sta dosini
+ lda #high initad
+ sta dosini+1
 ;
-REINIT LDA #0;NEW GAME VECTOR
- LDX #$1F
-REINLP STA GMOVRF,X
- DEX
- BPL REINLP
- TXS
- JSR CLRAUD
+reinit lda #0;new game vector
+ ldx #$1f
+reinlp sta gmovrf,x
+ dex
+ bpl reinlp
+ txs
+ jsr clraud
 ;
-; NOW INITIALIZE PLAYER SCREENS
+; now initialize player screens
 ;
- JSR P1INIT
- JSR SAVEP1
- JSR SAVEP2
+ jsr p1init
+ jsr savep1
+ jsr savep2
 ;
- LDA OPTION
- BNE LOOP
+ lda option
+ bne loop
 ;
-PACGAM LDA RTCLOK+2
-PACGML CMP RTCLOK+2
- BEQ PACGML
- LDA #LOW DLIST
- STA SDLSTL
- STA DLISTL
- LDA #HIGH DLIST
- STA SDLSTH
- STA DLISTH
- LDA #LOW DLIV; DLI VECTOR
- STA VDSLST
- LDA #HIGH DLIV
- STA VDSLST+1
- LDA #$11
- STA GPRIOR;LET MISSILES USE COLPF3
-SETPAC JSR SETUP
- JSR NEWGAM
- LDA NUMPLY
- BEQ P1SCIN
- JSR SET2PL
- JMP GODOIT
-P1SCIN JSR SET1PL
-GODOIT LDA #2
- STA RSTRTF
+pacgam lda rtclok+2
+pacgml cmp rtclok+2
+ beq pacgml
+ lda #low dlist
+ sta sdlstl
+ sta dlistl
+ lda #high dlist
+ sta sdlsth
+ sta dlisth
+ lda #low dliv; dli vector
+ sta vdslst
+ lda #high dliv
+ sta vdslst+1
+ lda #$11
+ sta gprior;let missiles use colpf3
+setpac jsr setup
+ jsr newgam
+ lda numply
+ beq p1scin
+ jsr set2pl
+ jmp godoit
+p1scin jsr set1pl
+godoit lda #2
+ sta rstrtf
 ;
-LOOP LDA RRSEQU
- CMP #3
- BNE GOLOOP
- JSR INTMIS
- JSR SETUP
- INC RRSEQU
-GOLOOP LDX  #3
-LOOPLP LDA ACOLOR,X
- EOR COLRSH;ATTRACT COLORS THAT ARE
- AND DRKMSK;SWITCHED WITH DLI'S
- STA ACOLR1,X
- DEX
- BPL LOOPLP
- LDA OPTION
- BNE PCTRIG
- LDA KEYDEL
- BNE IGNORK
- LDA CH;    TEST FOR SPACE BAR PAUSE
- CMP #$21
- BNE IGNORK
- LDA PAUSEF
- BEQ FLIPON
- LDA #0
- BEQ STFLIP
-FLIPON LDA #1
-STFLIP STA PAUSEF
-NOFLIP LDA #$FF
- STA CH
-IGNORK LDA GMOVRF
- BEQ GAMCNS
- LDA ATTIMR;IF GAME OVER, TIME OUT
- BNE PCTRIG;AND GO TO OPTION SCREEN
- LDA #4
- BNE PCEXT1
-PCTRIG LDA #$FF
- STA CH
- LDA STRIG0
- BEQ CSTART
- LDA STRIG1;TEST TRIGGER START
- BEQ CSTART
-GAMCNS LDA CONSOL
- CMP #7;    NO BUTTONS PRESSED
- BEQ LOOP
-CNSSWT STA SAVCNS
- LDX #BDELAY
- STX BCOUNT
-CLOOP1 ORA CONSOL
- LDX BCOUNT;DEBOUNCE LOGIC
- BNE CLOOP1
- CMP SAVCNS
- BNE GAMCNS
-CLOOP2 CMP CONSOL
- BEQ CLOOP2
- LDA SAVCNS
- CMP #6
- BEQ CSTART
- LDX ATSEQU
- BEQ CPROPT
- LDA #0
- STA ATSEQU
- LDA #4
- BNE PCEXT1
-CPROPT LDX OPTION;IF OPTION SCREEN
- CPX #3;         THEN CHANGE PARAMS
- BCC PCEXIT
-PRESSW CMP #3
- BEQ COPTON
- CMP #5
- BEQ CSELEC
- JMP LOOP
-CSTART LDA #0
- STA GMOVRF;START FUNCTION-NEW GAME
- STA OPTION
- STA ATSEQU
- LDA #1
- STA RSTRTF
- JMP REINIT
-CSELEC LDA NUMPLY
- BNE PCNSE1;PROCESS SELECT CHANGES
- LDA #1
- BNE PCNSE2
-PCNSE1 LDA #0
-PCNSE2 STA NUMPLY
-PCEXIT LDA #3
-PCEXT1 STA OPTION
- STA ATRACT
- LDA #7
- STA ATCLOK
- JMP LOOP
-COPTON LDA DIFOPT
- CMP #2
- BCS PCNOP1;PROCESS OPTION CHANGES
- INC DIFOPT
- BNE PCEXIT
-PCNOP1 CMP #$0C
- BEQ PCNOP2
- INC DIFOPT
- INC DIFOPT
- BNE PCEXIT
-PCNOP2 LDA #0
- STA DIFOPT
- BEQ PCEXIT
+loop lda rrsequ
+ cmp #3
+ bne goloop
+ jsr intmis
+ jsr setup
+ inc rrsequ
+goloop ldx  #3
+looplp lda acolor,x
+ eor colrsh;attract colors that are
+ and drkmsk;switched with dli's
+ sta acolr1,x
+ dex
+ bpl looplp
+ lda option
+ bne pctrig
+ lda keydel
+ bne ignork
+ lda ch;    test for space bar pause
+ cmp #$21
+ bne ignork
+ lda pausef
+ beq flipon
+ lda #0
+ beq stflip
+flipon lda #1
+stflip sta pausef
+noflip lda #$ff
+ sta ch
+ignork lda gmovrf
+ beq gamcns
+ lda attimr;if game over, time out
+ bne pctrig;and go to option screen
+ lda #4
+ bne pcext1
+pctrig lda #$ff
+ sta ch
+ lda strig0
+ beq cstart
+ lda strig1;test trigger start
+ beq cstart
+gamcns lda consol
+ cmp #7;    no buttons pressed
+ beq loop
+cnsswt sta savcns
+ ldx #bdelay
+ stx bcount
+cloop1 ora consol
+ ldx bcount;debounce logic
+ bne cloop1
+ cmp savcns
+ bne gamcns
+cloop2 cmp consol
+ beq cloop2
+ lda savcns
+ cmp #6
+ beq cstart
+ ldx atsequ
+ beq cpropt
+ lda #0
+ sta atsequ
+ lda #4
+ bne pcext1
+cpropt ldx option;if option screen
+ cpx #3;         then change params
+ bcc pcexit
+pressw cmp #3
+ beq copton
+ cmp #5
+ beq cselec
+ jmp loop
+cstart lda #0
+ sta gmovrf;start function-new game
+ sta option
+ sta atsequ
+ lda #1
+ sta rstrtf
+ jmp reinit
+cselec lda numply
+ bne pcnse1;process select changes
+ lda #1
+ bne pcnse2
+pcnse1 lda #0
+pcnse2 sta numply
+pcexit lda #3
+pcext1 sta option
+ sta atract
+ lda #7
+ sta atclok
+ jmp loop
+copton lda difopt
+ cmp #2
+ bcs pcnop1;process option changes
+ inc difopt
+ bne pcexit
+pcnop1 cmp #$0c
+ beq pcnop2
+ inc difopt
+ inc difopt
+ bne pcexit
+pcnop2 lda #0
+ sta difopt
+ beq pcexit
 ;
-; DISPLAY LIST INTERRUPT VECTOR
+; display list interrupt vector
 ;
-DLIV PHA
- TXA
- PHA
- LDX DLICNT;DLI COUNT
- BNE DLI2ND
- LDA #HIGH PACCHR
- STA WSYNC
- STA CHBASE
- BNE DLIXIT
-DLI2ND CPX #1
- BNE DLI3RD
- LDA ACOLR4;-$DA PLAYER 1-2 MSG
- LDX ACOLR1;-$3A LT ORANGE COLOR
- STA WSYNC
- STA COLPF1
- STX COLPF2
- BNE DLIXIT
-DLI3RD CPX #2
- BNE DLI4TH
- LDA FRUCLR; FRUIT COLOR
- EOR COLRSH
- AND DRKMSK
- STA WSYNC
- STA COLPF1
- BNE DLIXIT
-DLI4TH CPX #3
- BNE DLI5TH
- LDA ACOLR2
- STA WSYNC
- STA COLPF1
- BNE DLIXIT
-DLI5TH CPX #4
- BNE LSTDLI
- LDA ACOLR3;YELLOW COLOR
- LDX ACOLR4
- STA WSYNC
- STX COLPF0
- STA COLPF3
- BNE DLIXIT
-LSTDLI LDX #3
- LDA #0
-DLICLP STA COLPM0,X
- DEX
- BPL DLICLP
- STA COLPF3
-DLIXIT INC DLICNT
- PLA
- TAX
- PLA
- RTI
+dliv pha
+ txa
+ pha
+ ldx dlicnt;dli count
+ bne dli2nd
+ lda #high pacchr
+ sta wsync
+ sta chbase
+ bne dlixit
+dli2nd cpx #1
+ bne dli3rd
+ lda acolr4;-$da player 1-2 msg
+ ldx acolr1;-$3a lt orange color
+ sta wsync
+ sta colpf1
+ stx colpf2
+ bne dlixit
+dli3rd cpx #2
+ bne dli4th
+ lda fruclr; fruit color
+ eor colrsh
+ and drkmsk
+ sta wsync
+ sta colpf1
+ bne dlixit
+dli4th cpx #3
+ bne dli5th
+ lda acolr2
+ sta wsync
+ sta colpf1
+ bne dlixit
+dli5th cpx #4
+ bne lstdli
+ lda acolr3;yellow color
+ ldx acolr4
+ sta wsync
+ stx colpf0
+ sta colpf3
+ bne dlixit
+lstdli ldx #3
+ lda #0
+dliclp sta colpm0,x
+ dex
+ bpl dliclp
+ sta colpf3
+dlixit inc dlicnt
+ pla
+ tax
+ pla
+ rti
 ;
-; DLI VECTOR FOR OPT & TITLE SCREENS
+; dli vector for opt & title screens
 ;
-OPDLIV PHA
- TXA
- PHA
- TYA
- PHA
- LDX DLICNT
- BNE OPDLI1
- LDY ACOLR2
- LDA ACOLR1
- LDX #HIGH OPTCHR
- STA WSYNC
- STX CHBASE
- STA COLPF2
- STY COLPF1
- JMP OPDLIX
-OPDLI1 LDA OCINDX,X
- STA WSYNC
- STA CHBASE
-OPDLIX INC DLICNT
- PLA
- TAY
- PLA
- TAX
- PLA
- RTI
+opdliv pha
+ txa
+ pha
+ tya
+ pha
+ ldx dlicnt
+ bne opdli1
+ ldy acolr2
+ lda acolr1
+ ldx #high optchr
+ sta wsync
+ stx chbase
+ sta colpf2
+ sty colpf1
+ jmp opdlix
+opdli1 lda ocindx,x
+ sta wsync
+ sta chbase
+opdlix inc dlicnt
+ pla
+ tay
+ pla
+ tax
+ pla
+ rti
 ;
-; VERTICAL BLANK INTERRUPT VECTOR
+; vertical blank interrupt vector
 ;
-VBLANK LDA #0
- STA DLICNT
- DEC BCOUNT
- JSR VBSUBS
- LDA ATSEQU
- BNE VBEXIT
- LDA VFREEZ
- BNE VBEXIT
- JSR TUNNEL
-VBEXIT JMP XITVBV; EXIT VECTOR
+vblank lda #0
+ sta dlicnt
+ dec bcount
+ jsr vbsubs
+ lda atsequ
+ bne vbexit
+ lda vfreez
+ bne vbexit
+ jsr tunnel
+vbexit jmp xitvbv; exit vector
 ;
-OPTTTL LDA #0
- LDX #7
-CHRDWR STA HPOSP0,X
- STA AUDF1,X
- DEX
- BPL CHRDWR
- LDA #LOW ODLIST
- STA SDLSTL
- STA DLISTL
- LDA #HIGH ODLIST
- STA SDLSTH
- STA DLISTH
- LDA #LOW OPDLIV
- STA VDSLST
- LDA #HIGH OPDLIV
- STA VDSLST+1
-OCOLRS LDY #3
-OCLRLP LDA OCOLOR,Y
- STA COLOR0,Y
- DEY
- BPL OCLRLP
-INITAD RTS
+optttl lda #0
+ ldx #7
+chrdwr sta hposp0,x
+ sta audf1,x
+ dex
+ bpl chrdwr
+ lda #low odlist
+ sta sdlstl
+ sta dlistl
+ lda #high odlist
+ sta sdlsth
+ sta dlisth
+ lda #low opdliv
+ sta vdslst
+ lda #high opdliv
+ sta vdslst+1
+ocolrs ldy #3
+oclrlp lda ocolor,y
+ sta color0,y
+ dey
+ bpl oclrlp
+initad rts
 ;
-SET1PL LDX #6
- LDA #0
-S1PLL1 STA TEXT+$20,X
- STA TEXT+$47,X
- STA TEXT+$2A,X
- DEX
- BPL S1PLL1
-SETXPL JSR FLS1ON
- LDA #$10
- STA TEXT+$2E
- STA TEXT+$2F
- RTS
+set1pl ldx #6
+ lda #0
+s1pll1 sta text+$20,x
+ sta text+$47,x
+ sta text+$2a,x
+ dex
+ bpl s1pll1
+setxpl jsr fls1on
+ lda #$10
+ sta text+$2e
+ sta text+$2f
+ rts
 ;
-SET2PL LDX #6
- LDA #0
-S2PLL1 STA TEXT+$2A,X
- STA TEXT+$47,X
- DEX
- BPL S2PLL1
- JSR FLS2ON
- LDA #$10
- STA TEXT+$4B
- STA TEXT+$4C
- BNE SETXPL
+set2pl ldx #6
+ lda #0
+s2pll1 sta text+$2a,x
+ sta text+$47,x
+ dex
+ bpl s2pll1
+ jsr fls2on
+ lda #$10
+ sta text+$4b
+ sta text+$4c
+ bne setxpl
 ;
-; INCLUDE D1:PAC1.ASM
+; include d1:pac1.asm
 
 ;
-VBSUBS LDA ATSEQU
- BNE VBATTR
- JMP CKOPTS
-VBATTR CMP #1
- BNE CKATS2
- LDX #0
- TXA
-CLRAOP STA OPTSCN+$50,X
- STA OPTSCN+$150,X
- DEX
- BNE CLRAOP
- LDX #$0F
-BPMLP1 LDA BPMSG1,X
- STA OPTSCN+$11A,X
- DEX
- BPL BPMLP1
- LDX #$11
-BPMLP2 LDA BPMSG2,X
- STA OPTSCN+$141,X
- DEX
- BPL BPMLP2
- LDA #$FF
- STA ATTIMR
- INC ATSEQU
- RTS
-CKATS2 CMP #2
- BNE CKATS3
- LDA ATTIMR
- BEQ CAS2ER
- JMP DECATM
-CAS2ER LDA #0
- LDX #$11
-C2ERLP STA OPTSCN+$119,X
- STA OPTSCN+$141,X
- DEX
- BPL C2ERLP
- LDA #$7F
- STA ATTIMR
- INC ATSEQU
- RTS
-CKATS3 CMP #3
- BNE CKATS4
- LDA ATTIMR
- BEQ CS3SCN
- JMP DECATM
-CS3SCN LDX #0
- TXA
-CLRASC STA PATSCN,X
- STA PATSCN+$100,X
- INX
- BNE CLRASC
- INC ATSEQU
- RTS
-CKATS4 CMP #4
- BNE CKATS5
- LDA #LOW ADLIST
- STA SDLSTL
- STA DLISTL
- LDA #HIGH ADLIST
- STA SDLSTH
- STA DLISTH
- LDA #LOW ADLIV
- STA VDSLST
- LDA #HIGH ADLIV
- STA VDSLST+1
- LDX #7
-SETACL LDA ACOLRS,X
- STA PCOLR0,X
- DEX
- BPL SETACL
- LDA #$7F
- STA ATTIMR
- INC ATSEQU
- RTS
-CKATS5 CMP #5
- BNE CKATS6
- LDA ATTIMR
- BEQ C4NICK
- JMP DECATM
-C4NICK LDX #19
-ASTART LDA CHNKTX,X
- STA PATSCN+$28,X
- DEX
- BPL ASTART
- INC ATSEQU
- RTS
-CKATS6 CMP #6
- BNE CKATSQ
- LDX #0
- TXA
- JSR INITPL
- LDX #$7F
-INIAP0 STA $80,X
- DEX
- BPL INIAP0
- JSR ATINIT
- INC ATSEQU
- LDA #ADELAY
- STA ATTIMR
- RTS
-CKATSQ LDA ATSEQU
- CMP #$16
- BCC CKATMR
- JMP SEQATM
-CKATMR LDA ATTIMR
- BNE DECATM
- JSR SEQATR
- INC ATSEQU
- LDA #ADELAY
- STA ATTIMR
- RTS
-DECATM DEC ATTIMR
- RTS
+vbsubs lda atsequ
+ bne vbattr
+ jmp ckopts
+vbattr cmp #1
+ bne ckats2
+ ldx #0
+ txa
+clraop sta optscn+$50,x
+ sta optscn+$150,x
+ dex
+ bne clraop
+ ldx #$0f
+bpmlp1 lda bpmsg1,x
+ sta optscn+$11a,x
+ dex
+ bpl bpmlp1
+ ldx #$11
+bpmlp2 lda bpmsg2,x
+ sta optscn+$141,x
+ dex
+ bpl bpmlp2
+ lda #$ff
+ sta attimr
+ inc atsequ
+ rts
+ckats2 cmp #2
+ bne ckats3
+ lda attimr
+ beq cas2er
+ jmp decatm
+cas2er lda #0
+ ldx #$11
+c2erlp sta optscn+$119,x
+ sta optscn+$141,x
+ dex
+ bpl c2erlp
+ lda #$7f
+ sta attimr
+ inc atsequ
+ rts
+ckats3 cmp #3
+ bne ckats4
+ lda attimr
+ beq cs3scn
+ jmp decatm
+cs3scn ldx #0
+ txa
+clrasc sta patscn,x
+ sta patscn+$100,x
+ inx
+ bne clrasc
+ inc atsequ
+ rts
+ckats4 cmp #4
+ bne ckats5
+ lda #low adlist
+ sta sdlstl
+ sta dlistl
+ lda #high adlist
+ sta sdlsth
+ sta dlisth
+ lda #low adliv
+ sta vdslst
+ lda #high adliv
+ sta vdslst+1
+ ldx #7
+setacl lda acolrs,x
+ sta pcolr0,x
+ dex
+ bpl setacl
+ lda #$7f
+ sta attimr
+ inc atsequ
+ rts
+ckats5 cmp #5
+ bne ckats6
+ lda attimr
+ beq c4nick
+ jmp decatm
+c4nick ldx #19
+astart lda chnktx,x
+ sta patscn+$28,x
+ dex
+ bpl astart
+ inc atsequ
+ rts
+ckats6 cmp #6
+ bne ckatsq
+ ldx #0
+ txa
+ jsr initpl
+ ldx #$7f
+iniap0 sta $80,x
+ dex
+ bpl iniap0
+ jsr atinit
+ inc atsequ
+ lda #adelay
+ sta attimr
+ rts
+ckatsq lda atsequ
+ cmp #$16
+ bcc ckatmr
+ jmp seqatm
+ckatmr lda attimr
+ bne decatm
+ jsr seqatr
+ inc atsequ
+ lda #adelay
+ sta attimr
+ rts
+decatm dec attimr
+ rts
 ;
-CKOPTS LDY OPTION
- BNE TSTOPT
- JMP VBGAME
-TSTOPT CPY #1
- BNE VBOPT2
+ckopts ldy option
+ bne tstopt
+ jmp vbgame
+tstopt cpy #1
+ bne vbopt2
 ;
-; BUILD TITLE SCREEN
+; build title screen
 ;
- JSR OPTTTL
- LDX #0
- TXA
-OPSCCL STA OPTSCN,X
- STA OPTSCN+$100,X
- STA PACMAZ+$300,X
- DEX
- BNE OPSCCL
- STA COLOR1
- LDX #$0D
-PLOGOL LDA OALOGO,X
- STA OPTSCN+$157,X
- DEX
- BPL PLOGOL
- INX
-PTTLLP TXA
- CLC
- ADC #$C1
- STA OPTSCN+$18,X
- TXA
- ADC #$CD
- STA OPTSCN+$2C,X
- INX
- CPX #$0C
- BNE PTTLLP
-VBOP1I INC OPTION
-VBOP1X RTS
+ jsr optttl
+ ldx #0
+ txa
+opsccl sta optscn,x
+ sta optscn+$100,x
+ sta pacmaz+$300,x
+ dex
+ bne opsccl
+ sta color1
+ ldx #$0d
+plogol lda oalogo,x
+ sta optscn+$157,x
+ dex
+ bpl plogol
+ inx
+pttllp txa
+ clc
+ adc #$c1
+ sta optscn+$18,x
+ txa
+ adc #$cd
+ sta optscn+$2c,x
+ inx
+ cpx #$0c
+ bne pttllp
+vbop1i inc option
+vbop1x rts
 ;
-; TIME OUT TITLE SCREEN
+; time out title screen
 ;
-VBOPT2 CPY #2
- BNE VBOPT3
- LDA ATCLOK
- CMP RTCLOK+2
- BNE VBOP1X
- LDA #7
- STA ATCLOK
- BNE VBOP1I
+vbopt2 cpy #2
+ bne vbopt3
+ lda atclok
+ cmp rtclok+2
+ bne vbop1x
+ lda #7
+ sta atclok
+ bne vbop1i
 ;
-; BUILD OPTION SCREEN
+; build option screen
 ;
-VBOPT3 LDA RTCLOK+2
- BNE OPTSCR
- DEC ATCLOK
- BNE OPTSCR
- LDA #1
- STA ATSEQU
-OPTSCR LDA #0
- LDX #$11
-OPTCL2 STA OPTSCN+$119,X
- STA OPTSCN+$141,X
- DEX
- BPL OPTCL2
- LDX NUMPLY
- INX
- TXA
- ORA #$50
- STA OPTSCN+$54
- LDA NUMPLY
- BNE PMOPT3
- CPY #3
- BNE SAME1P
- JSR SET1PL
-SAME1P LDA #$12
- BNE PMOPT4
-PMOPT3 CPY #3
- BNE SAME2P
- JSR SET2PL
-SAME2P LDA #$11
-PMOPT4 STA OPTSCN+$90
- LDX #$0A
-PMO4LP LDA OPLGAM,X
- STA OPTSCN+$92,X
- ORA #$40
- STA OPTSCN+$56,X
- DEX
- BPL PMO4LP
- JSR OPTTTL
- LDX #$0F
-PMO5LP LDA OPRSEL,X
- STA OPTSCN+$7A,X
- LDA OPROP1,X
- STA OPTSCN+$F2,X
- LDA OPRST1,X
- STA OPTSCN+$156,X
- DEX
- BPL PMO5LP
- LDX DIFOPT
- LDA OPTFRT,X
- STA OPTSCN+$C6
- CLC
- ADC #1
- STA OPTSCN+$C7
- LDX #$10
-PMO7LP LDA OPROP2,X
- STA OPTSCN+$105,X
- DEX
- BPL PMO7LP
- LDX #8
-PMO9LP LDA OPRST2,X
- STA OPTSCN+$16D,X
- DEX
- BPL PMO9LP
- RTS
+vbopt3 lda rtclok+2
+ bne optscr
+ dec atclok
+ bne optscr
+ lda #1
+ sta atsequ
+optscr lda #0
+ ldx #$11
+optcl2 sta optscn+$119,x
+ sta optscn+$141,x
+ dex
+ bpl optcl2
+ ldx numply
+ inx
+ txa
+ ora #$50
+ sta optscn+$54
+ lda numply
+ bne pmopt3
+ cpy #3
+ bne same1p
+ jsr set1pl
+same1p lda #$12
+ bne pmopt4
+pmopt3 cpy #3
+ bne same2p
+ jsr set2pl
+same2p lda #$11
+pmopt4 sta optscn+$90
+ ldx #$0a
+pmo4lp lda oplgam,x
+ sta optscn+$92,x
+ ora #$40
+ sta optscn+$56,x
+ dex
+ bpl pmo4lp
+ jsr optttl
+ ldx #$0f
+pmo5lp lda oprsel,x
+ sta optscn+$7a,x
+ lda oprop1,x
+ sta optscn+$f2,x
+ lda oprst1,x
+ sta optscn+$156,x
+ dex
+ bpl pmo5lp
+ ldx difopt
+ lda optfrt,x
+ sta optscn+$c6
+ clc
+ adc #1
+ sta optscn+$c7
+ ldx #$10
+pmo7lp lda oprop2,x
+ sta optscn+$105,x
+ dex
+ bpl pmo7lp
+ ldx #8
+pmo9lp lda oprst2,x
+ sta optscn+$16d,x
+ dex
+ bpl pmo9lp
+ rts
 ;
-VBGAME LDA ATTIMR
- BEQ VBGAM1
- LDA RTCLOK+2
- AND #7
- BNE VBGAM1
- DEC ATTIMR
-VBGAM1 LDA PAUSEF
- BEQ VBGAM2
- JMP CLRAUD
-VBGAM2 JSR FLSHXU
- LDA RSTRTF
- BEQ TSTGMO
- CMP #2
- BEQ VTUNES
-TSTGMO LDA GMOVRF
- BEQ TSTRRK
- LDA NUMPLY
- BEQ VFLS1O
- JSR FLS2ON
-VFLS1O JMP FLS1ON
-TSTRRK LDA RRFLAG
- BEQ TSTVRD
- JMP RERACK
-TSTVRD LDA READYF
- BNE VREADY
- LDA INTROF
- BNE VINTRO
-VSQUIT RTS
-VTUNES INC INTROF
- LDA #0
- STA ATRACT
- STA RSTRTF
- JMP READY1
-VINTRO LDA RTCLOK+2
- AND #3
- BNE VSQUIT
-VSONGS LDX NOTCNT
- CPX #$40
- BEQ VSTART
- LDA HINOT1,X
- STA AUDF1
- LDA LONOT1,X
- STA AUDF2
- LDA #$A8
- STA AUDC1
- LDA #$A4
- STA AUDC2
- INC NOTCNT
- CPX #$28
- BNE VSQUIT
- JMP READY2
-VSTART INC READYF
-VSTRT1 INC M1STAT
- JSR READY3
-VREADY LDA RESETF
- BEQ VCONTN
- CMP #1
- BNE RESET2
- JSR VRESET
- LDA SWAPPF
- BNE VSQUIT
-VRSTGM LDA GMOVRF
- BNE VSQUIT
-CRESET INC RESETF
- LDA #$40
- STA RESETT
-CRESTX RTS
+vbgame lda attimr
+ beq vbgam1
+ lda rtclok+2
+ and #7
+ bne vbgam1
+ dec attimr
+vbgam1 lda pausef
+ beq vbgam2
+ jmp clraud
+vbgam2 jsr flshxu
+ lda rstrtf
+ beq tstgmo
+ cmp #2
+ beq vtunes
+tstgmo lda gmovrf
+ beq tstrrk
+ lda numply
+ beq vfls1o
+ jsr fls2on
+vfls1o jmp fls1on
+tstrrk lda rrflag
+ beq tstvrd
+ jmp rerack
+tstvrd lda readyf
+ bne vready
+ lda introf
+ bne vintro
+vsquit rts
+vtunes inc introf
+ lda #0
+ sta atract
+ sta rstrtf
+ jmp ready1
+vintro lda rtclok+2
+ and #3
+ bne vsquit
+vsongs ldx notcnt
+ cpx #$40
+ beq vstart
+ lda hinot1,x
+ sta audf1
+ lda lonot1,x
+ sta audf2
+ lda #$a8
+ sta audc1
+ lda #$a4
+ sta audc2
+ inc notcnt
+ cpx #$28
+ bne vsquit
+ jmp ready2
+vstart inc readyf
+vstrt1 inc m1stat
+ jsr ready3
+vready lda resetf
+ beq vcontn
+ cmp #1
+ bne reset2
+ jsr vreset
+ lda swappf
+ bne vsquit
+vrstgm lda gmovrf
+ bne vsquit
+creset inc resetf
+ lda #$40
+ sta resett
+crestx rts
 ;
-RESET2 LDA RESETT
- BEQ VSTRT2
- DEC RESETT
-VGONE1 RTS
-VSTRT2 LDA #0
- STA RESETF
- BEQ VSTRT1
-VCONTN JSR BLINKR
- LDA VFIZST
- BEQ VPLAYR
- JSR VFIZZL
- JMP FIZZIE
-VPLAYR JSR EYONLY
- LDA VFREEZ
- BEQ VFRUIT
- JMP VGULPR
-VFRUIT JSR FRUITY
- JSR DOTTST
- LDA RRFLAG
- BNE VPLYUD
-VCOLLS JSR COLCHK
- LDA VFREEZ
- BNE VGONE2
- LDA VFIZST
- BEQ VPLYUD
-VGONE2 RTS
-VPLYUD JSR FLITEC
- LDA VFREEZ
- BNE VGONE2
- JSR VEATER
- JSR GOBBLE
- JSR SKIRTS
+reset2 lda resett
+ beq vstrt2
+ dec resett
+vgone1 rts
+vstrt2 lda #0
+ sta resetf
+ beq vstrt1
+vcontn jsr blinkr
+ lda vfizst
+ beq vplayr
+ jsr vfizzl
+ jmp fizzie
+vplayr jsr eyonly
+ lda vfreez
+ beq vfruit
+ jmp vgulpr
+vfruit jsr fruity
+ jsr dottst
+ lda rrflag
+ bne vplyud
+vcolls jsr colchk
+ lda vfreez
+ bne vgone2
+ lda vfizst
+ beq vplyud
+vgone2 rts
+vplyud jsr flitec
+ lda vfreez
+ bne vgone2
+ jsr veater
+ jsr gobble
+ jsr skirts
 ;
-; SPEED OF PACMAN
+; speed of pacman
 ;
-SPDPAC LDA PACADV
- BEQ PACREG
- LDA #0
- BEQ SPDPC1
-PACREG LDA PACDLY
- BNE SPDPC1
- LDX #4
- JSR SPDSEQ
-SPDPC1 STA PACCNT
- LDA #0
- STA PACADV
- JSR PMSTIK
- LDA #0
- STA PACDLY
- JSR MUNCHY
- LDA RTCLOK+2
- AND #$03
- BNE UDMONS
- JSR STRTMN
-UDMONS JSR CHSSEQ
- LDA PACADV
- BNE VSUBSX
- LDX #3
+spdpac lda pacadv
+ beq pacreg
+ lda #0
+ beq spdpc1
+pacreg lda pacdly
+ bne spdpc1
+ ldx #4
+ jsr spdseq
+spdpc1 sta paccnt
+ lda #0
+ sta pacadv
+ jsr pmstik
+ lda #0
+ sta pacdly
+ jsr munchy
+ lda rtclok+2
+ and #$03
+ bne udmons
+ jsr strtmn
+udmons jsr chsseq
+ lda pacadv
+ bne vsubsx
+ ldx #3
 ;
-; SPEED HANDLER FOR MONSTERS
+; speed handler for monsters
 ;
-; X REG = 0-3 FOR MONSTERS 1-4
+; x reg = 0-3 for monsters 1-4
 ;
-SPDMON LDA M1STAT,X
- AND #$7F
- BEQ NXMSPD
- LDA RTCLOK+2
- AND #7
- BNE SPMOK1
- LDA M1TIMR,X
- BEQ SPMOK1
- DEC M1TIMR,X
-SPMOK1 LDA M1STAT,X
- AND #$3F
- BEQ NXMSPD
-SPMOK2 LDA M1STAT,X
- ASL A
- BMI NXMSPD
-SPMOK3 LDA M1VPOS,X
- CMP #$74
- BNE SPDBLU
- LDA M1HPOS,X
- CMP #$A7
- BCS SPDSLO
- CMP #$52
- BCC SPDSLO
-SPDBLU LDA M1STAT,X
- BPL SPDREG
-SPDSLO JSR SPDSEQ
- CMP #0
- BNE NXMSPD
- LDY M1DELY,X
- CPY #1
- BNE MONDLA
- STA M1DELY,X
- BEQ SPDUPD
-MONDLA LDA #1
- STA M1DELY,X
- BNE NXMSPD
-SPDREG JSR SPDSEQ
- CMP #0
- BNE NXMSPD
-SPDUPD JSR MONSTR
-NXMSPD DEX
- BPL SPDMON
-VSUBSX RTS
+spdmon lda m1stat,x
+ and #$7f
+ beq nxmspd
+ lda rtclok+2
+ and #7
+ bne spmok1
+ lda m1timr,x
+ beq spmok1
+ dec m1timr,x
+spmok1 lda m1stat,x
+ and #$3f
+ beq nxmspd
+spmok2 lda m1stat,x
+ asl a
+ bmi nxmspd
+spmok3 lda m1vpos,x
+ cmp #$74
+ bne spdblu
+ lda m1hpos,x
+ cmp #$a7
+ bcs spdslo
+ cmp #$52
+ bcc spdslo
+spdblu lda m1stat,x
+ bpl spdreg
+spdslo jsr spdseq
+ cmp #0
+ bne nxmspd
+ ldy m1dely,x
+ cpy #1
+ bne mondla
+ sta m1dely,x
+ beq spdupd
+mondla lda #1
+ sta m1dely,x
+ bne nxmspd
+spdreg jsr spdseq
+ cmp #0
+ bne nxmspd
+spdupd jsr monstr
+nxmspd dex
+ bpl spdmon
+vsubsx rts
 ;
-; ***** PACMAN ATTRACT MODE *****
+; ***** pacman attract mode *****
 ;
-ATINIT LDA #$11
- STA GPRIOR
- LDA #$E0
- STA PMHPOS
- LDA #$EC
- STA M1HPOS
- LDA #$F5
- STA M2HPOS
- LDA #$FE
- STA M3HPOS
- LDA #$07
- STA M4HPOS
- LDA #$8C
- STA PMVPOS
- STA M1VPOS
- STA M2VPOS
- STA M3VPOS
- STA M4VPOS
- LDA #$2A
- STA PACCLR
- RTS
+atinit lda #$11
+ sta gprior
+ lda #$e0
+ sta pmhpos
+ lda #$ec
+ sta m1hpos
+ lda #$f5
+ sta m2hpos
+ lda #$fe
+ sta m3hpos
+ lda #$07
+ sta m4hpos
+ lda #$8c
+ sta pmvpos
+ sta m1vpos
+ sta m2vpos
+ sta m3vpos
+ sta m4vpos
+ lda #$2a
+ sta pacclr
+ rts
 ;
 ;
-; SEQUENCINC OF ATTRACT DISPLAY
+; sequencinc of attract display
 ;
-SEQATR LDA ATSEQU
- CMP #7
- BNE ATSEQ8
- LDA #$05
- STA PATSCN+61
- LDA #$06
- STA PATSCN+81
- RTS
+seqatr lda atsequ
+ cmp #7
+ bne atseq8
+ lda #$05
+ sta patscn+61
+ lda #$06
+ sta patscn+81
+ rts
 ;
-ATSEQ8 CMP #8
- BNE ATSEQ9
- LDX #0
- LDY #80
- JMP ATSHOW
-ATSEQ9 CMP #9
- BNE ATSEQA
- LDX #10
- LDY #90
- JMP ATSHOW
-ATSEQA CMP #$0A
- BNE ATSEQB
- LDA #$45
- STA PATSCN+101
- LDA #$46
- STA PATSCN+121
- RTS
-ATSEQB CMP #$0B
- BNE ATSEQC
- LDX #20
- LDY #120
- JMP ATSHOW
-ATSEQC CMP #$0C
- BNE ATSEQD
- LDX #30
- LDY #130
- JMP ATSHOW
-ATSEQD CMP #$0D
- BNE ATSEQE
- LDA #$85
- STA PATSCN+141
- LDA #$86
- STA PATSCN+161
- RTS
-ATSEQE CMP #$0E
- BNE ATSEQF
- LDX #40
- LDY #160
- JMP ATSHOW
-ATSEQF CMP #$0F
- BNE ATSQ10
- LDX #50
- LDY #170
- JMP ATSHOW
-ATSQ10 CMP #$10
- BNE ATSQ11
- LDA #$C5
- STA PATSCN+181
- LDA #$C6
- STA PATSCN+201
- RTS
-ATSQ11 CMP #$11
- BNE ATSQ12
- LDX #60
- LDY #200
- JMP ATSHOW
-ATSQ12 CMP #$12
- BNE ATSQ13
- LDX #70
- LDY #210
- JMP ATSHOW
-ATSQ13 CMP #$13
- BNE ATSQ14
- LDX #7
-ATSQDL LDA AM10PT,X
- STA PATSCN+325,X
- LDA AM50PT,X
- STA PATSCN+365,X
- DEX
- BPL ATSQDL
- RTS
-ATSQ14 CMP #$14
- BNE ATSEQX
- LDA #$84
- STA PATSCN+261
- LDX #19
-ACOPLP LDA COPMSG,X
- STA PATSCN+400,X
- DEX
- BPL ACOPLP
-ATSEQX RTS
+atseq8 cmp #8
+ bne atseq9
+ ldx #0
+ ldy #80
+ jmp atshow
+atseq9 cmp #9
+ bne atseqa
+ ldx #10
+ ldy #90
+ jmp atshow
+atseqa cmp #$0a
+ bne atseqb
+ lda #$45
+ sta patscn+101
+ lda #$46
+ sta patscn+121
+ rts
+atseqb cmp #$0b
+ bne atseqc
+ ldx #20
+ ldy #120
+ jmp atshow
+atseqc cmp #$0c
+ bne atseqd
+ ldx #30
+ ldy #130
+ jmp atshow
+atseqd cmp #$0d
+ bne atseqe
+ lda #$85
+ sta patscn+141
+ lda #$86
+ sta patscn+161
+ rts
+atseqe cmp #$0e
+ bne atseqf
+ ldx #40
+ ldy #160
+ jmp atshow
+atseqf cmp #$0f
+ bne atsq10
+ ldx #50
+ ldy #170
+ jmp atshow
+atsq10 cmp #$10
+ bne atsq11
+ lda #$c5
+ sta patscn+181
+ lda #$c6
+ sta patscn+201
+ rts
+atsq11 cmp #$11
+ bne atsq12
+ ldx #60
+ ldy #200
+ jmp atshow
+atsq12 cmp #$12
+ bne atsq13
+ ldx #70
+ ldy #210
+ jmp atshow
+atsq13 cmp #$13
+ bne atsq14
+ ldx #7
+atsqdl lda am10pt,x
+ sta patscn+325,x
+ lda am50pt,x
+ sta patscn+365,x
+ dex
+ bpl atsqdl
+ rts
+atsq14 cmp #$14
+ bne atseqx
+ lda #$84
+ sta patscn+261
+ ldx #19
+acoplp lda copmsg,x
+ sta patscn+400,x
+ dex
+ bpl acoplp
+atseqx rts
 ;
-SEQATM JSR FLS1DT
- LDA ATSEQU
- CMP #$16
- BNE ATSQ17
- LDA RTCLOK+2
- AND #$0F
- BNE ABNKON
- LDA #0
- STA PATSCN+261
- STA PATSCN+365
- BEQ CHASEL
-ABNKON CMP #8
- BNE CHASEL
- LDA #$84
- STA PATSCN+261
- STA PATSCN+365
-CHASEL JSR SKIRTS
- LDA RTCLOK+2
- AND #1
- BNE CHASL1
- LDA #1
- BNE CHASL2
-CHASL1 LDA PMHPOS
- CMP #$48
- BEQ CHACLS
- CMP #$70
- BEQ CHACLS
- CMP #$98
- BEQ CHACLS
- BNE CHSLFT
-CHACLS LDX #3
-CHSCLP DEC M1HPOS,X
- DEX
- BPL CHSCLP
-CHSLFT LDX #3
-CHSLLP LDA #4
- JSR MONHND
- DEX
- BPL CHSLLP
- LDA #0
-CHASL2 STA PACCNT
- LDA PMHPOS
- CMP #$38
- BEQ STOPLF
- JSR PACLF
- RTS
-STOPLF INC ATSEQU
- RTS
-ATSQ17 CMP #$17
- BNE ATSQ18
- LDA #$80
- STA M1STAT
- STA M2STAT
- STA M3STAT
- STA M4STAT
- LDA #$84
- STA PCOLR0
- STA PCOLR1
- STA PCOLR2
- STA PCOLR3
- LDA #$14
- STA GPRIOR
- LDA #$FF
- STA GLPCNT
- LDA #0
- STA VFREEZ
- STA PATSCN+261
- STA HITCLR
- INC ATSEQU
- LDA ATSEQU
-ATSQ18 CMP #$18
- BNE ATSQ19
- LDA VFREEZ
- BNE DECFRZ
- LDX GLPCNT
- CPX #3
- BEQ ATDONE
- INX
- JSR CHASER
- JSR COLCHK
- RTS
-DECFRZ LDA VGLPC2
- CMP #$30
- BNE DCGLPF
- LDX GULPED
- LDA #0
- STA HPOSP0,X
- STA VFREEZ
- LDA #$2A
- STA PACCLR
- SEC
- LDA PMHPOS
- SBC #4
- STA PMHPOS
- RTS
-DCGLPF DEC VGLPC2
- RTS
-ATDONE LDA #0
- STA ATSEQU
- LDA #7
- STA ATCLOK
-ATSQ19 RTS
+seqatm jsr fls1dt
+ lda atsequ
+ cmp #$16
+ bne atsq17
+ lda rtclok+2
+ and #$0f
+ bne abnkon
+ lda #0
+ sta patscn+261
+ sta patscn+365
+ beq chasel
+abnkon cmp #8
+ bne chasel
+ lda #$84
+ sta patscn+261
+ sta patscn+365
+chasel jsr skirts
+ lda rtclok+2
+ and #1
+ bne chasl1
+ lda #1
+ bne chasl2
+chasl1 lda pmhpos
+ cmp #$48
+ beq chacls
+ cmp #$70
+ beq chacls
+ cmp #$98
+ beq chacls
+ bne chslft
+chacls ldx #3
+chsclp dec m1hpos,x
+ dex
+ bpl chsclp
+chslft ldx #3
+chsllp lda #4
+ jsr monhnd
+ dex
+ bpl chsllp
+ lda #0
+chasl2 sta paccnt
+ lda pmhpos
+ cmp #$38
+ beq stoplf
+ jsr paclf
+ rts
+stoplf inc atsequ
+ rts
+atsq17 cmp #$17
+ bne atsq18
+ lda #$80
+ sta m1stat
+ sta m2stat
+ sta m3stat
+ sta m4stat
+ lda #$84
+ sta pcolr0
+ sta pcolr1
+ sta pcolr2
+ sta pcolr3
+ lda #$14
+ sta gprior
+ lda #$ff
+ sta glpcnt
+ lda #0
+ sta vfreez
+ sta patscn+261
+ sta hitclr
+ inc atsequ
+ lda atsequ
+atsq18 cmp #$18
+ bne atsq19
+ lda vfreez
+ bne decfrz
+ ldx glpcnt
+ cpx #3
+ beq atdone
+ inx
+ jsr chaser
+ jsr colchk
+ rts
+decfrz lda vglpc2
+ cmp #$30
+ bne dcglpf
+ ldx gulped
+ lda #0
+ sta hposp0,x
+ sta vfreez
+ lda #$2a
+ sta pacclr
+ sec
+ lda pmhpos
+ sbc #4
+ sta pmhpos
+ rts
+dcglpf dec vglpc2
+ rts
+atdone lda #0
+ sta atsequ
+ lda #7
+ sta atclok
+atsq19 rts
  ; 
-CHASER JSR SKIRTS
- LDA RTCLOK+2
- AND #3
- BNE CHASRP
-CHSRML LDA #8
- JSR MONHND
- INX
- CPX #4
- BNE CHSRML
-CHASRP LDA RTCLOK+2
- AND #1
- BNE CHASR1
- LDA #1
- BNE CHASR2
-CHASR1 LDA #0
-CHASR2 STA PACCNT
- JSR PACRT
- RTS
+chaser jsr skirts
+ lda rtclok+2
+ and #3
+ bne chasrp
+chsrml lda #8
+ jsr monhnd
+ inx
+ cpx #4
+ bne chsrml
+chasrp lda rtclok+2
+ and #1
+ bne chasr1
+ lda #1
+ bne chasr2
+chasr1 lda #0
+chasr2 sta paccnt
+ jsr pacrt
+ rts
 
 ;
-ATSHOW LDA #9
- STA TEMLOC
-ATSHWL LDA CHARTX,X
- STA PATSCN,Y
- INX
- INY
- DEC TEMLOC
- BPL ATSHWL
- RTS
+atshow lda #9
+ sta temloc
+atshwl lda chartx,x
+ sta patscn,y
+ inx
+ iny
+ dec temloc
+ bpl atshwl
+ rts
 ;
-FLS1DT LDA RTCLOK+2
- AND #$0F
- BNE FLS1DO
- LDA #0
- STA PATSCN+365
- RTS
-FLS1DO CMP #8
- BNE FLS1DX
- LDA #$84
- STA PATSCN+365
-FLS1DX RTS
+fls1dt lda rtclok+2
+ and #$0f
+ bne fls1do
+ lda #0
+ sta patscn+365
+ rts
+fls1do cmp #8
+ bne fls1dx
+ lda #$84
+ sta patscn+365
+fls1dx rts
 ;
-; ATTRACT MODE DLI ROUTINE
+; attract mode dli routine
 ;
-ADLIV PHA
- TXA
- PHA
- TYA
- PHA
- LDX DLICNT
- BNE N1ADLI
- LDA #HIGH AMCSET
- STA WSYNC
- STA CHBASE
- BNE ADLIXX
-N1ADLI CPX #1
- BNE N2ADLI
- LDA #$4A
- EOR COLRSH
- AND DRKMSK
- TAX
- LDA #$D8
- EOR COLRSH
- AND DRKMSK
- STA WSYNC
- STX COLPF1
- STA COLPF2
- BNE ADLIXX
-N2ADLI CPX #2
- BNE N3ADLI
- LDA PACCLR
- EOR COLRSH
- AND DRKMSK
- LDX ACOLR1; $3A
- STA WSYNC
- STA COLPF3
- STX COLPF2
- BNE ADLIXX
-N3ADLI CPX #3
- BNE N4ADLI
- LDA #$0C
- EOR COLRSH
- AND DRKMSK
- LDX ACOLR2; $44
- STA WSYNC
- STA COLPF0
- STX COLPF1
- BNE ADLIXX
-N4ADLI LDA #HIGH PACCHR
- LDX ACOLR4; $DA
- LDY ACOLR3; $2A
- STA WSYNC
- STA CHBASE
- STX COLPF0
- STY COLPF3
-ADLIXX INC DLICNT
- PLA
- TAY
- PLA
- TAX
- PLA
- RTI
+adliv pha
+ txa
+ pha
+ tya
+ pha
+ ldx dlicnt
+ bne n1adli
+ lda #high amcset
+ sta wsync
+ sta chbase
+ bne adlixx
+n1adli cpx #1
+ bne n2adli
+ lda #$4a
+ eor colrsh
+ and drkmsk
+ tax
+ lda #$d8
+ eor colrsh
+ and drkmsk
+ sta wsync
+ stx colpf1
+ sta colpf2
+ bne adlixx
+n2adli cpx #2
+ bne n3adli
+ lda pacclr
+ eor colrsh
+ and drkmsk
+ ldx acolr1; $3a
+ sta wsync
+ sta colpf3
+ stx colpf2
+ bne adlixx
+n3adli cpx #3
+ bne n4adli
+ lda #$0c
+ eor colrsh
+ and drkmsk
+ ldx acolr2; $44
+ sta wsync
+ sta colpf0
+ stx colpf1
+ bne adlixx
+n4adli lda #high pacchr
+ ldx acolr4; $da
+ ldy acolr3; $2a
+ sta wsync
+ sta chbase
+ stx colpf0
+ sty colpf3
+adlixx inc dlicnt
+ pla
+ tay
+ pla
+ tax
+ pla
+ rti
 ;
-; COLLISION CHECK
+; collision check
 ;
-COLCHK LDX #0
- LDY #1
-COLLLP LDA M1STAT,X
- ASL A
- BMI NXCOLL
- TYA
- BIT M1PL
- BEQ NXCOLL
- BIT M2PL
- BEQ NXCOLL
- LDA PMVPOS
- CMP M1VPOS,X
-SBCMXV BCS PMBLMX
- SEC
- LDA M1VPOS,X
- SBC PMVPOS
- BNE TSTMXC
-PMBLMX SBC M1VPOS,X
-TSTMXC CMP #5
- BCC STRCOL
-NXCOLL TYA
- ASL A
- TAY
- INX
- CPX #4
- BNE COLLLP
-COLCX1 JMP COLCKX
-STRCOL LDA M1STAT,X
- BMI ZAPGST
- JMP PMDEAD
-ZAPGST LDA #$42
- STA M1STAT,X
- STX GULPED
- INC GLPCNT
- SEC
- LDA PMHPOS
- SBC #4
- STA HPOSM3
- CLC
- LDY #2
-REPOSL ADC #2
- STA HPOSM0,Y
- DEY
- BPL REPOSL
- ADC #2
- STA HPOSP0,X
- LDA #$DC
- STA PACCLR
- STA PCOLR0,X
- LDY ATSEQU
- BNE CKOFFS
- STA COLOR3
-CKOFFS LDA PMVPOS
+colchk ldx #0
+ ldy #1
+colllp lda m1stat,x
+ asl a
+ bmi nxcoll
+ tya
+ bit m1pl
+ beq nxcoll
+ bit m2pl
+ beq nxcoll
+ lda pmvpos
+ cmp m1vpos,x
+sbcmxv bcs pmblmx
+ sec
+ lda m1vpos,x
+ sbc pmvpos
+ bne tstmxc
+pmblmx sbc m1vpos,x
+tstmxc cmp #5
+ bcc strcol
+nxcoll tya
+ asl a
+ tay
+ inx
+ cpx #4
+ bne colllp
+colcx1 jmp colckx
+strcol lda m1stat,x
+ bmi zapgst
+ jmp pmdead
+zapgst lda #$42
+ sta m1stat,x
+ stx gulped
+ inc glpcnt
+ sec
+ lda pmhpos
+ sbc #4
+ sta hposm3
+ clc
+ ldy #2
+reposl adc #2
+ sta hposm0,y
+ dey
+ bpl reposl
+ adc #2
+ sta hposp0,x
+ lda #$dc
+ sta pacclr
+ sta pcolr0,x
+ ldy atsequ
+ bne ckoffs
+ sta color3
+ckoffs lda pmvpos
 ;
- CMP M1VPOS,X
- BEQ NOOFFS
- BCC OFFDWN
- LDA #$FE
- BMI STROFF
-OFFDWN LDA #2
-STROFF CLC
- ADC PMVPOS
+ cmp m1vpos,x
+ beq nooffs
+ bcc offdwn
+ lda #$fe
+ bmi stroff
+offdwn lda #2
+stroff clc
+ adc pmvpos
 ;
-NOOFFS STA SCNSC1
- STA SCNSC2
- LDA #HIGH PMADDR+3
- STA SCNSC1+1
- TXA
- CLC
- ADC SCNSC1+1
- ADC #1
- STA SCNSC2+1
- LDA GLPCNT
- ASL A
- TAY
- LDA BLSADD,Y
- STA PIXGET
- INY
- LDA BLSADD,Y
- STA PIXGET+1
- LDY #$0F
-STBSCL LDA (PIXGET),Y
- STA (SCNSC1),Y
- LDA BLUSC0,Y
- STA (SCNSC2),Y
- DEY
- BPL STBSCL
- LDA #0
- STA AUDC2
- INC VFREEZ
- LDA #$84
- STA VGLPC2
- LDA #2
- STA VGLPC1
- LDA #$14
- STA GPRIOR
- LDA ATSEQU
- BEQ CKGPS0
- JMP CLRHIT
-CKGPS0 LDA GLPCNT
- BNE CKGPS1
- LDA #2
- BNE UDGPSC
-CKGPS1 CMP #1
- BNE CKGPS2
- LDA #4
- BNE UDGPSC
-CKGPS2 CMP #2
- BNE CKGPS3
- LDA #8
- BNE UDGPSC
-CKGPS3 LDA #1
- STA SCOREX+2
- LDA #6
-UDGPSC STA SCOREX+3
- JMP PSCORE
-PMDEAD LDA PMSTAT
- ORA #$80
- STA PMSTAT
- JSR CLRAUD
- LDA #1
- STA MSTILL
- STA VFIZST
- LDA #$60
- STA VFIZSQ
-COLCKX LDA #2
- BIT M2PF
- BEQ CLRHIT
- LDX PLYNUM
- LDA MAZCT1,X
- CMP #$0C
- BCC LOWFSI
- LDA #$0C
-LOWFSI TAX
- LDA FSINDX,X
- TAX
- LDY #0
-FSLOOP LDA FS0100,X
- STA PACMAZ+$1F1,Y
- INX
- INY
- CPY #5
- BNE FSLOOP
- LDA #1
- STA FRSCRF
- LDA #$40
- STA FRSCRT
- LDA #0
- STA FRUFLG
- STA FRUTMR
- STA FRUTMR+1
- LDA #1
- STA GOBBLD
- LDA #$78
- STA GOBBLF
- LDX PLYNUM
- LDA MAZCT1,X
- CMP #$0C
- BCC LOWFRS
- LDA #$0C
-LOWFRS ASL A
- TAX
- LDA FRSTAB,X
- STA SCOREX+2
- INX
- LDA FRSTAB,X
- STA SCOREX+3
- JSR PSCORE
-CLRHIT STA HITCLR
- RTS
+nooffs sta scnsc1
+ sta scnsc2
+ lda #high pmaddr+3
+ sta scnsc1+1
+ txa
+ clc
+ adc scnsc1+1
+ adc #1
+ sta scnsc2+1
+ lda glpcnt
+ asl a
+ tay
+ lda blsadd,y
+ sta pixget
+ iny
+ lda blsadd,y
+ sta pixget+1
+ ldy #$0f
+stbscl lda (pixget),y
+ sta (scnsc1),y
+ lda blusc0,y
+ sta (scnsc2),y
+ dey
+ bpl stbscl
+ lda #0
+ sta audc2
+ inc vfreez
+ lda #$84
+ sta vglpc2
+ lda #2
+ sta vglpc1
+ lda #$14
+ sta gprior
+ lda atsequ
+ beq ckgps0
+ jmp clrhit
+ckgps0 lda glpcnt
+ bne ckgps1
+ lda #2
+ bne udgpsc
+ckgps1 cmp #1
+ bne ckgps2
+ lda #4
+ bne udgpsc
+ckgps2 cmp #2
+ bne ckgps3
+ lda #8
+ bne udgpsc
+ckgps3 lda #1
+ sta scorex+2
+ lda #6
+udgpsc sta scorex+3
+ jmp pscore
+pmdead lda pmstat
+ ora #$80
+ sta pmstat
+ jsr clraud
+ lda #1
+ sta mstill
+ sta vfizst
+ lda #$60
+ sta vfizsq
+colckx lda #2
+ bit m2pf
+ beq clrhit
+ ldx plynum
+ lda mazct1,x
+ cmp #$0c
+ bcc lowfsi
+ lda #$0c
+lowfsi tax
+ lda fsindx,x
+ tax
+ ldy #0
+fsloop lda fs0100,x
+ sta pacmaz+$1f1,y
+ inx
+ iny
+ cpy #5
+ bne fsloop
+ lda #1
+ sta frscrf
+ lda #$40
+ sta frscrt
+ lda #0
+ sta fruflg
+ sta frutmr
+ sta frutmr+1
+ lda #1
+ sta gobbld
+ lda #$78
+ sta gobblf
+ ldx plynum
+ lda mazct1,x
+ cmp #$0c
+ bcc lowfrs
+ lda #$0c
+lowfrs asl a
+ tax
+ lda frstab,x
+ sta scorex+2
+ inx
+ lda frstab,x
+ sta scorex+3
+ jsr pscore
+clrhit sta hitclr
+ rts
 ;
-VRESET JSR BLNKON
- LDA SWAPPF
- BEQ VRSET1
- LDX RESETT
- BEQ VSWAP1
- DEC RESETT
- RTS
-VSWAP1 CMP #1
- BNE VSWAP2
+vreset jsr blnkon
+ lda swappf
+ beq vrset1
+ ldx resett
+ beq vswap1
+ dec resett
+ rts
+vswap1 cmp #1
+ bne vswap2
 ;
- LDX #0
-LODP1L LDA P1SAVE,X
- STA PACMAZ,X
- LDA P1SAVE+$100,X
- STA PACMAZ+$100,X
- LDA P1SAVE+$200,X
- STA PACMAZ+$200,X
- LDA P1SAVE+$300,X
- STA PACMAZ+$300,X
- INX
- BNE LODP1L
+ ldx #0
+lodp1l lda p1save,x
+ sta pacmaz,x
+ lda p1save+$100,x
+ sta pacmaz+$100,x
+ lda p1save+$200,x
+ sta pacmaz+$200,x
+ lda p1save+$300,x
+ sta pacmaz+$300,x
+ inx
+ bne lodp1l
 ;
- JSR FLS2ON
- LDA #0
- STA PLYNUM
- BEQ VSWAPX
-VSWAP2 CMP #2
- BNE VSWAP3
+ jsr fls2on
+ lda #0
+ sta plynum
+ beq vswapx
+vswap2 cmp #2
+ bne vswap3
 ;
- LDX #0
-LODP2L LDA P2SAVE,X
- STA PACMAZ,X
- LDA P2SAVE+$100,X
- STA PACMAZ+$100,X
- LDA P2SAVE+$200,X
- STA PACMAZ+$200,X
- LDA P2SAVE+$300,X
- STA PACMAZ+$300,X
- INX
- BNE LODP2L
+ ldx #0
+lodp2l lda p2save,x
+ sta pacmaz,x
+ lda p2save+$100,x
+ sta pacmaz+$100,x
+ lda p2save+$200,x
+ sta pacmaz+$200,x
+ lda p2save+$300,x
+ sta pacmaz+$300,x
+ inx
+ bne lodp2l
 ;
- JSR FLS1ON
- LDA #1
- STA PLYNUM
- BNE VSWAPX
-VSWAP3 CMP #3
- BNE VSWAP4
- JSR BLNKON
- JMP RST1PG
-VSWAPX LDA #3
-VSWPX1 STA SWAPPF
- RTS
-VRSET1 LDA NUMPLY
- BEQ RST1PG
-RST2PG LDA PLYNUM
- BNE RST2P2
-RST2P1 LDA XPACP2
- BEQ RST1PG;PLAYER 2 DEAD
- LDA XPACP1
- BNE SWAP12;GO SWAP PLAYERS
- LDA #2
- STA SWAPPF;SHOW #1 GAME OVER
- LDA #$60
- STA RESETT
- BNE VGMEND
-SWAP12 JSR SAVEP1
- LDA #$40
- STA RESETT
- LDA #2
- BNE VSWPX1
-RST2P2 LDA XPACP1
- BEQ RST1PG;PLAYER 1 DEAD
- LDA XPACP2
- BNE SWAP21;GO SWAP PLAYERS
- LDA #1
- STA SWAPPF;SHOW #2 GAME OVER
- LDA #$60
- STA RESETT
- BNE VGMEND
-SWAP21 JSR SAVEP2
- LDA #$40
- STA RESETT
- LDA #1
- STA SWAPPF
-VGGONE RTS
-RST1PG LDX PLYNUM
- LDA XPACP1,X
- BEQ VGMEND; GAME IS OVER
- JSR SETUP
- JSR READY1
- LDA NUMPLY
- BEQ VSWAP4
- LDA #$40
- STA RESETT
- LDA #4
- STA SWAPPF
- RTS
-VSWAP4 LDA #0
- STA SWAPPF
- JMP READY2
-VGMEND LDA #$AC
- LDX #0
-GMOVLP STA PACMAZ+$1ED,X
- CLC
- ADC #1
- INX
- CPX #$0E
- BNE GMOVLP
- LDA #$44
- STA COLOR3
- STA COLPF3
- JSR PLAYRS
- LDA SWAPPF
- BNE VGGONE
-THEEND LDX #$2A
- JSR CKHIGH
- LDX #$47
- JSR CKHIGH
- LDA #0
- STA RESETF
- LDA #1
- STA GMOVRF
- LDA #$E2
- STA ATTIMR
- JSR FLS1ON
- JMP BLNKON
+ jsr fls1on
+ lda #1
+ sta plynum
+ bne vswapx
+vswap3 cmp #3
+ bne vswap4
+ jsr blnkon
+ jmp rst1pg
+vswapx lda #3
+vswpx1 sta swappf
+ rts
+vrset1 lda numply
+ beq rst1pg
+rst2pg lda plynum
+ bne rst2p2
+rst2p1 lda xpacp2
+ beq rst1pg;player 2 dead
+ lda xpacp1
+ bne swap12;go swap players
+ lda #2
+ sta swappf;show #1 game over
+ lda #$60
+ sta resett
+ bne vgmend
+swap12 jsr savep1
+ lda #$40
+ sta resett
+ lda #2
+ bne vswpx1
+rst2p2 lda xpacp1
+ beq rst1pg;player 1 dead
+ lda xpacp2
+ bne swap21;go swap players
+ lda #1
+ sta swappf;show #2 game over
+ lda #$60
+ sta resett
+ bne vgmend
+swap21 jsr savep2
+ lda #$40
+ sta resett
+ lda #1
+ sta swappf
+vggone rts
+rst1pg ldx plynum
+ lda xpacp1,x
+ beq vgmend; game is over
+ jsr setup
+ jsr ready1
+ lda numply
+ beq vswap4
+ lda #$40
+ sta resett
+ lda #4
+ sta swappf
+ rts
+vswap4 lda #0
+ sta swappf
+ jmp ready2
+vgmend lda #$ac
+ ldx #0
+gmovlp sta pacmaz+$1ed,x
+ clc
+ adc #1
+ inx
+ cpx #$0e
+ bne gmovlp
+ lda #$44
+ sta color3
+ sta colpf3
+ jsr playrs
+ lda swappf
+ bne vggone
+theend ldx #$2a
+ jsr ckhigh
+ ldx #$47
+ jsr ckhigh
+ lda #0
+ sta resetf
+ lda #1
+ sta gmovrf
+ lda #$e2
+ sta attimr
+ jsr fls1on
+ jmp blnkon
 ;
-CKHIGH LDY #0
-CKHILP LDA TEXT,X
- CMP TEXT+$39,Y
- BEQ CHINXT
- BCC CKHIGX
- BCS STORHI
-CHINXT INX
- INY
- CPY #6
- BNE CKHILP
- RTS
-STORHI LDA TEXT,X
- STA TEXT+$39,Y
- INX
- INY
- CPY #6
- BNE STORHI
-CKHIGX RTS
+ckhigh ldy #0
+ckhilp lda text,x
+ cmp text+$39,y
+ beq chinxt
+ bcc ckhigx
+ bcs storhi
+chinxt inx
+ iny
+ cpy #6
+ bne ckhilp
+ rts
+storhi lda text,x
+ sta text+$39,y
+ inx
+ iny
+ cpy #6
+ bne storhi
+ckhigx rts
 ;
-; TUNNEL LOGIC
+; tunnel logic
 ;
-TUNNEL LDX #4
-CTMSKL LDA M1VPOS,X
- CMP #$74
- BNE NXTMSK
- JSR MSKTUN
-NXTMSK DEX
- BPL CTMSKL
- RTS
+tunnel ldx #4
+ctmskl lda m1vpos,x
+ cmp #$74
+ bne nxtmsk
+ jsr msktun
+nxtmsk dex
+ bpl ctmskl
+ rts
 ;
-MSKTUN STA TUNLOC
- TXA
- CMP #4
- BNE TUNPLY
- LDA #$FF
-TUNPLY CLC
- ADC #HIGH PMADDR+4
- STA TUNLOC+1
- LDA #$FF
- STA TUNMSK
- LDA M1HPOS,X
- STA TUNCNT
- CMP #$C0
- BCC TNMSK2
- LDA #$C0
-TNMSL1 CMP TUNCNT
- BEQ STTMSK
- DEC TUNCNT
- ASL TUNMSK
- BCS TNMSL1
- LDA M1HPOS,X
- CMP #$CA
- BCC STTMSK
- LDA M1DIRT,X
- CMP #8
- BNE STTMSK
- LDA #$2A
- STA M1HPOS,X
- CPX #4
- BNE STTMSK
- LDA #$8F
- BNE TFXPAC
-TNMSK2 CMP #$39
- BCS TNMSKX
-TNMSL2 LDA #$38
- CMP TUNCNT
- BEQ STTMSK
- INC TUNCNT
- LSR TUNMSK
- BCS TNMSL2
- LDA M1HPOS,X
- CMP #$2A
- BNE STTMSK
- LDA M1DIRT,X
- CMP #4
- BNE STTMSK
- LDA #$CA
- STA M1HPOS,X
- CPX #4
- BNE STTMSK
- LDA #$B7
-TFXPAC STA PACSCN
-STTMSK LDY #$0F
-STTMSL LDA (TUNLOC),Y
- AND TUNMSK
- STA (TUNLOC),Y
- DEY
- BPL STTMSL
-TNMSKX RTS
+msktun sta tunloc
+ txa
+ cmp #4
+ bne tunply
+ lda #$ff
+tunply clc
+ adc #high pmaddr+4
+ sta tunloc+1
+ lda #$ff
+ sta tunmsk
+ lda m1hpos,x
+ sta tuncnt
+ cmp #$c0
+ bcc tnmsk2
+ lda #$c0
+tnmsl1 cmp tuncnt
+ beq sttmsk
+ dec tuncnt
+ asl tunmsk
+ bcs tnmsl1
+ lda m1hpos,x
+ cmp #$ca
+ bcc sttmsk
+ lda m1dirt,x
+ cmp #8
+ bne sttmsk
+ lda #$2a
+ sta m1hpos,x
+ cpx #4
+ bne sttmsk
+ lda #$8f
+ bne tfxpac
+tnmsk2 cmp #$39
+ bcs tnmskx
+tnmsl2 lda #$38
+ cmp tuncnt
+ beq sttmsk
+ inc tuncnt
+ lsr tunmsk
+ bcs tnmsl2
+ lda m1hpos,x
+ cmp #$2a
+ bne sttmsk
+ lda m1dirt,x
+ cmp #4
+ bne sttmsk
+ lda #$ca
+ sta m1hpos,x
+ cpx #4
+ bne sttmsk
+ lda #$b7
+tfxpac sta pacscn
+sttmsk ldy #$0f
+sttmsl lda (tunloc),y
+ and tunmsk
+ sta (tunloc),y
+ dey
+ bpl sttmsl
+tnmskx rts
 ;
 
-; EJECT
-; INCLUDE D1:PAC2.ASM
+; eject
+; include d1:pac2.asm
 
 ;
-; PAC-MAN GAME SUBROUTINES
+; pac-man game subroutines
 ;
-GOBBLE LDX GOBBLD
- BEQ GOBBLX
- LDA GOBBLF
- LDY #$A5
- CPX #7
- BCS GOBBD2
- CMP #$B4
- BEQ SAMGOB
- CLC
- ADC #5
- BNE STRGOB
-SAMGOB INC GOBBLD
- LDY #$A3
- BNE STRGOB
-GOBBD2 CPX #9
- BNE GOBBD3
- INC GOBBLD
- BNE DECGOB
-GOBBD3 LDY #$A3
-DECGOB SEC
- CMP #$78
- BNE GOBDEC
- LDA #0
- STA GOBBLD
- TAY
- BEQ STRGOB
-GOBDEC SBC #5
-STRGOB STA GOBBLF
- STA $D200
- STY $D201
-GOBBLX RTS
+gobble ldx gobbld
+ beq gobblx
+ lda gobblf
+ ldy #$a5
+ cpx #7
+ bcs gobbd2
+ cmp #$b4
+ beq samgob
+ clc
+ adc #5
+ bne strgob
+samgob inc gobbld
+ ldy #$a3
+ bne strgob
+gobbd2 cpx #9
+ bne gobbd3
+ inc gobbld
+ bne decgob
+gobbd3 ldy #$a3
+decgob sec
+ cmp #$78
+ bne gobdec
+ lda #0
+ sta gobbld
+ tay
+ beq strgob
+gobdec sbc #5
+strgob sta gobblf
+ sta $d200
+ sty $d201
+gobblx rts
 ;
-SKIRTS LDA RTCLOK+2
- AND #$0F
- BNE SKIRTX
- LDA MSKIRT
- BEQ ISKIRT
- LDA #0
- STA MSKIRT
- BEQ SKIRTX
-ISKIRT INC MSKIRT
-SKIRTX RTS
+skirts lda rtclok+2
+ and #$0f
+ bne skirtx
+ lda mskirt
+ beq iskirt
+ lda #0
+ sta mskirt
+ beq skirtx
+iskirt inc mskirt
+skirtx rts
 ;
-; RERACK WILL RESET MAZE AFTER
-; A PLAYER HAS CLEARED ALL DOTS
+; rerack will reset maze after
+; a player has cleared all dots
 ;
-RERACK LDA RRSEQU
- BNE TSTRRS
- JSR CLRAUD
- JSR DRAWIT
- LDA #$40
-RRKXX1 STA RRTIMR
-RRKXX2 INC RRSEQU
- RTS
-TSTRRS CMP #1
- BNE TSTRR2
- LDA RRTIMR
- BNE DRRWTM; DEC RERACK WAIT TIMER
- LDA #0
- LDX #3
-TSRR1L STA HPOSP0,X
- DEX
- BPL TSRR1L
- LDA #$0C
- STA COLOR0
- LDA #$07
- STA RRFLCT; RERACK FLASH COUNT
- LDA #$10
- BNE RRKXX1
-DRRWTM DEC RRTIMR
- RTS
-TSTRR2 CMP #2
- BNE TSTRR3
- LDA RRTIMR
- BNE DRRWTM; DEC RERACK COLOR TIMER
- DEC RRFLCT
- BEQ RRKXX2
-ALTCLR LDA RRFLCT
- CLC
- LSR A
- BCC ALTBLU
- LDA #$0C
- BNE SETRRC
-ALTBLU LDA #$86
-SETRRC STA COLOR0
- LDA #$10
- STA RRTIMR
- RTS
-TSTRR3 CMP #3
- BNE TSTRR4
- LDA #0
- STA INTCNT
- LDA #CHRORG/256
- STA CHBASE
-TSTR3X RTS
-TSTRR4 CMP #4
- BNE TSTRR5
- JSR NEWBRD
- LDX PLYNUM
- INC XPACP1,X
- INC MAZCT1,X
- JSR READY1
- INC RRSEQU
- LDA NUMPLY
- BEQ TSTR3X
- LDA #$30
- STA RRTIMR
- RTS
-TSTRR5 CMP #5
- BNE TSTRR6
- LDA RRTIMR
- BNE DTMRR5
- INC RRSEQU
- RTS
-DTMRR5 DEC RRTIMR
- RTS
-TSTRR6 JSR READY2
- LDA #0
- STA RRFLAG
- STA RRSEQU
- LDA #2
- STA RESETF
- LDA #$40
- STA RESETT
- RTS
+rerack lda rrsequ
+ bne tstrrs
+ jsr clraud
+ jsr drawit
+ lda #$40
+rrkxx1 sta rrtimr
+rrkxx2 inc rrsequ
+ rts
+tstrrs cmp #1
+ bne tstrr2
+ lda rrtimr
+ bne drrwtm; dec rerack wait timer
+ lda #0
+ ldx #3
+tsrr1l sta hposp0,x
+ dex
+ bpl tsrr1l
+ lda #$0c
+ sta color0
+ lda #$07
+ sta rrflct; rerack flash count
+ lda #$10
+ bne rrkxx1
+drrwtm dec rrtimr
+ rts
+tstrr2 cmp #2
+ bne tstrr3
+ lda rrtimr
+ bne drrwtm; dec rerack color timer
+ dec rrflct
+ beq rrkxx2
+altclr lda rrflct
+ clc
+ lsr a
+ bcc altblu
+ lda #$0c
+ bne setrrc
+altblu lda #$86
+setrrc sta color0
+ lda #$10
+ sta rrtimr
+ rts
+tstrr3 cmp #3
+ bne tstrr4
+ lda #0
+ sta intcnt
+ lda #chrorg/256
+ sta chbase
+tstr3x rts
+tstrr4 cmp #4
+ bne tstrr5
+ jsr newbrd
+ ldx plynum
+ inc xpacp1,x
+ inc mazct1,x
+ jsr ready1
+ inc rrsequ
+ lda numply
+ beq tstr3x
+ lda #$30
+ sta rrtimr
+ rts
+tstrr5 cmp #5
+ bne tstrr6
+ lda rrtimr
+ bne dtmrr5
+ inc rrsequ
+ rts
+dtmrr5 dec rrtimr
+ rts
+tstrr6 jsr ready2
+ lda #0
+ sta rrflag
+ sta rrsequ
+ lda #2
+ sta resetf
+ lda #$40
+ sta resett
+ rts
 ;
-; GET READY TO PLAY
+; get ready to play
 ;
-READY1 LDA #$A2
- LDX #0
-REDYLP STA PACMAZ+$1EF,X
- CLC
- ADC #1
- INX
- CPX #$0A
- BNE REDYLP
- JSR PLAYRS
- LDX PLYNUM
- LDA MAZCT1,X
- CMP #6
- BCC SETRED
- CMP #$0A
- BCS SETRED
- LDY #$DA; SET UP FOR GREEN FRUITS
- BNE SETFRC
-SETRED LDY #$44
-SETFRC STY FRUCLR
- LDY #0
- CMP #6
- BCS HFRUTS
- STA TEMLOC
- LDA #$92
- STA PIXPUT
- LDA #HIGH PACMAZ+3
- STA PIXPUT+1
- LDX #0
-FRUTLP LDA FRUCHR,X
- STA (PIXPUT),Y
- INC PIXPUT
- CLC
- ADC #1
- STA (PIXPUT),Y
- CPX TEMLOC
- BEQ FSPLIT
-FRUTS1 INX
- DEC PIXPUT
- DEC PIXPUT
- DEC PIXPUT
- BNE FRUTLP
-HFRUTS CMP #18
- BCC HFRUT1
- LDA #18
-HFRUT1 SEC
- SBC #6
- STA TEMLOC
- SEC
- LDA #LOW HIFRUT
- SBC TEMLOC
- STA PIXGET
- LDA #HIGH HIFRUT
- SBC #0
- STA PIXGET+1
- LDX #0
-HFRUTL LDA (PIXGET),Y
- STA PACMAZ+$386,X
- CLC
- ADC #1
- STA PACMAZ+$387,X
- INX
- INX
- INY
- CPY #$7
- BNE HFRUTL
-FSPLIT RTS
+ready1 lda #$a2
+ ldx #0
+redylp sta pacmaz+$1ef,x
+ clc
+ adc #1
+ inx
+ cpx #$0a
+ bne redylp
+ jsr playrs
+ ldx plynum
+ lda mazct1,x
+ cmp #6
+ bcc setred
+ cmp #$0a
+ bcs setred
+ ldy #$da; set up for green fruits
+ bne setfrc
+setred ldy #$44
+setfrc sty fruclr
+ ldy #0
+ cmp #6
+ bcs hfruts
+ sta temloc
+ lda #$92
+ sta pixput
+ lda #high pacmaz+3
+ sta pixput+1
+ ldx #0
+frutlp lda fruchr,x
+ sta (pixput),y
+ inc pixput
+ clc
+ adc #1
+ sta (pixput),y
+ cpx temloc
+ beq fsplit
+fruts1 inx
+ dec pixput
+ dec pixput
+ dec pixput
+ bne frutlp
+hfruts cmp #18
+ bcc hfrut1
+ lda #18
+hfrut1 sec
+ sbc #6
+ sta temloc
+ sec
+ lda #low hifrut
+ sbc temloc
+ sta pixget
+ lda #high hifrut
+ sbc #0
+ sta pixget+1
+ ldx #0
+hfrutl lda (pixget),y
+ sta pacmaz+$386,x
+ clc
+ adc #1
+ sta pacmaz+$387,x
+ inx
+ inx
+ iny
+ cpy #$7
+ bne hfrutl
+fsplit rts
 ;
-READY2 LDX #$0B
- LDA #0
-RED2LP STA PACMAZ+$14E,X
- DEX
- BPL RED2LP
- JSR DRAWIT
- LDX PLYNUM
- DEC XPACP1,X
+ready2 ldx #$0b
+ lda #0
+red2lp sta pacmaz+$14e,x
+ dex
+ bpl red2lp
+ jsr drawit
+ ldx plynum
+ dec xpacp1,x
 ;
-UDXPACS LDX PLYNUM
- LDA XPACP1,X
- LDX #0
- LDY #$9B
- CMP #3
- BNE TWOPAC
- STY PACMAZ+$378
-UDXPC2 STY PACMAZ+$376
-UDXPC1 STY PACMAZ+$374
- RTS
-TWOPAC CMP #2
- BNE ONEPAC
- JSR UDNPC2
- JMP UDXPC2
-ONEPAC CMP #1
- BNE NOPACS
- JSR UDNPC1
- JMP UDXPC1
-NOPACS STX PACMAZ+$374
-UDNPC1 STX PACMAZ+$376
-UDNPC2 STX PACMAZ+$378
- RTS
+udxpacs ldx plynum
+ lda xpacp1,x
+ ldx #0
+ ldy #$9b
+ cmp #3
+ bne twopac
+ sty pacmaz+$378
+udxpc2 sty pacmaz+$376
+udxpc1 sty pacmaz+$374
+ rts
+twopac cmp #2
+ bne onepac
+ jsr udnpc2
+ jmp udxpc2
+onepac cmp #1
+ bne nopacs
+ jsr udnpc1
+ jmp udxpc1
+nopacs stx pacmaz+$374
+udnpc1 stx pacmaz+$376
+udnpc2 stx pacmaz+$378
+ rts
 ;
-DRAWIT LDA #1
- STA MSTILL
- LDX #3
-GREADL LDA M1DIRT,X
- JSR MONHND
- DEX
- BPL GREADL
- LDA #0
- STA MSTILL
- JMP PACSTP
+drawit lda #1
+ sta mstill
+ ldx #3
+greadl lda m1dirt,x
+ jsr monhnd
+ dex
+ bpl greadl
+ lda #0
+ sta mstill
+ jmp pacstp
 ;
-READY3 LDX #$0D
- LDA #0
-REDY3L STA PACMAZ+$14D,X
- STA PACMAZ+$1ED,X
- DEX
- BPL REDY3L
- RTS
+ready3 ldx #$0d
+ lda #0
+redy3l sta pacmaz+$14d,x
+ sta pacmaz+$1ed,x
+ dex
+ bpl redy3l
+ rts
 ;
-FLSHXU LDA RTCLOK+2
- AND #$0F
- BNE FLSHXX
- LDA FLSHUP
- BNE FLSRST
- INC FLSHUP
- BNE FLSHER
-FLSRST LDA #0
- STA FLSHUP
-FLSHER LDA PLYNUM
- BEQ FLSPL1
- LDA FLSHUP
- BNE FLS2ON
- TAX
- TAY
- BEQ F2STOR
-FLS2ON LDA #$12
- LDX #$35
- LDY #$30
-F2STOR STA TEXT+$21
- STX TEXT+$22
- STY TEXT+$23
- RTS
-FLSPL1 LDA FLSHUP
- BNE FLS1ON
- TAX
- TAY
- BEQ F1STOR
-FLS1ON LDA #$11
- LDX #$35
- LDY #$30
-F1STOR STA TEXT+4
- STX TEXT+5
- STY TEXT+6
-FLSHXX RTS
+flshxu lda rtclok+2
+ and #$0f
+ bne flshxx
+ lda flshup
+ bne flsrst
+ inc flshup
+ bne flsher
+flsrst lda #0
+ sta flshup
+flsher lda plynum
+ beq flspl1
+ lda flshup
+ bne fls2on
+ tax
+ tay
+ beq f2stor
+fls2on lda #$12
+ ldx #$35
+ ldy #$30
+f2stor sta text+$21
+ stx text+$22
+ sty text+$23
+ rts
+flspl1 lda flshup
+ bne fls1on
+ tax
+ tay
+ beq f1stor
+fls1on lda #$11
+ ldx #$35
+ ldy #$30
+f1stor sta text+4
+ stx text+5
+ sty text+6
+flshxx rts
 ;
-; SET UP MONSTER AND PACMAN
-; START POSITIONS
+; set up monster and pacman
+; start positions
 ;
-SETUP JSR INITPM;CLEAR P/M GRAPHICS
-SETUP1 LDX #$7F
-CLRPGZ STA $80,X
- DEX
- BPL CLRPGZ
- JSR SETCLR;INIT COLOR REGS
+setup jsr initpm;clear p/m graphics
+setup1 ldx #$7f
+clrpgz sta $80,x
+ dex
+ bpl clrpgz
+ jsr setclr;init color regs
 ;
-; SPEED INITIALIZATION
+; speed initialization
 ;
-SPDINI LDX PLYNUM
- LDA MAZCT1,X
- CMP #6
- BCC LOWINI
- LDA #6
-LOWINI TAY
- LDA PACSPD,Y
- TAX
- LDA SPEED1,X
- STA PMSPCT
- LDA MONSPD,Y
- TAY
- LDX #3
-SPINIL LDA SPEED1,Y
- STA M1SPCT,X
- DEX
- BPL SPINIL
+spdini ldx plynum
+ lda mazct1,x
+ cmp #6
+ bcc lowini
+ lda #6
+lowini tay
+ lda pacspd,y
+ tax
+ lda speed1,x
+ sta pmspct
+ lda monspd,y
+ tay
+ ldx #3
+spinil lda speed1,y
+ sta m1spct,x
+ dex
+ bpl spinil
 ;
- LDX #$13
-INDATL LDA INIDAT,X
- STA PACSCN,X
- DEX
- BPL INDATL
- LDY #0
- JSR MSTIMR
- STA HITCLR
- RTS
-NEWGAM LDA #3
- STA XPACP1;DO AT GAME START
- STA XPACP2
- LDA DIFOPT
- STA MAZCT1
- STA MAZCT2
- LDX #1
- JSR NEWBD1
-NEWBRD JSR P1INIT; DO AT SCREEN START
- JSR UDXPAC
- LDX PLYNUM
- LDA MAZCT1,X
- TAY
- BNE NEWRK2
- LDA RTCLOK+2
- BPL NEWRK2
-NEWRK1 JSR MSTIMR
- JMP NEWBD0
-NEWRK2 INY
- BNE NEWRK1
-NEWBD0 LDX PLYNUM
-NEWBD1 LDA #$0F
- STA BIGDT1,X
- LDA #0
- STA FRUTP1,X
- STA DTCTL1,X
- STA DTCTM1,X
- RTS
+ ldx #$13
+indatl lda inidat,x
+ sta pacscn,x
+ dex
+ bpl indatl
+ ldy #0
+ jsr mstimr
+ sta hitclr
+ rts
+newgam lda #3
+ sta xpacp1;do at game start
+ sta xpacp2
+ lda difopt
+ sta mazct1
+ sta mazct2
+ ldx #1
+ jsr newbd1
+newbrd jsr p1init; do at screen start
+ jsr udxpac
+ ldx plynum
+ lda mazct1,x
+ tay
+ bne newrk2
+ lda rtclok+2
+ bpl newrk2
+newrk1 jsr mstimr
+ jmp newbd0
+newrk2 iny
+ bne newrk1
+newbd0 ldx plynum
+newbd1 lda #$0f
+ sta bigdt1,x
+ lda #0
+ sta frutp1,x
+ sta dtctl1,x
+ sta dtctm1,x
+ rts
 ;
-MSTIMR CPY #3
- BCC LDMSTM
- LDY #3
-LDMSTM LDX #2
-LDMSTL LDA STARTV,Y
- STA M2TIMR,X
- INY
- DEX
- BPL LDMSTL
- RTS
+mstimr cpy #3
+ bcc ldmstm
+ ldy #3
+ldmstm ldx #2
+ldmstl lda startv,y
+ sta m2timr,x
+ iny
+ dex
+ bpl ldmstl
+ rts
 ;
-; VFIZZL IS THE FOLD-UP
-; SEQUENCE FOR THE PACMAN
+; vfizzl is the fold-up
+; sequence for the pacman
 ;
-; VFIZST IS THE STATUS
+; vfizst is the status
 ;
-; 0 = NO ACTION
-; 1 = WIGGLE SKIRTS
-; 2 = CLEAR MONSTERS & INIT SOUNDS
-; 3 = SOUND FREQ INCREASING
-; 4 = SOUND FREQ DECREASING
-; 5 = FADE OUT SOUND
-; 6 = SHOW BLANK SCREEN
+; 0 = no action
+; 1 = wiggle skirts
+; 2 = clear monsters & init sounds
+; 3 = sound freq increasing
+; 4 = sound freq decreasing
+; 5 = fade out sound
+; 6 = show blank screen
 ;
-VFIZZL LDA VFIZST
- CMP #1
- BNE INICLR
- LDA VFIZSQ
- BEQ NXTFSQ
- JSR SKIRTS
- LDX #3
-UDMFLP LDA M1DIRT,X
- JSR MONHND
- DEX
- BPL UDMFLP
- DEC VFIZSQ
- RTS
-NXTFSQ INC VFIZST
- LDA VFIZST
-INICLR CMP #2
- BNE FIZCHK
- LDX #3
- LDA #0
-MONCLR STA HPOSP0,X
- DEX
- BPL MONCLR
- LDA #$35
- STA VFIZFQ
- STA VFIZBS
- JSR CLRAUD
- STA VFIZCT
- STA FIZPTR
- INC FIZZLE
- LDA #$07
- STA FIZTIM
- LDA #3
- STA VFIZST
- BNE VFIZUP
-FIZCHK CMP #3
- BEQ VFIZUP
- CMP #4
- BEQ VFIZDN
- CMP #5
- BEQ VFIZFZ
- CMP #6
- BEQ FZWAIT
-VFIZUP LDA #$A8
- STA AUDC1
- LDA VFIZFQ
- STA AUDF1
- CLC
- ADC #8
- STA VFIZFQ
- INC VFIZCT
- LDA VFIZCT
- CMP #4
- BNE VBFIZX
- BEQ SVFIZS
-VFIZDN LDA #$A8
- STA AUDC1
- LDA VFIZFQ
- STA AUDF1
- SEC
- SBC #8
- STA VFIZFQ
- DEC VFIZCT
- BNE VBFIZX
- LDA VFIZBS
- CMP #$6D
- BEQ VBFIZI
-VFIZSW CLC
- ADC #4
- STA VFIZBS
- STA VFIZFQ
- LDA #3
-SVFIZS STA VFIZST
- RTS
-VFIZFZ LDA #$A8
- STA AUDC1
- LDA VFIZBS
- STA AUDF1
- SEC
- SBC #8
- STA VFIZBS
- CMP #$25
- BNE VBFIZX
- JSR CLRAUD
- LDA #$80
- STA VFIZCT
-VBFIZI INC VFIZST
-VBFIZX RTS
+vfizzl lda vfizst
+ cmp #1
+ bne iniclr
+ lda vfizsq
+ beq nxtfsq
+ jsr skirts
+ ldx #3
+udmflp lda m1dirt,x
+ jsr monhnd
+ dex
+ bpl udmflp
+ dec vfizsq
+ rts
+nxtfsq inc vfizst
+ lda vfizst
+iniclr cmp #2
+ bne fizchk
+ ldx #3
+ lda #0
+monclr sta hposp0,x
+ dex
+ bpl monclr
+ lda #$35
+ sta vfizfq
+ sta vfizbs
+ jsr clraud
+ sta vfizct
+ sta fizptr
+ inc fizzle
+ lda #$07
+ sta fiztim
+ lda #3
+ sta vfizst
+ bne vfizup
+fizchk cmp #3
+ beq vfizup
+ cmp #4
+ beq vfizdn
+ cmp #5
+ beq vfizfz
+ cmp #6
+ beq fzwait
+vfizup lda #$a8
+ sta audc1
+ lda vfizfq
+ sta audf1
+ clc
+ adc #8
+ sta vfizfq
+ inc vfizct
+ lda vfizct
+ cmp #4
+ bne vbfizx
+ beq svfizs
+vfizdn lda #$a8
+ sta audc1
+ lda vfizfq
+ sta audf1
+ sec
+ sbc #8
+ sta vfizfq
+ dec vfizct
+ bne vbfizx
+ lda vfizbs
+ cmp #$6d
+ beq vbfizi
+vfizsw clc
+ adc #4
+ sta vfizbs
+ sta vfizfq
+ lda #3
+svfizs sta vfizst
+ rts
+vfizfz lda #$a8
+ sta audc1
+ lda vfizbs
+ sta audf1
+ sec
+ sbc #8
+ sta vfizbs
+ cmp #$25
+ bne vbfizx
+ jsr clraud
+ lda #$80
+ sta vfizct
+vbfizi inc vfizst
+vbfizx rts
 ;
-FZWAIT LDA VFIZCT
- BNE DECFCW
- INC RESETF
- RTS
-DECFCW DEC VFIZCT
- RTS
+fzwait lda vfizct
+ bne decfcw
+ inc resetf
+ rts
+decfcw dec vfizct
+ rts
 ;
-; FIZZIE WILL DRAW THE PACMAN
-; FOLDING UP IN SEQUENCE
+; fizzie will draw the pacman
+; folding up in sequence
 ;
-FIZZIE LDA FIZZLE
- BEQ FIZZIX
- LDA PMVPOS
- STA PIXPUT
- LDA #HIGH PMADDR+3
- STA PIXPUT+1
- LDA FIZTIM
- BEQ RSTFIZ
- DEC FIZTIM
- BPL STRFIZ
-RSTFIZ LDA FIZPTR
- CMP #$0F
- BEQ CLRFIZ
- INC FIZPTR
- LDA #$07
- STA FIZTIM
-STRFIZ LDA FIZPTR
- BEQ FIZSTR
- CMP #$0F
- BEQ EXPPAC
- TAX
- DEX
- LDA FIZIDX,X
- TAY
- DEY
- LDA FIZDAT,X
- STA (PIXPUT),Y
- RTS
-FIZSTR LDY #$0C
- LDX #9
-FIZSTL LDA PACDIE,X
- STA (PIXPUT),Y
- DEY
- DEX
- BPL FIZSTL
- RTS
-EXPPAC LDY #$0F
- LDX #$0F
-EXPPCL LDA PACEXP,X
- STA (PIXPUT),Y
- DEY
- DEX
- BPL EXPPCL
- RTS
-CLRFIZ LDY #$0F
- LDA #0
-CLRFZL STA (PIXPUT),Y
- DEY
- BPL CLRFZL
- STA FIZZLE
-FIZZIX RTS
+fizzie lda fizzle
+ beq fizzix
+ lda pmvpos
+ sta pixput
+ lda #high pmaddr+3
+ sta pixput+1
+ lda fiztim
+ beq rstfiz
+ dec fiztim
+ bpl strfiz
+rstfiz lda fizptr
+ cmp #$0f
+ beq clrfiz
+ inc fizptr
+ lda #$07
+ sta fiztim
+strfiz lda fizptr
+ beq fizstr
+ cmp #$0f
+ beq exppac
+ tax
+ dex
+ lda fizidx,x
+ tay
+ dey
+ lda fizdat,x
+ sta (pixput),y
+ rts
+fizstr ldy #$0c
+ ldx #9
+fizstl lda pacdie,x
+ sta (pixput),y
+ dey
+ dex
+ bpl fizstl
+ rts
+exppac ldy #$0f
+ ldx #$0f
+exppcl lda pacexp,x
+ sta (pixput),y
+ dey
+ dex
+ bpl exppcl
+ rts
+clrfiz ldy #$0f
+ lda #0
+clrfzl sta (pixput),y
+ dey
+ bpl clrfzl
+ sta fizzle
+fizzix rts
 ;
-FLITEC LDA FLASHC
- BEQ NOFLIT
- LDA TWEETR
- BNE CKFLTM
- JSR VRVERB
-CKFLTM LDA FLITMR
- BEQ FLSHSQ
- DEC FLITMR
- JMP SETFLC
-NOFLIT LDA TWEETR
- BNE FIZZIX
- JMP VCHASE
-FLSHSQ LDX PLYNUM
- LDA MAZCT1,X
- TAX
- LDA FLSTIM,X
- CMP FLASHC
- BNE NXTFLS
- LDX #3
-RSCLLP LDA M1STAT,X
- BPL NXTRSC
- LDA COLORS,X
- STA PCOLR0,X
-NXTRSC DEX
- BPL RSCLLP
- LDX #3
-RSTCHL LDA M1STAT,X
- BPL NXRSTC
- CMP #$80
- BEQ RSTBOX
- AND #$BB
- BEQ NXRSTC
- BNE RSTCHS
-RSTBOX LDA #0
- BEQ RSSTAT
-RSTCHS LDA #$20
-RSSTAT STA M1STAT,X
-NXRSTC DEX
- BPL RSTCHL
- LDA #0
- STA FLASHC
- STA FLASHT
- STA VFLITS
- LDA #$A0
- STA CHASET
- RTS
-NXTFLS LDA FLASHT
- BNE DECFTM
- INC FLASHC
- LDA #$18
- STA FLASHT
-DECFTM DEC FLASHT
-SETFLC LDA FLASHC
- LSR A; ALTERNATE BLUE & WHITE
- BCC FWHITE
- LDY #$84; DARK BLUE
- BNE FSTORE
-FWHITE LDY #$0C; WHITE
-FSTORE LDX #3
-FSTORL LDA M1STAT,X
- BPL NXFSTR
- TYA
- STA PCOLR0,X
-NXFSTR DEX
- BPL FSTORL
-FLITCX RTS
+flitec lda flashc
+ beq noflit
+ lda tweetr
+ bne ckfltm
+ jsr vrverb
+ckfltm lda flitmr
+ beq flshsq
+ dec flitmr
+ jmp setflc
+noflit lda tweetr
+ bne fizzix
+ jmp vchase
+flshsq ldx plynum
+ lda mazct1,x
+ tax
+ lda flstim,x
+ cmp flashc
+ bne nxtfls
+ ldx #3
+rscllp lda m1stat,x
+ bpl nxtrsc
+ lda colors,x
+ sta pcolr0,x
+nxtrsc dex
+ bpl rscllp
+ ldx #3
+rstchl lda m1stat,x
+ bpl nxrstc
+ cmp #$80
+ beq rstbox
+ and #$bb
+ beq nxrstc
+ bne rstchs
+rstbox lda #0
+ beq rsstat
+rstchs lda #$20
+rsstat sta m1stat,x
+nxrstc dex
+ bpl rstchl
+ lda #0
+ sta flashc
+ sta flasht
+ sta vflits
+ lda #$a0
+ sta chaset
+ rts
+nxtfls lda flasht
+ bne decftm
+ inc flashc
+ lda #$18
+ sta flasht
+decftm dec flasht
+setflc lda flashc
+ lsr a; alternate blue & white
+ bcc fwhite
+ ldy #$84; dark blue
+ bne fstore
+fwhite ldy #$0c; white
+fstore ldx #3
+fstorl lda m1stat,x
+ bpl nxfstr
+ tya
+ sta pcolr0,x
+nxfstr dex
+ bpl fstorl
+flitcx rts
 ;
 ;
-VRVERB LDA VFLITS
- BNE VFLRDY
- LDA #5
- STA VFLITV
- LDA #2
- STA VFLITD
- INC VFLITS
- LDA #$90
- STA VFLITF
-VFLRDY LDA VFLITD
- CMP #1
- BNE VFLIDN
- LDA VFLITF
- CMP #$90
- BNE VFUPOK
- LDA VFLITV
- CMP #3
- BNE VFVDEC
- LDA #5
- STA VFLITV
-VFVDEC DEC VFLITV
- LDA #2
- STA VFLITD
- BNE VFDNOK
-VFUPOK CLC
- LDA VFLITF
- ADC #$10
- BNE VRBSTR
-VFLIDN LDA VFLITF
- CMP #$40
- BNE VFDNOK
- LDA #1
- STA VFLITD
- BNE VFUPOK
-VFDNOK SEC
- LDA VFLITF
- SBC #$10
-VRBSTR STA VFLITF
- STA AUDF2
- LDA VFLITV
- ORA #$A0
-VRVBX1 STA AUDC2
-VRVRBX RTS
+vrverb lda vflits
+ bne vflrdy
+ lda #5
+ sta vflitv
+ lda #2
+ sta vflitd
+ inc vflits
+ lda #$90
+ sta vflitf
+vflrdy lda vflitd
+ cmp #1
+ bne vflidn
+ lda vflitf
+ cmp #$90
+ bne vfupok
+ lda vflitv
+ cmp #3
+ bne vfvdec
+ lda #5
+ sta vflitv
+vfvdec dec vflitv
+ lda #2
+ sta vflitd
+ bne vfdnok
+vfupok clc
+ lda vflitf
+ adc #$10
+ bne vrbstr
+vflidn lda vflitf
+ cmp #$40
+ bne vfdnok
+ lda #1
+ sta vflitd
+ bne vfupok
+vfdnok sec
+ lda vflitf
+ sbc #$10
+vrbstr sta vflitf
+ sta audf2
+ lda vflitv
+ ora #$a0
+vrvbx1 sta audc2
+vrvrbx rts
 ;
-VTWEET LDA TWEETF
- BNE CTWEET
- LDA #$0C
- STA TWEETF
- BNE ITWEET
-CTWEET CMP #$17
- BNE ITWEET
- LDA #$0C
- STA TWEETF
-ITWEET INC TWEETF
-STWEET LDA TWEETF
- STA AUDF2
- LDA #$A4
- BNE VRVBX1
+vtweet lda tweetf
+ bne ctweet
+ lda #$0c
+ sta tweetf
+ bne itweet
+ctweet cmp #$17
+ bne itweet
+ lda #$0c
+ sta tweetf
+itweet inc tweetf
+stweet lda tweetf
+ sta audf2
+ lda #$a4
+ bne vrvbx1
 ;
-VGULPR DEC VGLPC1
- BEQ DISTRT
- SEC
- LDA VGLPC2
- SBC #4
- STA VGLPC2
- CMP #$10
- BEQ GLPOFF
- STA AUDF1
- STA AUDF4
- LDA #$84
- STA AUDCTL
- LDA #$A4
- BNE GBRNCH
-DISTRT LDA #2
- STA VGLPC1
- SEC
- LDA VGLPC2
- SBC #3
- STA VGLPC2
- STA AUDF1
- STA AUDF3
- STA AUDF4
- LDA #$A8
- STA AUDC3
-GBRNCH STA AUDC4
- BNE VEATRS
-GLPOFF JSR CLRAUD
- STA AUDCTL
- STA VFREEZ
- STA PACCNT
- STY GULPED
- LDA #$2A
- STA COLOR3
- LDA #$11
- STA GPRIOR
- LDX #3
-RSTPCL LDA PCOLR0,X
- CMP #$DC
- BEQ RSTPLC
- DEX 
- BPL RSTPCL
- RTS
-RSTPLC LDA #$0C
- STA PCOLR0,X
- STA HITCLR
- LDA #0
- STA PACCNT
- JSR PMSTIK
- INC PACADV
- JMP MUNCHY
+vgulpr dec vglpc1
+ beq distrt
+ sec
+ lda vglpc2
+ sbc #4
+ sta vglpc2
+ cmp #$10
+ beq glpoff
+ sta audf1
+ sta audf4
+ lda #$84
+ sta audctl
+ lda #$a4
+ bne gbrnch
+distrt lda #2
+ sta vglpc1
+ sec
+ lda vglpc2
+ sbc #3
+ sta vglpc2
+ sta audf1
+ sta audf3
+ sta audf4
+ lda #$a8
+ sta audc3
+gbrnch sta audc4
+ bne veatrs
+glpoff jsr clraud
+ sta audctl
+ sta vfreez
+ sta paccnt
+ sty gulped
+ lda #$2a
+ sta color3
+ lda #$11
+ sta gprior
+ ldx #3
+rstpcl lda pcolr0,x
+ cmp #$dc
+ beq rstplc
+ dex 
+ bpl rstpcl
+ rts
+rstplc lda #$0c
+ sta pcolr0,x
+ sta hitclr
+ lda #0
+ sta paccnt
+ jsr pmstik
+ inc pacadv
+ jmp munchy
 ;
-VEATER LDA EATERF
- BEQ VEATRX
- LDX EATERC
- CPX #6
- BNE CEATER
- LDA #0
- STA EATERF
- STA EATERC
- BEQ VEATRS
-CEATER LDA EATERT
- BNE EATER2
- LDA E1DATA,X
- JMP STREAT
-EATER2 LDA E2DATA,X
-STREAT INC EATERC
- STA AUDF1
- LDA #$A4
-VEATRS STA AUDC1
-VEATRX RTS
+veater lda eaterf
+ beq veatrx
+ ldx eaterc
+ cpx #6
+ bne ceater
+ lda #0
+ sta eaterf
+ sta eaterc
+ beq veatrs
+ceater lda eatert
+ bne eater2
+ lda e1data,x
+ jmp streat
+eater2 lda e2data,x
+streat inc eaterc
+ sta audf1
+ lda #$a4
+veatrs sta audc1
+veatrx rts
 ;
-CLRAUD LDY #7
- LDA #0
-CLRAUL STA AUDF1,Y
- DEY
- BPL CLRAUL
-CLRAUX RTS
+clraud ldy #7
+ lda #0
+clraul sta audf1,y
+ dey
+ bpl clraul
+clraux rts
 ;
-PLAYRS LDA NUMPLY
- BEQ CLRAUX
- LDA #$65
- LDX #0
-PLYRLP STA PACMAZ+$14E,X
- CLC
- ADC #1
- INX
- CPX #$0C
- BNE PLYRLP
- LDA PLYNUM
- BEQ CLRAUX
- LDX #$71
- STX PACMAZ+$158
- INX
- STX PACMAZ+$159
- RTS
+playrs lda numply
+ beq clraux
+ lda #$65
+ ldx #0
+plyrlp sta pacmaz+$14e,x
+ clc
+ adc #1
+ inx
+ cpx #$0c
+ bne plyrlp
+ lda plynum
+ beq clraux
+ ldx #$71
+ stx pacmaz+$158
+ inx
+ stx pacmaz+$159
+ rts
 ;
-APGST LDA #$42
- STA M1STAT,X
- STX GULPED
+apgst lda #$42
+ sta m1stat,x
+ stx gulped
 
-; EJECT
+; eject
 
-; INCLUDE D1:PAC3.ASM
-
-;
-; PAC-MAN GAME SUBROUTINES
-;
-; INITIALIZE PLAYER/MISSILE MEMORY
-;
-; THIS SUBR CLEARS P/M AREA
-;
-INITPM LDX #0
- TXA
- JSR INITPL
- LDA #$FE
- LDX #$F0
- JSR INITPL
- TXA
- RTS
-INITPL STA PMADDR+$300,X
- STA PMADDR+$400,X
- STA PMADDR+$500,X
- STA PMADDR+$600,X
- STA PMADDR+$700,X
- INX
- BNE INITPL
- RTS
-;
-; SETCOLOR SUBROUTINE WILL
-; INITIALIZE $2C0 - $2C7
-; (COLOR REGISTERS)
-;
-SETCLR LDX #7
-SETCLL LDA COLORS,X
- STA PCOLR0,X
- DEX
- BPL SETCLL
- RTS
-;
-;
-P1INIT LDX #0
-P1INIL LDA DATMAZ,X
- STA PACMAZ,X
- LDA DATMAZ+$100,X
- STA PACMAZ+$100,X
- LDA DATMAZ+$200,X
- STA PACMAZ+$200,X
- LDA DATMAZ+$300,X
- STA PACMAZ+$300,X
- INX
- BNE P1INIL
- RTS
-;
-SAVEP1 LDX #0
-SAVP1L LDA PACMAZ,X
- STA P1SAVE,X
- LDA PACMAZ+$100,X
- STA P1SAVE+$100,X
- LDA PACMAZ+$200,X
- STA P1SAVE+$200,X
- LDA PACMAZ+$300,X
- STA P1SAVE+$300,X
- INX
- BNE SAVP1L
- RTS
-;
-SAVEP2 LDX #0
-SAVP2L LDA PACMAZ,X
- STA P2SAVE,X
- LDA PACMAZ+$100,X
- STA P2SAVE+$100,X
- LDA PACMAZ+$200,X
- STA P2SAVE+$200,X
- LDA PACMAZ+$300,X
- STA P2SAVE+$300,X
- INX
- BNE SAVP2L
-SAV2PX RTS
-;
-; PMSTIK SUBROUTINE WILL TEST
-; JOYTICK INPUT AND DETERMINE
-; IF DIRECTION CHOSEN IS VALID.
-;   THE PACMAN WILL THEN MOVE
-; IN THE PROPER DIRECTION WITH
-; IT'S MOUTH OPENING AND CLOSING.
-;
-; THIS CODE IS CALLED DURING
-; VBLANK AND INITIATES MOTION
-; DURING ALTERNATE OCCURANCES
-; OF VBLANK.  MOUTH ANIMATION
-; IS PERFORMED EVERY VBLANK.
-;
-;
-PMSTIK LDA PMSTAT
- BMI SAV2PX
-PUDSTK LDX #4
- JSR MAZHND
- CLC
- LDA PMNDIR;SEE IF WE CHANGE DIR.
- BIT TEMLOC;IS IT VALID ?
- BEQ PMUDST;NO
- CMP PMODIR
- BEQ PUDSAM
- ORA PMODIR
- TAY
- AND #3
- BEQ PUDSAM
- TYA
- AND #$0C
- BEQ PUDSAM
- STY PACADV
-PUDSAM LDA PMNDIR
- STA PMODIR
-PMUDST LDX PLYNUM
- LDA STICK0,X
- EOR #$0F
- BEQ PMSAME
- PHA
- LDX #3
- LDY #0
-PMTST2 CLC
- LSR A
- BCC NXPTS2
- INY
-NXPTS2 DEX
- BPL PMTST2
- PLA
- CPY #2
- BEQ PMSAME
-PDRTST STA ATRACT
- STA PMNDIR
- BIT TEMLOC
- BEQ PMSAME
- STA PMODIR
-PMSAME LDA PMODIR
- BIT TEMLOC
- BNE PACTST
- JMP PACOPN
-PACTST CMP #1
- BEQ PACUP
- CMP #2
- BEQ PACDN
- CMP #4
- BNE PACRTV
- JMP PACLF
-PACRTV CMP #8
- BEQ PACRT
- JMP PACSTP
-PACUP LDA PACCNT
- BNE PACUPS
- DEC PMVPOS
- DEC PMVPOS
- LDA PACMAP
- BNE DECPMP
- LDA #3
- STA PACMAP
- BNE PACUPS
-DECPMP DEC PACMAP
- BNE PACUPS
- LDA PMVPOS
- CMP PVSAVE
- BEQ PACUPS
- SEC
- LDA PACSCN
- SBC #$28
- STA PACSCN
- LDA PACSCN+1
- SBC #0
- STA PACSCN+1
-PACUPS LDY #6;POINT TO PACTOP
- JMP MOVPAC
-PACDN LDA PACCNT
- BNE PACDNS
- INC PMVPOS
- INC PMVPOS
- LDA PACMAP
- CMP #3
- BNE INCPMP
- LDA #0
- STA PACMAP
- LDA PMVPOS
- CMP PVSAVE
- BEQ PACDNS
- CLC
- LDA PACSCN
- ADC #$28
- STA PACSCN
- LDA PACSCN+1
- ADC #0
- STA PACSCN+1
- BNE PACDNS
-INCPMP INC PACMAP
-PACDNS LDY #8;POINT TO PACBOT
- JMP MOVPAC
-PACRT LDA PACCNT
- BNE PACRTS
-;
- LDA PMHPOS
- CMP #$CA
- BNE NORTTN
- LDA #$2A
- STA PMHPOS
- LDA #$8F
- STA PACSCN
-;
-NORTTN INC PMHPOS
- LDA PACBYT
- CMP #3
- BNE INCPBY
- LDA #0
- STA PACBYT
- LDA PMHPOS
- CMP PHSAVE
- BEQ PACRTS
- INC PACSCN
- BNE PACRTS
- INC PACSCN+1
- BNE PACRTS
-INCPBY INC PACBYT
-PACRTS LDY #2;POINT TO PACRGT
- BNE MOVPAC
-PACLF LDA PACCNT
- BNE PACLFS
-;
- LDA PMHPOS
- CMP #$2A
- BNE NOLFTN
- LDA #$CA
- STA PMHPOS
- LDA #$B7
- STA PACSCN
-;
-NOLFTN DEC PMHPOS
- LDA PACBYT
- BNE DECPBY
- LDA #3
- STA PACBYT
- BNE PACLFS
-DECPBY DEC PACBYT
- BNE PACLFS
- LDA PMHPOS
- CMP PHSAVE
- BEQ PACLFS
- SEC
- LDA PACSCN
- SBC #1
- STA PACSCN
- LDA PACSCN+1
- SBC #0
- STA PACSCN+1
-PACLFS LDY #4;POINT TO PACLFT
- BNE MOVPAC
-PACOPN LDA PMODIR
- CMP #1
- BNE POPNDN
- LDY #6; UP
- BNE SETOPN
-POPNDN CMP #2
- BNE POPNLF
- LDY #8; DOWN
- BNE SETOPN
-POPNLF CMP #4
- BNE POPNRT
- LDY #4; LEFT
- BNE SETOPN
-POPNRT CMP #8
- BNE PACSTP
- LDY #2
-SETOPN LDA #$0A
- BNE STRPAC
-PACSTP LDY #0;POINT TO PACDOT
- TYA
- BEQ STRPAC
-MOVPAC LDX PMSEQU
- BNE PACSID
- INC PMSEQU
- BNE PACSTP
-PACSID DEX
- LDA PACIDX,X
- CPX #2
- BNE INCPSQ
- LDX #$FF
- STX PMSEQU
-INCPSQ INC PMSEQU
-STRPAC TAX
- LDA PACADD,Y
- STA PIXGET
- INY
- LDA PACADD,Y
- STA PIXGET+1
- TXA
- CLC
- ADC PIXGET
- STA PIXGET
- LDA #0
- ADC PIXGET+1
- STA PIXGET+1
- LDY #9
-PMBFLP LDA (PIXGET),Y
- STA PACBUF+3,Y
- DEY
- BPL PMBFLP
- LDA #LOW PACBUF
- STA PIXGET
- LDA #HIGH PACBUF
- STA PIXGET+1
- LDA PMVPOS
- STA PIXPUT
- LDA #HIGH PMADDR+3
- STA PIXPUT+1
- CLC
- LDA PMHPOS
- STA HPOSM3
- ADC #2
- STA HPOSM2
- ADC #2
- STA HPOSM1
- ADC #2
- STA HPOSM0
- LDY #$0F
-PPLOOP LDA (PIXGET),Y
- STA (PIXPUT),Y
- DEY
- BPL PPLOOP
-PMSIXX RTS
-;
-; MUNCHY SUBROUTINE EATS DOTS
-;
-MUNCHY LDA PACBYT
- BNE MUNCHX
- LDA PACMAP
- BNE MUNCHX
- LDA PMHPOS
- CMP PHSAVE
- BNE NWPREF
- LDA PMVPOS
- CMP PVSAVE
- BEQ PMSIXX
-NWPREF LDA PMVPOS
- STA PVSAVE
- LDA PMHPOS
- STA PHSAVE
- LDY #0
- LDA (PACSCN),Y
- CMP #1
- BEQ EATSML
- CMP #2
- BNE MUNCHX
- TYA
- STA (PACSCN),Y
- RTS
-EATSML STA SCOREX+4
- JSR PSCORE
- LDA #1
- STA EATERF
- STA PACDLY
- LDA #0
- STA EATERC
- LDA EATERT
- BNE ZEATER
- LDA #1
- BNE SEATER
-ZEATER LDA #0
-SEATER STA EATERT
- LDA #0
- TAY
- STA (PACSCN),Y
-INCDOT LDX PLYNUM
- INC DTCTL1,X
- BNE CHKMAX
- INC DTCTM1,X
-CHKMAX LDX PLYNUM
- LDA DTCTM1,X
- BEQ MUNCHX
- LDA DTCTL1,X
- CMP #4
- BNE MUNCHX
- LDA #1
- STA RRFLAG
-MUNCHX RTS
-;
-DOTTST LDX PLYNUM
- LDA BIGDT1,X
- STA TEMLOC
- LDX PMVPOS
- LDY PMHPOS
- LDA #1
- BIT TEMLOC
- BEQ DT2TST
- CPX #$3C
- BNE DT2TST
- CPY #$3A
- BEQ DOTFND
-DT2TST ASL A
- BIT TEMLOC
- BEQ DT3TST
- CPX #$3C
- BNE DT3TST
- CPY #$BE
- BEQ DOTFND
-DT3TST ASL A
- BIT TEMLOC
- BEQ DT4TST
- CPX #$A4
- BNE DT4TST
- CPY #$3A
- BEQ DOTFND
-DT4TST ASL A
- BIT TEMLOC
- BEQ MUNCHX
- CPX #$A4
- BNE MUNCHX
- CPY #$BE
- BNE MUNCHX
-DOTFND EOR #$0F
- AND TEMLOC
- LDX PLYNUM
- STA BIGDT1,X
- LDA #5
- STA SCOREX+4
- JSR PSCORE
- LDA #1; SET UP FOR BLUE MONSTERS
- STA FLASHC
- LDA #$FF
- STA GLPCNT
- LDX PLYNUM
- LDA MAZCT1,X
- TAX
- LDA BLUTIM,X
- STA FLITMR
- LDX #3
-SETFLL LDA M1STAT,X
- ASL A
- BMI NXTFLL
- LDA M1STAT,X
- ORA #$80; SET STATUS = FLIGHT
- STA M1STAT,X
- LSR A
- LSR A
- LSR A
- BCS NXTFLL
-;
- AND #$3B
- BEQ NXTFLL
- LDA M1DIRT,X
- TAY
- LDA BLUREV,Y
- STA M1DIRT,X
-;
-NXTFLL DEX
- BPL SETFLL
- JMP INCDOT
-;
-; PSCORE WILL ADD ANY POINTS
-; SCORED TO THE PLAYERS' SCORE
-;
-PSCORE LDA #0;PSCORE SUBR
- STA CARRYB
- SED
- LDA PLYNUM
- BEQ PSCOR1
- LDX #$4C
- BNE PSCORX
-PSCOR1 LDX #$2F
-PSCORX LDY #5
-KSCORE CLC
- LDA TEXT,X
- AND #$0F
- ADC CARRYB
- ADC SCOREX,Y
- PHA
- AND #$10
- BEQ NOCARY
- LDA #1
-NOCARY STA CARRYB
- PLA
- ORA #$10
- CMP #$10
- BNE STRSCR
- CPY #0
- BNE TESLED
- TYA
- BEQ STRSCR
-TESLED LDA TEXT-1,X
- BNE NOLEAD
- LDA CARRYB
- BEQ STRSCR
-NOLEAD LDA #$10
-STRSCR STA TEXT,X
- DEX
- DEY
- BPL KSCORE
- CLD
- LDX #5
- LDA #0
-CLRSCR STA SCOREX,X
- DEX
- BPL CLRSCR
-CKBONS LDX PLYNUM
- LDA BPACP1,X
- BNE NOBONS
- CPX #0
- BNE CKBON2
- LDA TEXT+$2B
- BNE BONUSP
-NOBONS RTS
-CKBON2 LDA TEXT+$48
- BEQ NOBONS
-BONUSP INC BPACP1,X
- INC XPACP1,X
- JMP UDXPACS
-;
-; MAZE HANDLER SUBROUTINE
-;
-; ENTRY:
-; A REG VALUE EQUALS VPOS
-; Y REG VALUE EQUALS HPOS
-;
-; EXIT:
-; A REG VALUE EQUALS PERMISSIBLE
-; DIRECTIONS FOR ANY OBJECT FROM
-; ANY POSITION
-;
-; BIT 0 SET - UP OK
-; BIT 1 SET - DN OK
-; BIT 2 SET - RT OK
-; BIT 3 SET - LF OK
-;
-; CARRY BIT IS SET IF
-; DECISION POINT WAS REACHED
-; OTHERWISE IT IS CLEARED.
-;
-MAZHND LDA M1HPOS,X
- STA HSAVER
- LDA M1VPOS,X
- STX TEMLOC
- LDX #9
-MHORLP CMP VTABLE,X;SEARCH VPOS
- BEQ VRTFND;MATCH FOUND
- DEX
- BPL MHORLP;KEEP LOOKING
- LDA HSAVER;NONE FOUND SO TRY HPOS
- LDY #9
-MVRTLP CMP HTABLE,Y;SEARCH HPOS
- BEQ HORFND;MATCH FOUND
- DEY
- BPL MVRTLP
-VRTFND LDY #9;NOW WE CHECK HPOS TABLE
- LDA HSAVER;  TO SEE IF DECISION PT.
-VRTFNL CMP HTABLE,Y
- BEQ CHOICE;YES - MAKE CHOICE
- DEY
- BPL VRTFNL
- LDA #$0C;NO - KEEP GOING
- CLC
- BCC MAZHNX
-HORFND LDA #3; ONLY ONE MATCH FOUND
- CLC
- BCC MAZHNX
-CHOICE TXA;NOW INDEX INTO TABLE
- ASL A
- TAX
- LDA HTBADD,X
- STA PIXGET
- INX
- LDA HTBADD,X
- STA PIXGET+1
- LDA (PIXGET),Y
- SEC
-MAZHNX LDX TEMLOC
- STA TEMLOC
- PHP
- CPX #4
- BEQ MAZHX1
- LDA M1DIRT,X
- TAY
- LDA TEMLOC
- AND REVTAB,Y
- STA TEMLOC
- LDA M1VPOS,X
- CMP #$64
- BNE MAZHX1
- LDA M1HPOS,X
- CMP #$76
- BEQ MASKIT
-NEXTMU CMP #$82
- BNE MAZHX1
-MASKIT LDA M1STAT,X
- BMI MASKSD
- LDA TEMLOC
- AND #$0E
- BNE MASKUP
-MASKSD LDA #1
-MASKUP STA TEMLOC
-MAZHX1 LDA TEMLOC
- PLP
- RTS
-;
-VCHASE LDA #0
- STA VFLITS
- LDA VCHASS
- BNE VCHDIR
- LDA #$28
- STA VCHASF
- LDA #1
- STA VCHASS
- STA VCHASD
-VCHDIR LDA VCHASD
- CMP #1
- BNE VCHADN
- LDA VCHASF
- CMP #$40
- BCC VCUPOK
- LDA #2
- STA VCHASD
- BNE VCDNOK
-VCUPOK LDA WHINEY
- CLC
- ADC VCHASF
- BNE STRVCH
-VCHADN LDA VCHASF
- CMP #$28
- BCS VCDNOK
- LDA #1
- STA VCHASD
- BNE VCUPOK
-VCDNOK SEC
- LDA VCHASF
- SBC WHINEY
-STRVCH STA VCHASF
- STA AUDF2
- LDA #$A1
- STA AUDC2
-VCHASX RTS
-;
-BLINKR LDA RTCLOK+2
- AND #$0F
- BEQ BLNKON
- CMP #8
- BEQ BLNKOF
- RTS
-BLNKON LDY #2
- LDX PLYNUM
- LDA BIGDT1,X
- STA TEMLOC
- LDA #1
- BIT TEMLOC
- BEQ BKOND2
- STY PACMAZ+$7B
-BKOND2 ASL A
- BIT TEMLOC
- BEQ BKOND3
- STY PACMAZ+$9C
-BKOND3 ASL A
- BIT TEMLOC
- BEQ BKOND4
- STY PACMAZ+$283
-BKOND4 ASL A
- BIT TEMLOC
- BNE BKONX1
-BKONXX RTS
-;
-BLNKOF LDY #0
- STY PACMAZ+$7B
- STY PACMAZ+$9C
- STY PACMAZ+$283
-BKONX1 STY PACMAZ+$2A4
- RTS
-;
-;
-; SPEED SEQUENCING FOR OBJECTS
-;
-; X REG = INDEX VALUE FOR OBJECT
-;
-; X=0 TO 3 FOR MONSTERS 1 - 4
-; X=4 FOR PACMAN
-;
-; ON EXIT:
-; A REG = 0 INDICATES UPDATE TIME
-;
-SPDSEQ DEC M1SPCT,X
- BEQ NXSPSQ
- LDA #$FF
- RTS
-NXSPSQ LDA M1SPSQ,X
- CMP #3
- BNE INCSPS
- LDA #$FF
- STA M1SPSQ,X
-INCSPS INC M1SPSQ,X
- LDY PLYNUM
- LDA MAZCT1,Y
- CMP #6
- BCC LOWSPD
- LDA #6
-LOWSPD TAY
- CPX #4
- BNE MXSPSQ
- LDA PACSPD,Y
- BPL LDSPSQ
-MXSPSQ LDA MONSPD,Y
-LDSPSQ CLC
- ADC M1SPSQ,X
- TAY
- LDA SPEED1,Y
- STA M1SPCT,X
- LDA #0
- RTS
-;
-; CHASE SEQUENCING
-;
-CHSSEQ LDA RTCLOK+2
- AND #7
- BNE CHSSQ1
- LDA CHASET
- BEQ CHSSQ1
- DEC CHASET
-CHSSQ1 LDX PLYNUM
- LDA DTCTM1,X
- BEQ CHMAD1
-VRYMAD LDX #3
- JSR SETMAD
- LDA #5
- BNE STWHIN
-CHMAD1 LDA DTCTL1,X
- CMP #$F0
- BCS VRYMAD
- CMP #$E0
- BCC SMLMAD
- LDX #2
- JSR SETMAD
- LDA #4
- BNE STWHIN
-SMLMAD CMP #$B0
- BCC NOTMAD
- LDA #3
- BNE STWHIN
-NOTMAD LDA #2
-STWHIN STA WHINEY
-CHSSQ2 LDX #3
-CHSSQL LDA M1STAT,X
- CMP #8
- BEQ TSTCHS
- CMP #$10
- BEQ TSTCHS
- BNE NXCHSQ
-TSTCHS JSR SEEPAC
-NXCHSQ DEX
- BPL CHSSQL
- RTS
-;
-SETMAD LDA M1STAT,X
- CMP #8
- BEQ YESMAD
- CMP #$10
- BEQ YESMAD
- CMP #$20
- BNE NXSTMD
-YESMAD LDA #2
- STA M1STAT,X
-NXSTMD DEX
- BPL SETMAD
- STX CHASET
- RTS
-;
-FRUITY LDA FRSCRF
- BEQ TSTFRT
- LDA FRSCRT
- BNE DCFRST
- LDA #0
- STA FRSCRF
- LDX #4
-CLFRSL STA PACMAZ+$1F1,X
- DEX
- BPL CLFRSL
- RTS
-DCFRST DEC FRSCRT
-DCFRSX RTS
-TSTFRT LDA FRUFLG
- BNE DFRTMR
- LDX PLYNUM
- LDA DTCTL1,X
- TAY
- LDA FRUTP1,X
- BEQ FRTST1
- CMP #1
- BEQ FRTST2
- RTS
-FRTST1 CPY #$50
- BEQ SETFRT
-FRTST2 CPY #$A0
- BNE DCFRSX
-SETFRT INC FRUTP1,X
- LDA MAZCT1,X
- CMP #$0C
- BCC LOWFRC
- LDA #$0C
-LOWFRC TAX
- LDA FRUCHR,X
- STA PACMAZ+$1F3
- CLC
- ADC #1
- STA PACMAZ+$1F4
- LDA #1
- STA FRUFLG
- LDA #FDELAY
- STA FRUTMR
- LDA #2
- STA FRUTMR+1
- RTS
-DFRTMR LDA FRUTMR+1
- BNE DCFRTM
- LDA FRUTMR
- BNE DCFRTM
- LDA #0
- STA PACMAZ+$1F3
- STA PACMAZ+$1F4
- STA FRUFLG
- RTS
-DCFRTM DEC FRUTMR
- BNE FRUITX
- DEC FRUTMR+1
-FRUITX RTS
-;
- STA FR
-
-; EJECT
-
-; INCLUDE D1:PAC4.ASM
+; include d1:pac3.asm
 
 ;
-; PACMAN MONSTER SUBROUTINES
+; pac-man game subroutines
+;
+; initialize player/missile memory
+;
+; this subr clears p/m area
+;
+initpm ldx #0
+ txa
+ jsr initpl
+ lda #$fe
+ ldx #$f0
+ jsr initpl
+ txa
+ rts
+initpl sta pmaddr+$300,x
+ sta pmaddr+$400,x
+ sta pmaddr+$500,x
+ sta pmaddr+$600,x
+ sta pmaddr+$700,x
+ inx
+ bne initpl
+ rts
+;
+; setcolor subroutine will
+; initialize $2c0 - $2c7
+; (color registers)
+;
+setclr ldx #7
+setcll lda colors,x
+ sta pcolr0,x
+ dex
+ bpl setcll
+ rts
 ;
 ;
-EYONLY LDA #0
- STA TWEETR
- LDX #3
-EYONLP LDA M1STAT,X
- CMP #$44
- BEQ NXTEYD
- ASL A
- BPL NXTEYD
- CPX GULPED
- BEQ NXTEYD
- INC TWEETR
- LDA M1HPOS,X
- TAY
- LDA M1VPOS,X
- CPY #$7C
- BNE TSTEYV
- CMP #$64
- BNE TSTEYV
- LDA M1DIRT,X
- CMP #1
- BNE EYHOME
- LDA #4
- STA M1DIRT,X
- LDA M1VPOS,X
- BNE TSTEYV
-EYHOME LDA #$44
- STA M1STAT,X
- LDA #$FF
- STA M1SSEQ,X
- BNE NXTEYD
-TSTEYV JSR MAZHND
- BCC SAMEYD
- CLC
- LDA #$7C
- STA M1THPS,X
- LDA #$64
- STA M1TVPS,X
- JSR MDIRCT
-SAMEYD LDA M1DIRT,X
- JSR MONHND
-NXTEYD DEX
- BPL EYONLP
- LDA TWEETR
- BNE GTWEET
- LDA #0
- STA TWEETF
- BEQ CKINBX
-GTWEET LDA VFREEZ
- BNE CKINBX
- JSR VTWEET
-CKINBX LDX #3
-NMEYLP LDA M1STAT,X
- CLC
- LSR A
- LSR A
- LSR A
- BCC NXNMEY
- LDA M1STAT,X
- ASL A
- BPL MONOUT
- JSR PNKMIN
- JMP NXNMEY
-MONOUT LDA RTCLOK+2
- AND #3
- BNE NXNMEY
- CPX #3
- BNE GRNOUT
- JSR YELMOT
- JMP NXNMEY
-GRNOUT CPX #2
- BNE REDOUT
- JSR GRNMOT
- JMP NXNMEY
-REDOUT JSR PNKMOT
-NXNMEY DEX
- BPL NMEYLP
-EYONLX RTS
+p1init ldx #0
+p1inil lda datmaz,x
+ sta pacmaz,x
+ lda datmaz+$100,x
+ sta pacmaz+$100,x
+ lda datmaz+$200,x
+ sta pacmaz+$200,x
+ lda datmaz+$300,x
+ sta pacmaz+$300,x
+ inx
+ bne p1inil
+ rts
 ;
-PNKMOT LDA M1VPOS,X
- CMP #$64
- BNE PNKOUT
- LDA M1STAT,X
- BNE PNKTST
- LDA #1
- BNE PNKCHS
-PNKTST AND #$80
- ORA #2
- BPL PNKCHS
- STA CHASET
- LDY #8
- BNE STRDIR
-PNKCHS LDY #4
-STRDIR STY M1DIRT,X
-STRSTS STA M1STAT,X
- RTS
-PNKOUT LDA #1
-PNKOT1 STA M1DIRT,X
- JMP MONHND
+savep1 ldx #0
+savp1l lda pacmaz,x
+ sta p1save,x
+ lda pacmaz+$100,x
+ sta p1save+$100,x
+ lda pacmaz+$200,x
+ sta p1save+$200,x
+ lda pacmaz+$300,x
+ sta p1save+$300,x
+ inx
+ bne savp1l
+ rts
 ;
-REINCR LDA M1STAT,X
- AND #$0F
- STA M1STAT,X
- LDA COLORS,X
- STA PCOLR0,X
- RTS
+savep2 ldx #0
+savp2l lda pacmaz,x
+ sta p2save,x
+ lda pacmaz+$100,x
+ sta p2save+$100,x
+ lda pacmaz+$200,x
+ sta p2save+$200,x
+ lda pacmaz+$300,x
+ sta p2save+$300,x
+ inx
+ bne savp2l
+sav2px rts
 ;
-GRNMOT LDA M1HPOS,X
- CMP #$7C
- BEQ PNKMOT
-GRNOT1 LDA #8
- BNE PNKOT1
+; pmstik subroutine will test
+; joytick input and determine
+; if direction chosen is valid.
+;   the pacman will then move
+; in the proper direction with
+; it's mouth opening and closing.
 ;
-YELMOT LDA M1HPOS,X
- CMP #$7C
- BEQ PNKMOT
-YELOUT LDA #4
- BNE PNKOT1
+; this code is called during
+; vblank and initiates motion
+; during alternate occurances
+; of vblank.  mouth animation
+; is performed every vblank.
 ;
-PNKMIN LDA M1VPOS,X
- CMP #$74
- BNE PNKMDN
- CPX #2
- BEQ GRNMIN
- CPX #3
- BEQ YELMIN
- BNE REINCR
-PNKMDN LDA #2
- BNE PNKOT1
 ;
-GRNMIN LDA M1HPOS,X
- CMP #$70
- BNE YELOUT
- BEQ REINCR
+pmstik lda pmstat
+ bmi sav2px
+pudstk ldx #4
+ jsr mazhnd
+ clc
+ lda pmndir;see if we change dir.
+ bit temloc;is it valid ?
+ beq pmudst;no
+ cmp pmodir
+ beq pudsam
+ ora pmodir
+ tay
+ and #3
+ beq pudsam
+ tya
+ and #$0c
+ beq pudsam
+ sty pacadv
+pudsam lda pmndir
+ sta pmodir
+pmudst ldx plynum
+ lda stick0,x
+ eor #$0f
+ beq pmsame
+ pha
+ ldx #3
+ ldy #0
+pmtst2 clc
+ lsr a
+ bcc nxpts2
+ iny
+nxpts2 dex
+ bpl pmtst2
+ pla
+ cpy #2
+ beq pmsame
+pdrtst sta atract
+ sta pmndir
+ bit temloc
+ beq pmsame
+ sta pmodir
+pmsame lda pmodir
+ bit temloc
+ bne pactst
+ jmp pacopn
+pactst cmp #1
+ beq pacup
+ cmp #2
+ beq pacdn
+ cmp #4
+ bne pacrtv
+ jmp paclf
+pacrtv cmp #8
+ beq pacrt
+ jmp pacstp
+pacup lda paccnt
+ bne pacups
+ dec pmvpos
+ dec pmvpos
+ lda pacmap
+ bne decpmp
+ lda #3
+ sta pacmap
+ bne pacups
+decpmp dec pacmap
+ bne pacups
+ lda pmvpos
+ cmp pvsave
+ beq pacups
+ sec
+ lda pacscn
+ sbc #$28
+ sta pacscn
+ lda pacscn+1
+ sbc #0
+ sta pacscn+1
+pacups ldy #6;point to pactop
+ jmp movpac
+pacdn lda paccnt
+ bne pacdns
+ inc pmvpos
+ inc pmvpos
+ lda pacmap
+ cmp #3
+ bne incpmp
+ lda #0
+ sta pacmap
+ lda pmvpos
+ cmp pvsave
+ beq pacdns
+ clc
+ lda pacscn
+ adc #$28
+ sta pacscn
+ lda pacscn+1
+ adc #0
+ sta pacscn+1
+ bne pacdns
+incpmp inc pacmap
+pacdns ldy #8;point to pacbot
+ jmp movpac
+pacrt lda paccnt
+ bne pacrts
 ;
-YELMIN LDA M1HPOS,X
- CMP #$88
- BNE GRNOT1
- BEQ REINCR
+ lda pmhpos
+ cmp #$ca
+ bne norttn
+ lda #$2a
+ sta pmhpos
+ lda #$8f
+ sta pacscn
 ;
-STRTMN LDX #1
-CKSSQL LDA M1STAT,X
- AND #$7F
- BNE NXCKSS
- LDA M1TIMR,X
- BEQ CKSMUP
- DEC M1TIMR,X
- JSR BOUNCE
- JMP NXCKSS
-CKSMUP CPX #3
- BNE CKM2UP
- JSR YELMOT
- JMP NXCKSS
-CKM2UP CPX #2
- BNE CKM1UP
- JSR GRNMOT
- JMP NXCKSS
-CKM1UP JSR PNKMOT
-NXCKSS INX
- CPX #4
- BNE CKSSQL
- RTS
+norttn inc pmhpos
+ lda pacbyt
+ cmp #3
+ bne incpby
+ lda #0
+ sta pacbyt
+ lda pmhpos
+ cmp phsave
+ beq pacrts
+ inc pacscn
+ bne pacrts
+ inc pacscn+1
+ bne pacrts
+incpby inc pacbyt
+pacrts ldy #2;point to pacrgt
+ bne movpac
+paclf lda paccnt
+ bne paclfs
 ;
-; STARTUP SEQUENCE OF
-; MONSTERS EXITING FROM
-; BOX.
+ lda pmhpos
+ cmp #$2a
+ bne nolftn
+ lda #$ca
+ sta pmhpos
+ lda #$b7
+ sta pacscn
 ;
-BOUNCE LDA M1DIRT,X
- CMP #1
- BNE TSUPSQ
- LDA M1VPOS,X
- CMP #$70
- BNE NXTBNC
- LDA #2
- BNE STSQST
-TSUPSQ LDA M1VPOS,X
- CMP #$78
- BNE NXTBNC
- LDA #1
-STSQST STA M1DIRT,X
-NXTBNC LDA M1DIRT,X
- JMP MONHND
+nolftn dec pmhpos
+ lda pacbyt
+ bne decpby
+ lda #3
+ sta pacbyt
+ bne paclfs
+decpby dec pacbyt
+ bne paclfs
+ lda pmhpos
+ cmp phsave
+ beq paclfs
+ sec
+ lda pacscn
+ sbc #1
+ sta pacscn
+ lda pacscn+1
+ sbc #0
+ sta pacscn+1
+paclfs ldy #4;point to paclft
+ bne movpac
+pacopn lda pmodir
+ cmp #1
+ bne popndn
+ ldy #6; up
+ bne setopn
+popndn cmp #2
+ bne popnlf
+ ldy #8; down
+ bne setopn
+popnlf cmp #4
+ bne popnrt
+ ldy #4; left
+ bne setopn
+popnrt cmp #8
+ bne pacstp
+ ldy #2
+setopn lda #$0a
+ bne strpac
+pacstp ldy #0;point to pacdot
+ tya
+ beq strpac
+movpac ldx pmsequ
+ bne pacsid
+ inc pmsequ
+ bne pacstp
+pacsid dex
+ lda pacidx,x
+ cpx #2
+ bne incpsq
+ ldx #$ff
+ stx pmsequ
+incpsq inc pmsequ
+strpac tax
+ lda pacadd,y
+ sta pixget
+ iny
+ lda pacadd,y
+ sta pixget+1
+ txa
+ clc
+ adc pixget
+ sta pixget
+ lda #0
+ adc pixget+1
+ sta pixget+1
+ ldy #9
+pmbflp lda (pixget),y
+ sta pacbuf+3,y
+ dey
+ bpl pmbflp
+ lda #low pacbuf
+ sta pixget
+ lda #high pacbuf
+ sta pixget+1
+ lda pmvpos
+ sta pixput
+ lda #high pmaddr+3
+ sta pixput+1
+ clc
+ lda pmhpos
+ sta hposm3
+ adc #2
+ sta hposm2
+ adc #2
+ sta hposm1
+ adc #2
+ sta hposm0
+ ldy #$0f
+pploop lda (pixget),y
+ sta (pixput),y
+ dey
+ bpl pploop
+pmsixx rts
 ;
-MONSTR LDA M1STAT,X
- BPL MNTST1
- LSR A
- LSR A
- LSR A
- BCC MNTSCH
- RTS
-MNTST1 CMP #1
- BEQ MSTRTP; MONSTER START PATH
-MNTST2 CMP #2
- BNE MNTST3
- LDA CHASET
- BNE MNTSCH
- JMP GOHOME
-MNTSCH JMP MCHASE; MONSTER IS CHASING
-MNTST3 CMP #8
- BNE MNTST4
- JMP SEEKPS; SEEK PATTERN START
-MNTST4 CMP #$10
- BNE MNTST5
- JMP MPATRN; CONTINUE PATTERN
-MNTST5 CMP #$20
- BNE MNTST6
- JMP GOHOME; SEEK HOME CORNER
-MNTST6 RTS
+; munchy subroutine eats dots
+;
+munchy lda pacbyt
+ bne munchx
+ lda pacmap
+ bne munchx
+ lda pmhpos
+ cmp phsave
+ bne nwpref
+ lda pmvpos
+ cmp pvsave
+ beq pmsixx
+nwpref lda pmvpos
+ sta pvsave
+ lda pmhpos
+ sta phsave
+ ldy #0
+ lda (pacscn),y
+ cmp #1
+ beq eatsml
+ cmp #2
+ bne munchx
+ tya
+ sta (pacscn),y
+ rts
+eatsml sta scorex+4
+ jsr pscore
+ lda #1
+ sta eaterf
+ sta pacdly
+ lda #0
+ sta eaterc
+ lda eatert
+ bne zeater
+ lda #1
+ bne seater
+zeater lda #0
+seater sta eatert
+ lda #0
+ tay
+ sta (pacscn),y
+incdot ldx plynum
+ inc dtctl1,x
+ bne chkmax
+ inc dtctm1,x
+chkmax ldx plynum
+ lda dtctm1,x
+ beq munchx
+ lda dtctl1,x
+ cmp #4
+ bne munchx
+ lda #1
+ sta rrflag
+munchx rts
+;
+dottst ldx plynum
+ lda bigdt1,x
+ sta temloc
+ ldx pmvpos
+ ldy pmhpos
+ lda #1
+ bit temloc
+ beq dt2tst
+ cpx #$3c
+ bne dt2tst
+ cpy #$3a
+ beq dotfnd
+dt2tst asl a
+ bit temloc
+ beq dt3tst
+ cpx #$3c
+ bne dt3tst
+ cpy #$be
+ beq dotfnd
+dt3tst asl a
+ bit temloc
+ beq dt4tst
+ cpx #$a4
+ bne dt4tst
+ cpy #$3a
+ beq dotfnd
+dt4tst asl a
+ bit temloc
+ beq munchx
+ cpx #$a4
+ bne munchx
+ cpy #$be
+ bne munchx
+dotfnd eor #$0f
+ and temloc
+ ldx plynum
+ sta bigdt1,x
+ lda #5
+ sta scorex+4
+ jsr pscore
+ lda #1; set up for blue monsters
+ sta flashc
+ lda #$ff
+ sta glpcnt
+ ldx plynum
+ lda mazct1,x
+ tax
+ lda blutim,x
+ sta flitmr
+ ldx #3
+setfll lda m1stat,x
+ asl a
+ bmi nxtfll
+ lda m1stat,x
+ ora #$80; set status = flight
+ sta m1stat,x
+ lsr a
+ lsr a
+ lsr a
+ bcs nxtfll
+;
+ and #$3b
+ beq nxtfll
+ lda m1dirt,x
+ tay
+ lda blurev,y
+ sta m1dirt,x
+;
+nxtfll dex
+ bpl setfll
+ jmp incdot
+;
+; pscore will add any points
+; scored to the players' score
+;
+pscore lda #0;pscore subr
+ sta carryb
+ sed
+ lda plynum
+ beq pscor1
+ ldx #$4c
+ bne pscorx
+pscor1 ldx #$2f
+pscorx ldy #5
+kscore clc
+ lda text,x
+ and #$0f
+ adc carryb
+ adc scorex,y
+ pha
+ and #$10
+ beq nocary
+ lda #1
+nocary sta carryb
+ pla
+ ora #$10
+ cmp #$10
+ bne strscr
+ cpy #0
+ bne tesled
+ tya
+ beq strscr
+tesled lda text-1,x
+ bne nolead
+ lda carryb
+ beq strscr
+nolead lda #$10
+strscr sta text,x
+ dex
+ dey
+ bpl kscore
+ cld
+ ldx #5
+ lda #0
+clrscr sta scorex,x
+ dex
+ bpl clrscr
+ckbons ldx plynum
+ lda bpacp1,x
+ bne nobons
+ cpx #0
+ bne ckbon2
+ lda text+$2b
+ bne bonusp
+nobons rts
+ckbon2 lda text+$48
+ beq nobons
+bonusp inc bpacp1,x
+ inc xpacp1,x
+ jmp udxpacs
+;
+; maze handler subroutine
+;
+; entry:
+; a reg value equals vpos
+; y reg value equals hpos
+;
+; exit:
+; a reg value equals permissible
+; directions for any object from
+; any position
+;
+; bit 0 set - up ok
+; bit 1 set - dn ok
+; bit 2 set - rt ok
+; bit 3 set - lf ok
+;
+; carry bit is set if
+; decision point was reached
+; otherwise it is cleared.
+;
+mazhnd lda m1hpos,x
+ sta hsaver
+ lda m1vpos,x
+ stx temloc
+ ldx #9
+mhorlp cmp vtable,x;search vpos
+ beq vrtfnd;match found
+ dex
+ bpl mhorlp;keep looking
+ lda hsaver;none found so try hpos
+ ldy #9
+mvrtlp cmp htable,y;search hpos
+ beq horfnd;match found
+ dey
+ bpl mvrtlp
+vrtfnd ldy #9;now we check hpos table
+ lda hsaver;  to see if decision pt.
+vrtfnl cmp htable,y
+ beq choice;yes - make choice
+ dey
+ bpl vrtfnl
+ lda #$0c;no - keep going
+ clc
+ bcc mazhnx
+horfnd lda #3; only one match found
+ clc
+ bcc mazhnx
+choice txa;now index into table
+ asl a
+ tax
+ lda htbadd,x
+ sta pixget
+ inx
+ lda htbadd,x
+ sta pixget+1
+ lda (pixget),y
+ sec
+mazhnx ldx temloc
+ sta temloc
+ php
+ cpx #4
+ beq mazhx1
+ lda m1dirt,x
+ tay
+ lda temloc
+ and revtab,y
+ sta temloc
+ lda m1vpos,x
+ cmp #$64
+ bne mazhx1
+ lda m1hpos,x
+ cmp #$76
+ beq maskit
+nextmu cmp #$82
+ bne mazhx1
+maskit lda m1stat,x
+ bmi masksd
+ lda temloc
+ and #$0e
+ bne maskup
+masksd lda #1
+maskup sta temloc
+mazhx1 lda temloc
+ plp
+ rts
+;
+vchase lda #0
+ sta vflits
+ lda vchass
+ bne vchdir
+ lda #$28
+ sta vchasf
+ lda #1
+ sta vchass
+ sta vchasd
+vchdir lda vchasd
+ cmp #1
+ bne vchadn
+ lda vchasf
+ cmp #$40
+ bcc vcupok
+ lda #2
+ sta vchasd
+ bne vcdnok
+vcupok lda whiney
+ clc
+ adc vchasf
+ bne strvch
+vchadn lda vchasf
+ cmp #$28
+ bcs vcdnok
+ lda #1
+ sta vchasd
+ bne vcupok
+vcdnok sec
+ lda vchasf
+ sbc whiney
+strvch sta vchasf
+ sta audf2
+ lda #$a1
+ sta audc2
+vchasx rts
+;
+blinkr lda rtclok+2
+ and #$0f
+ beq blnkon
+ cmp #8
+ beq blnkof
+ rts
+blnkon ldy #2
+ ldx plynum
+ lda bigdt1,x
+ sta temloc
+ lda #1
+ bit temloc
+ beq bkond2
+ sty pacmaz+$7b
+bkond2 asl a
+ bit temloc
+ beq bkond3
+ sty pacmaz+$9c
+bkond3 asl a
+ bit temloc
+ beq bkond4
+ sty pacmaz+$283
+bkond4 asl a
+ bit temloc
+ bne bkonx1
+bkonxx rts
+;
+blnkof ldy #0
+ sty pacmaz+$7b
+ sty pacmaz+$9c
+ sty pacmaz+$283
+bkonx1 sty pacmaz+$2a4
+ rts
+;
+;
+; speed sequencing for objects
+;
+; x reg = index value for object
+;
+; x=0 to 3 for monsters 1 - 4
+; x=4 for pacman
+;
+; on exit:
+; a reg = 0 indicates update time
+;
+spdseq dec m1spct,x
+ beq nxspsq
+ lda #$ff
+ rts
+nxspsq lda m1spsq,x
+ cmp #3
+ bne incsps
+ lda #$ff
+ sta m1spsq,x
+incsps inc m1spsq,x
+ ldy plynum
+ lda mazct1,y
+ cmp #6
+ bcc lowspd
+ lda #6
+lowspd tay
+ cpx #4
+ bne mxspsq
+ lda pacspd,y
+ bpl ldspsq
+mxspsq lda monspd,y
+ldspsq clc
+ adc m1spsq,x
+ tay
+ lda speed1,y
+ sta m1spct,x
+ lda #0
+ rts
+;
+; chase sequencing
+;
+chsseq lda rtclok+2
+ and #7
+ bne chssq1
+ lda chaset
+ beq chssq1
+ dec chaset
+chssq1 ldx plynum
+ lda dtctm1,x
+ beq chmad1
+vrymad ldx #3
+ jsr setmad
+ lda #5
+ bne stwhin
+chmad1 lda dtctl1,x
+ cmp #$f0
+ bcs vrymad
+ cmp #$e0
+ bcc smlmad
+ ldx #2
+ jsr setmad
+ lda #4
+ bne stwhin
+smlmad cmp #$b0
+ bcc notmad
+ lda #3
+ bne stwhin
+notmad lda #2
+stwhin sta whiney
+chssq2 ldx #3
+chssql lda m1stat,x
+ cmp #8
+ beq tstchs
+ cmp #$10
+ beq tstchs
+ bne nxchsq
+tstchs jsr seepac
+nxchsq dex
+ bpl chssql
+ rts
+;
+setmad lda m1stat,x
+ cmp #8
+ beq yesmad
+ cmp #$10
+ beq yesmad
+ cmp #$20
+ bne nxstmd
+yesmad lda #2
+ sta m1stat,x
+nxstmd dex
+ bpl setmad
+ stx chaset
+ rts
+;
+fruity lda frscrf
+ beq tstfrt
+ lda frscrt
+ bne dcfrst
+ lda #0
+ sta frscrf
+ ldx #4
+clfrsl sta pacmaz+$1f1,x
+ dex
+ bpl clfrsl
+ rts
+dcfrst dec frscrt
+dcfrsx rts
+tstfrt lda fruflg
+ bne dfrtmr
+ ldx plynum
+ lda dtctl1,x
+ tay
+ lda frutp1,x
+ beq frtst1
+ cmp #1
+ beq frtst2
+ rts
+frtst1 cpy #$50
+ beq setfrt
+frtst2 cpy #$a0
+ bne dcfrsx
+setfrt inc frutp1,x
+ lda mazct1,x
+ cmp #$0c
+ bcc lowfrc
+ lda #$0c
+lowfrc tax
+ lda fruchr,x
+ sta pacmaz+$1f3
+ clc
+ adc #1
+ sta pacmaz+$1f4
+ lda #1
+ sta fruflg
+ lda #fdelay
+ sta frutmr
+ lda #2
+ sta frutmr+1
+ rts
+dfrtmr lda frutmr+1
+ bne dcfrtm
+ lda frutmr
+ bne dcfrtm
+ lda #0
+ sta pacmaz+$1f3
+ sta pacmaz+$1f4
+ sta fruflg
+ rts
+dcfrtm dec frutmr
+ bne fruitx
+ dec frutmr+1
+fruitx rts
+;
+ sta fr
 
-MSTRTP JSR MAZHND
- BCC SAMPTH
- CLC
- INC M1SSEQ,X
-SAMPTH TXA
- ASL A
- TAY
- LDA STRADD,Y
- STA PIXGET
- INY
- LDA STRADD,Y
- STA PIXGET+1
- LDA M1SSEQ,X
- TAY
- LDA (PIXGET),Y
- CMP #$0F
- BNE MNPATH
-;
-; - MONSTER HAS REACHED START POSIT
-;   SET UP TO FIND PATTERN START
-;   AND SET TIMER FOR 20 SECS
-;
- CPX #0
- BNE SETPAT
- LDA #$50
- STA CHASET
- JMP SCHASE
-SETPAT LDA #8
- STA M1STAT,X
- LDA #0
- STA M1PCNT,X
- LDA RANDOM
- AND #$0F
- STA M1PIDX,X
- ASL A
- TAY
- LDA PTRNHV,Y
- STA M1THPS,X
- INY
- LDA PTRNHV,Y
- STA M1TVPS,X
- LDA #$96
- STA M1TIMR,X
- BNE SEEKPS
-MNPATH STA M1DIRT,X
- JMP MONHND
-;
-; GO FIND START OF PATTERN
-;
-SEEKPS LDA M1TIMR,X
- BNE SEKPS1
- JMP GOHOME
-SEKPS1 JSR MAZHND
- BCS SEKPS2
-FINDST JMP SAMEMD
-SEKPS2 CLC
- JSR MDIRCT
- LDA M1HDIR,X
- BNE FINDST
- LDA M1VDIR,X
- BNE FINDST
- LDA #$10; REACHED PATTERN START
- STA M1STAT,X
- CLC
- BCC SMPTRN
-;
-MPATRN LDA M1TIMR,X
- BEQ GOHOME
-MPTRN1 JSR MAZHND
- BCC SMPTRN
- CLC
- INC M1PCNT,X
-SMPTRN LDA M1PIDX,X
- TAY
- LDA PTNIDX,Y
- ADC M1PCNT,X
- TAY
- LDA PTRN01,Y
- BNE MPTRN2
- STA M1PCNT,X
- LDA M1PIDX,X
- TAY
- LDA PTNIDX,Y
- TAY
- LDA PTRN01,Y
-MPTRN2 STA M1DIRT,X
- JMP SAMEMD
-;
-GOHOME LDA #$20
- STA M1STAT,X
- TXA
- ASL A
- TAY
- LDA HOMEHV,Y
- STA M1THPS,X
- INY
- LDA HOMEHV,Y
- STA M1TVPS,X
-;
- JSR MAZHND
- BCC SAMEMD
- CLC
- JSR MDIRCT
- LDA M1HDIR,X
- BNE SAMEMD
- LDA M1VDIR,X
- BNE SAMEMD
- JMP SETPAT
-;
-; TAKES CARE OF CHASE & FLIGHT
-;
-SCHASE LDA #2
- STA M1STAT,X
-MCHASE LDA PMHPOS
- STA M1THPS,X
- LDA PMVPOS
- STA M1TVPS,X
- JSR MAZHND
- BCC SAMEMD
- CLC
- JSR MDIRCT
-SAMEMD LDA M1DIRT,X
-;
-; MONSTER DISPLAY HANDLER
-;
-; X-REG VALUE 0-3 TO SELECT
-; MONSTER 1 - MONSTER 4
-;
-; A-REG VALUE  1 EQUALS UP
-;              2 EQUALS DOWN
-;              4 EQUALS LEFT
-;              8 EQUALS RIGHT
-;
-; SELECTED MONSTER WILL BE 
-; INCREMENTED 1 PIXEL IN THE
-; DIRECTION SPECIFIED.
-;
-; IF MSTILL > 0 THEN THE MONSTERS
-; WILL BE DRAWN BUT NOT MOVED.
-;
-; BIT 7 OF STATUS = FLIGHT IMAGE
-; BIT 6 OF STATUS = EYES IMAGE
-;
-MONHND CMP #1; DO REPOSITIONING
- BNE TSTMDN
- LDY MSTILL
- BNE MSTLUP
- DEC M1VPOS,X
- DEC M1VPOS,X
-MSTLUP LDA #MONSUP-MONSUP
- BEQ TSTMSK
-TSTMDN CMP #2
- BNE TSTMLF
- LDY MSTILL
- BNE MSTLDN
- INC M1VPOS,X
- INC M1VPOS,X
-MSTLDN LDA #MONSDN-MONSUP
- BNE TSTMSK
-TSTMLF CMP #4
- BNE TSTMRT
- LDY MSTILL
- BNE MSTLLF
- DEC M1HPOS,X
-MSTLLF LDA #MONSLF-MONSUP
- BNE TSTMSK
-TSTMRT CMP #8
- BNE NOMMOT
- LDY MSTILL
- BNE MSTLRT
- INC M1HPOS,X
-MSTLRT LDA #MONSRT-MONSUP
- BNE TSTMSK
-NOMMOT RTS
-TSTMSK LDY M1STAT,X
- BPL TSTEYE
- LDA #MONSFL-MONSUP; FLIGHT IMAGE
-TSTEYE TAY
- LDA M1STAT,X
- ASL A
- BMI MNEYES
- TYA
- LDY MSKIRT
- BEQ MSKL54
- LDY #$AA
- BNE MNSKRT
-MSKL54 LDY #$54
- BNE MNSKRT
-MNEYES LDA #MONSEY-MONSUP
- LDY #0
-MNSKRT STY MONBUF+$0C
- CLC
- ADC #LOW MONSUP
- STA PIXGET
- LDA #0
- ADC #HIGH MONSUP
- STA PIXGET+1
- LDY #9
-MNLDBL LDA (PIXGET),Y
- STA MONBUF+2,Y
- DEY
- BPL MNLDBL
- LDA #LOW MONBUF
- STA PIXGET
- LDA #HIGH MONBUF
- STA PIXGET+1
- LDA M1HPOS,X
- STA HPOSP0,X
- LDA M1VPOS,X
- STA PIXPUT
-SECURE LDA #HIGH PMADDR+4
- STA PIXPUT+1
- TXA
- CLC
- ADC PIXPUT+1
- STA PIXPUT+1
- LDY #$0F
-MWRITE LDA (PIXGET),Y
- STA (PIXPUT),Y
- DEY
- BPL MWRITE
- RTS
-;
-; DIRECTIONS COMPUTED FOR
-; MONSTERS
-;
-; X REG = MONSTER #
-;
-; TARGET VERTICAL & HORIZONTAL
-; COORDINATES MUST BE PLACED
-; INTO VSAVER & HSAVER PRIOR
-; TO ENTRY
-;
-MDIRCT LDA M1VPOS,X
- CMP M1TVPS,X
- BEQ VEQUAL
- BCC VGRATR;MONSTER IS ABOVE TARGET
-;
-; MONSTER IS BELOW TARGET
-;
- LDA M1STAT,X
- BMI VBIGGR
-VLESSR LDA #1;POINT TO UP
- BNE STRVRT
-VGRATR LDA M1STAT,X
- BMI VLESSR
-VBIGGR LDA #2;POINT TO DOWN
- BNE STRVRT
-VEQUAL LDA #0
-STRVRT STA M1VDIR,X
- LDA M1HPOS,X
- CMP M1THPS,X
- BEQ HEQUAL
- BCS HGRATR;MONSTER IS RT OF TARGET
-;
-; MONSTER IS LEFT OF TARGET
-;
- LDA M1STAT,X
- BMI HBIGGR
-HLESSR LDA #8;POINT TO RT
- BNE STRHRZ
-HGRATR LDA M1STAT,X
- BMI HLESSR
-HBIGGR LDA #4;POINT TO LEFT
- BNE STRHRZ
-HEQUAL LDA #0
-STRHRZ STA M1HDIR,X
-;
- LDA M1VDIR,X
- BEQ MHONLY
- BIT TEMLOC
- BEQ MHONLY
- LDA M1HDIR,X
- BEQ MVRTOK
- BIT TEMLOC
- BEQ MVRTOK
-;
-; CHOICE OF DIRECTIONS
-;
- LDA RANDOM
- BMI MHRZOK
-MVRTOK LDA M1VDIR,X
- BNE SETMDR
-MHRZOK LDA M1HDIR,X
- BNE SETMDR
-MHONLY LDA M1HDIR,X
- BIT TEMLOC
- BNE MHRZOK
-;
- LDA RANDOM
- AND TEMLOC
- BNE UPTEST
- LDA TEMLOC;RELOAD ORIGINAL
-UPTEST LSR A
- BCC DNTEST
- LDA #1
- BNE SETMDR
-DNTEST LSR A
- BCC LFTEST
- LDA #2
- BNE SETMDR
-LFTEST LSR A
- BCC RTTEST
- LDA #4
- BNE SETMDR
-RTTEST LDA #8
-SETMDR STA M1DIRT,X
-SAMMDR LDA M1DIRT,X
- RTS
-;
-SEEPAC LDA M1VPOS,X
- CMP PMVPOS
- BEQ SEEVRT
- LDA M1HPOS,X
- CMP PMHPOS
- BEQ SEEHRZ
- RTS
-SEEVRT LDY #9
-SEEVRL LDA VTABLE,Y
- CMP PMVPOS
- BEQ SEEVR1
- DEY
- BPL SEEVRL
-SEEVRX RTS
-SEEVR1 LDA M1HPOS,X
- CMP PMHPOS
- BCS SEELFT
-SEERGT LDA M1DIRT,X
- CMP #8
- BNE SEEVRX
-SEERT1 LDA HWALLS,Y
- CMP #$FF
- BEQ SEECHS
- CMP M1HPOS,X
- BCS SEERT2
- INY
- BNE SEERT1
-SEERT2 CMP PMHPOS
- BCS SEECHS
- RTS
-;
-SEELFT LDA M1DIRT,X
- CMP #4
- BNE SEEVRX
-SEELF1 LDA HWALLS,Y
- CMP #$FF
- BEQ SEECHS
- CMP PMHPOS
- BCS SEELF2
- INY
- BNE SEELF1
-SEELF2 CMP M1HPOS,X
- BCS SEECHS
- RTS
-;
-SEEHRZ LDY #9
-SEEHRL LDA HTABLE,Y
- CMP PMHPOS
- BEQ SEEHR1
- DEY
- BPL SEEHRL
-SEEHRX RTS
-SEEHR1 LDA M1VPOS,X
- CMP PMVPOS
- BCC SEEDWN
-;
-SEEUPP LDA M1DIRT,X
- CMP #1
- BNE SEEHRX
-SEEUP1 LDA VWALLS,Y
- CMP #$FF
- BEQ SEECHS
- CMP PMVPOS
- BCS SEEUP2
- INY
- BNE SEEUP1
-SEEUP2 CMP M1VPOS,X
- BCS SEECHS
- RTS
-;
-SEEDWN LDA M1DIRT,X
- CMP #2
- BNE SEEHRX
-SEEDN1 LDA VWALLS,Y
- CMP #$FF
- BEQ SEECHS
- CMP M1VPOS,X
- BCS SEEDN2
- INY
- BNE SEEDN1
-SEEDN2 CMP PMVPOS
- BCC SEECHX
-;
-SEECHS CPX #2
- BNE STRCHS
- LDA RTCLOK+2
- BMI SEECHX
-STRCHS LDA #2
- STA M1STAT,X
- LDA #$A0
- STA CHASET
-SEECHX RTS
-;
-; INTERMISSION CODE
-;
-INTMIS LDX PLYNUM
- LDA MAZCT1,X
- LDX #$00
- CMP #$01
- BEQ L7221
- INX 
- INX 
- CMP #$04
- BEQ L7221
- INX 
- INX 
- CMP #$08
- BEQ L7221
- CMP #$0C
- BEQ L7221
- CMP #$10
- BEQ L7221
- JMP L73AA
-L7221 STX INTMOD
- LDA #$FF
- STA INTCNT
-L7228 LDA INTCNT
- BNE L7228
- LDX #$1C
-L722E LDA INTDLC,X
- STA INTRDL,X
- DEX 
- BPL L722E
- LDA #INDLI1&255
- STA VDSLST
- LDA #INDLI1/256
- STA VDSLST+1
- LDA #INTRDL&255
- STA SDLSTL
- STA DLISTL
- LDA #INTRDL/256
- STA SDLSTH
- STA DLISTH
- LDX #$03
-L7251 STA HPOSM0,X
- DEX 
- BPL L7251
-L7257 JSR INITPT
- LDX INTMOD
- LDA L756B,X
- TAY 
- LDX #$15
-L7263 LDA L7571,Y
- STA PMADDR+$300,X
- DEY 
- DEX 
- BPL L7263
- LDA INTMOD
- CMP #$03
- BNE L727D
- LDA INTSEQ
- STA PMADDR+$31A
- JMP L72A1
-L727D ROR A
- BCC L7288
- LDA #$2C
- LDX #$7C
- LDY #$CC
- BNE L7293
-L7288 LDA #$FF
- STA PMADDR+$318
- LDA #$00
- LDX #$50
- LDY #$A0
-L7293 STA INTRDL+$12
- STX INTRDL+$15
- STY INTRDL+$18
- LDA #$00
- STA HSCROL
-L72A1 LDA #$FF
- STA INTCLK
-L72A5 LDA #$FF
- STA INTCNT
-L72A9 LDA INTCNT
- BNE L72A9
- LDA #$FF
- STA INTCNT
- LDA PMADDR+$312
- STA INTSEQ
- JSR L73E3
- LDA PMADDR+$317
- CMP PMADDR+$30D
- BCS L72C5
- JMP L7346
-L72C5 LDA INTMOD
- CMP #$03
- BNE L72E9
- LDA PMADDR+$31E
- CMP #$13
- BEQ L72D6
- JMP L7365
-L72D6 LDA #$8F
- STA PMADDR+$314
- LDA #$78
- STA PMADDR+$315
- LDA #$00
- TAX 
- JSR L746A
- JMP L72A5
-L72E9 CMP #$02
- BNE L733E
- LDA PMADDR+$31F
- BEQ L7319
- JSR L74F7
- LDX #$01
- JSR L744B
- LDA PMADDR+$320
- CMP #$07
- BEQ L7365
- LDA PMADDR+$305
- CLC 
- ADC PMADDR+$307
- STA PMADDR+$307
- BCC L72A5
- JSR L741D
- JSR L7470
- INC PMADDR+$320
- JMP L72A5
-L7319 LDA PMADDR+$31B
- CMP #$13
- BNE L733E
- LDA #$01
- STA PMADDR+$31F
- LDY #$18
-L7327 LDA L75F5,Y
- STA PMADDR+$300,Y
- DEY 
- BPL L7327
- LDA #$00
- STA PMADDR+$31C
- LDA INTSEQ
- STA PMADDR+$312
- JMP L7346
-L733E JSR L7411
- LDX #$00
- JSR L744B
-L7346 LDA PMADDR+$310
- BEQ L735B
- LDA PMADDR+$317
- CMP PMADDR+$30E
- BCC L735B
- JSR L74F7
- LDX #$01
- JSR L744B
-L735B LDA PMADDR+$317
- CMP #$FF
- BEQ L7365
- INC PMADDR+$317
-L7365 LDA PMADDR+$31E
- CMP #$3C
- BEQ L736F
- JMP L72A5
-L736F INC INTMOD
- LDA INTMOD
- CMP #$03
- BNE L739C
- JSR L741D
- JSR L741D
- LDA #L787A&255
- STA PMADDR+$314
- LDA #L787A/256
- STA PMADDR+$315
- LDA #$06
- STA PMADDR+$30F
- LDA #$00
- TAX 
- JSR L746A
- LDA #$01
- STA PMADDR+$31E
- JMP L72A5
-L739C ROR A
- BCC L73A2
- JMP L7257
-L73A2 LDA #$FF
- STA INTCNT
-L73A6 LDA INTCNT
- BNE L73A6
-L73AA JSR SETNUL
- JSR INITPT
- LDA #$FF
- STA INTCNT
-L73B4 LDA INTCNT
- BNE L73B4
- LDA #$00
- STA NMIEN
- STA IRQEN
- LDA #DLIST&255
- STA SDLSTL
- STA DLISTL
- LDA #DLIST/256
- STA SDLSTH
- STA DLISTH
- LDA #DLIV&255
- STA VDSLST
- LDA #DLIV/256
- STA VDSLST+1
- LDA #$C0
- STA NMIEN
- LDA #$40
- STA IRQEN
- RTS 
-;
-L73E3 LDA INTCLK
- CMP #$04
- BCC L740E
- LDA PMADDR+$31E
- ASL A
- ASL A
- TAX 
- LDA IMUSIC,X
- STA AUDF1
- LDA IMUSIC+1,X
- STA AUDC1
- LDA IMUSIC+2,X
- STA AUDF2
- LDA IMUSIC+3,X
- STA AUDC2
- INC PMADDR+$31E
- LDA #$FF
- STA INTCLK
-L740E INC INTCLK
- RTS 
-L7411 LDA PMADDR+$303
- CLC 
- ADC PMADDR+$318
- STA PMADDR+$318
- BCC L744A
-L741D LDA PMADDR+$31A
- AND #$03
- TAX 
- EOR PMADDR+$300
- STA HSCROL
- TXA 
- BNE L7447
- LDX #$06
-L742E LDA INTRDL+$12,X
- CLC 
- ADC PMADDR+$302
- STA INTRDL+$12,X
- CMP #$FF
- BNE L743F
- DEC INTRDL+$13,X
-L743F DEX 
- DEX 
- DEX 
- BPL L742E
- INC PMADDR+$31B
-L7447 INC PMADDR+$31A
-L744A RTS 
-L744B LDA PMADDR+$307,X
- CLC 
- ADC PMADDR+$305,X
- STA PMADDR+$307,X
- BCC L74AC
- INC PMADDR+$309,X
- LDA PMADDR+$309,X
- CMP PMADDR+$30B,X
- BCC L746D
- LDA #$00
- STA PMADDR+$309,X
- TXA 
- BNE L746D
-L746A STA PMADDR+$31C
-L746D TXA 
- BNE L74AD
-L7470 LDA #$2C
- BIT PMADDR+$301
- BMI L747D
- LDA #$28
- SEC 
- SBC PMADDR+$30F
-L747D TAX 
- LDA PMADDR+$30F
- STA PMADDR+$316
- LDY PMADDR+$31C
- LDA PMADDR+$314
- STA PIXGET
- LDA PMADDR+$315
- STA PIXGET+1
-L7491 LDA (PIXGET),Y
- STA PMADDR+$400,X
- INY 
- LDA (PIXGET),Y
- STA PMADDR+$450,X
- INY 
- LDA (PIXGET),Y
- STA PMADDR+$4A0,X
- INY 
- INX 
- DEC PMADDR+$316
- BNE L7491
- STY PMADDR+$31C
-L74AC RTS 
-L74AD LDA #PMADDR/256+5
- STA PIXPUT+1
- LDA PMADDR+$313
- STA PIXPUT
- LDA PMADDR+$30A
- ASL A
- TAY 
- LDX INTMOD
- CPX #$01
- BEQ L74CB
- LDA L760E,Y
- LDX L760E+1,Y
- JMP L74D1
-L74CB LDA L761A,Y
- LDX L761A+1,Y
-L74D1 STA PIXGET
- STX PIXGET+1
- LDX PMADDR+$310
-L74D8 LDY PMADDR+$311
- DEY 
-L74DC LDA (PIXGET),Y
- STA (PIXPUT),Y
- DEY 
- BPL L74DC
- DEX 
- BEQ L74AC
- LDA PIXGET
- CLC 
- ADC PMADDR+$311
- STA PIXGET
- BCC L74F2
- INC PIXGET+1
-L74F2 INC PIXPUT+1
- JMP L74D8
-L74F7 LDA PMADDR+$304
- CLC 
- ADC PMADDR+$319
- STA PMADDR+$319
- BCC L751B
- LDA PMADDR+$312
- SEC 
- SBC PMADDR+$302
- STA PMADDR+$312
- LDX #$00
-L750F STA HPOSP1,X
- CLC 
- ADC #$08
- INX 
- CPX PMADDR+$310
- BNE L750F
-L751B RTS 
-;
-INDLI1 PHA 
- TXA 
- PHA 
- LDA #ICHARS/256
- STA CHBASE
- LDA #$2A
- STA COLPM1
- STA COLPM2
- STA COLPM3
- LDX INTMOD
- LDA ICOLR0,X
- STA COLPF0
- LDA ICOLR1,X
- STA COLPF1
- LDA ICOLR2,X
- STA COLPF2
- LDA ICOLR3,X
- STA COLPF3
- PLA 
- TAX 
- PLA 
- RTI
-;
-SETNUL LDA #NULLDL&255
- STA SDLSTL
- STA DLISTL
- LDA #NULLDL/256
- STA SDLSTH
- STA DLISTH
- RTS
-;
-INITPT LDX #0
- TXA
- JMP INITPL
-;
- LDA #$C0
-TNMSL1 CMP TUNCNT
- BEQ STTMSK
- DEC TUNCNT
- ASL TUNMSK
- BCS TNMSL1
- LDA
+; eject
 
-; EJECT
-
-; INCLUDE D2:PACDAT2.ASM
+; include d1:pac4.asm
 
 ;
-; PAC-MAN MONSTER DATA
-;
-; MONSTER UP
-;
-MONSUP DB $38,$7C,$D6,$D6,$D6,$FE
- DB $FE,$FE,$FE,$FE
-;
-; MONSTER DOWN
-;
-MONSDN DB $38,$7C,$FE,$FE,$FE,$FE
- DB $D6,$D6,$D6,$FE
-;
-; MONSTER LEFT
-;
-MONSLF DB $38,$7C,$FE,$FE,$AE,$AE
- DB $AE,$FE,$FE,$FE
-;
-; MONSTER RIGHT
-;
-MONSRT DB $38,$7C,$FE,$FE,$EA,$EA
- DB $EA,$FE,$FE,$FE
-;
-; MONSTER FLIGHT
-;
-MONSFL DB $38,$7C,$FE,$D6,$D6,$D6
- DB $FE,$D6,$AA,$FE
-;
-; MONSTER EYES
-;
-MONSEY DB $00,$00,$00,$28,$28,$28
- DB $00,$00,$00,$00
-;
-; **** PACMAN SHAPE DATA ****
-;
-; PACMAN NOT MOVING
-;
-PACDOT DB $38,$7C,$FE,$FE,$FE
- DB $FE,$FE,$FE,$7C,$38
-;
-;PACMAN RIGHT
-;
-PACRGT DB $38,$7C,$FE,$F8,$E0
- DB $E0,$F8,$FE,$7C,$38
-;
- DB $38,$7C,$F8,$F0,$E0
- DB $E0,$F0,$F8,$7C,$38
-;
-;PACMAN LEFT
-;
-PACLFT DB $38,$7C,$FE,$3E,$0E
- DB $0E,$3E,$FE,$7C,$38
-;
- DB $38,$7C,$3E,$1E,$0E
- DB $0E,$1E,$3E,$7C,$38
-;
-;PACMAN UP
-;
-PACTOP DB $00,$44,$C6,$C6,$EE
- DB $EE,$FE,$FE,$7C,$38
-;
-PACDIE DB $00,$00,$82,$C6,$EE
- DB $EE,$FE,$FE,$7C,$38
-;
-;PACMAN DOWN
-;
-PACBOT DB $38,$7C,$FE,$FE,$EE
- DB $EE,$C6,$C6,$44,$00
-;
- DB $38,$7C,$FE,$FE,$EE
- DB $EE,$C6,$82,$00
-;
-PACIDX DB $00,$0A
-;
-FIZDAT DB $00,$82,$00,$C6,$82,$00,$7C
- DB $38,$10,$7C,$38,$38,$10,$10
-;
-;PACMAN DATA ADDRESS POINTERS
-;
-PACADD DW PACDOT,PACRGT,PACLFT,PACTOP,PACBOT
-;
-; INITIALIZE SCREEN DATA
-;
-INIDAT DB $93,HIGH PACMAZ+2
- DB $02,$A6,$7A,$64,$74,$74,$74,$A4
- DB $7C,$7C,$70,$88,$7C,$04,$02,$01
- DB $01,$04
-;
-; PAC-MAN MAZE DIRECTION DATA
-;
-; THIS DATA IS USED TO DETERMINE
-; WHICH DIRECTIONS ARE PERMITTED
-;
-VTABLE DB $2C,$44,$54,$64,$74,$84,$94,$A4,$B4,$C4
-HTABLE DB $3A,$46,$52,$62,$76,$82,$96,$A6,$B2,$BE
-;
-; HORIZONTAL TABLE ADDR POINTERS
-;
-HTBADD DW HTAB01,HTAB02,HTAB03,HTAB04,HTAB05
- DW HTAB06,HTAB07,HTAB08,HTAB09,HTAB10
-;
-HWALL1 DB $7C,$FF
-HWALL2 DB $58,$7C,$9E,$FF
-HWALL3 DB $58,$9E,$FF
-HWALL4 DB $3C,$AC,$FF
-HWALL5 DB $FF
-;
-HWALLS DB HWALL1-HWALL1
- DB HWALL5-HWALL1
- DB HWALL2-HWALL1
- DB HWALL3-HWALL1
- DB HWALL1-HWALL1
- DB HWALL3-HWALL1
- DB HWALL1-HWALL1
- DB HWALL4-HWALL1
- DB HWALL2-HWALL1
- DB HWALL5-HWALL1
-;
-VWALL1 DB $64,$84,$FF
-VWALL2 DB $38,$4C,$64,$84,$9C,$BC,$FF
-VWALL3 DB $3C,$FF
-VWALL4 DB $38,$5C,$9C,$BC,$FF
-VWALL5 DB $4C,$74,$8C,$AC,$FF
-;
-VWALLS DB VWALL1-VWALL1
- DB VWALL2-VWALL1
- DB VWALL3-VWALL1
- DB VWALL4-VWALL1
- DB VWALL5-VWALL1
- DB VWALL5-VWALL1
- DB VWALL4-VWALL1
- DB VWALL3-VWALL1
- DB VWALL2-VWALL1
- DB VWALL1-VWALL1
-;
-COLORS DB $44,$4A,$D8,$28,$86,$0C,$00,$2A
-;
-OCOLOR DB $DA,$0C,$00,$2A
-;
-ACOLOR DB $3A,$44,$2A,$DA
-;
-; TIMER VALUES FOR BLUE MONSTERS
-STARTV DB $90,$60,$30,$04,$00,$00
-;
-BLUTIM DB $FF,$C0,$80,$40,$00
- DB $C0,$00,$00,$00,$C0
- DB $00,$00,$00,$40,$00
-;
-; PACMAN EXPLOSION
-;
-PACEXP DB $00,$00,$00,$00,$00,$92,$54,$00
- DB $C6,$00,$54,$92
-;
-; SCORE DATA FOR PACMAN EATING
-; BLUE MONSTERS 200-400-800-1600
-;
-; RIGHT HALF OF ALL SCORES
-BLUSC0 DB $00,$00,$00,$00,$C6,$29,$29,$29,$29,$29,$C6,$00
-; LEFT HALF OF "200"
-BLUSC1 DB $00,$00,$00,$00,$38,$45,$05,$19,$21,$41,$7C,$00
-; LEFT HALF OF "400"
-BLUSC2 DB $00,$00,$00,$00,$08,$19,$29,$49,$7D,$09,$08,$00
-; LEFT HALF OF "800"
-BLUSC3 DB $00,$00,$00,$00,$38,$45,$45,$39,$45,$45,$38,$00
-; LEFT HALF OF "1600"
-BLUSC4 DB $00,$00,$00,$00,$8C,$91,$A1,$B9,$A5,$A5,$98,$00,$00
-;
-; HI NOTES FOR INTRO
-;
-HINOT1 DB $00,$00,$00,$3C,$00,$51,$00,$60
- DB $00,$3C,$51,$00,$00,$60,$60,$00
- DB $00,$00,$00,$39,$00,$4C,$00,$5B
- DB $00,$39,$4C,$00,$00,$5B,$5B,$00
- DB $00,$00,$00,$3C,$00,$51,$00,$60
- DB $00,$3C,$51,$00,$00,$60,$60,$00
- DB $00,$60,$5B,$55,$00,$55,$51,$4C
- DB $00,$4C,$48,$44,$00,$3C,$3C,$00
-;
-; LO NOTES FOR INTRO
-;
-LONOT1 DB $A2,$F3,$F3,$F3,$00,$00,$00,$00
- DB $A2,$F3,$F3,$F3,$00,$00,$00,$00
- DB $99,$E6,$E6,$E6,$00,$00,$00,$00
- DB $99,$E6,$E6,$E6,$00,$00,$00,$00
- DB $A2,$F3,$F3,$F3,$00,$00,$00,$00
- DB $A2,$F3,$F3,$F3,$00,$00,$00,$00
- DB $A2,$C1,$00,$00,$00,$AD,$00,$00
- DB $00,$99,$00,$00,$00,$79,$79,$00
-;
-; ADDRESS POINTERS FOR BLUE SCORES
-;
-BLSADD DW BLUSC1,BLUSC2,BLUSC3,BLUSC4
+; pacman monster subroutines
 ;
 ;
-; EATING DOTS SOUND FREQ DATA
+eyonly lda #0
+ sta tweetr
+ ldx #3
+eyonlp lda m1stat,x
+ cmp #$44
+ beq nxteyd
+ asl a
+ bpl nxteyd
+ cpx gulped
+ beq nxteyd
+ inc tweetr
+ lda m1hpos,x
+ tay
+ lda m1vpos,x
+ cpy #$7c
+ bne tsteyv
+ cmp #$64
+ bne tsteyv
+ lda m1dirt,x
+ cmp #1
+ bne eyhome
+ lda #4
+ sta m1dirt,x
+ lda m1vpos,x
+ bne tsteyv
+eyhome lda #$44
+ sta m1stat,x
+ lda #$ff
+ sta m1sseq,x
+ bne nxteyd
+tsteyv jsr mazhnd
+ bcc sameyd
+ clc
+ lda #$7c
+ sta m1thps,x
+ lda #$64
+ sta m1tvps,x
+ jsr mdirct
+sameyd lda m1dirt,x
+ jsr monhnd
+nxteyd dex
+ bpl eyonlp
+ lda tweetr
+ bne gtweet
+ lda #0
+ sta tweetf
+ beq ckinbx
+gtweet lda vfreez
+ bne ckinbx
+ jsr vtweet
+ckinbx ldx #3
+nmeylp lda m1stat,x
+ clc
+ lsr a
+ lsr a
+ lsr a
+ bcc nxnmey
+ lda m1stat,x
+ asl a
+ bpl monout
+ jsr pnkmin
+ jmp nxnmey
+monout lda rtclok+2
+ and #3
+ bne nxnmey
+ cpx #3
+ bne grnout
+ jsr yelmot
+ jmp nxnmey
+grnout cpx #2
+ bne redout
+ jsr grnmot
+ jmp nxnmey
+redout jsr pnkmot
+nxnmey dex
+ bpl nmeylp
+eyonlx rts
 ;
-E1DATA DB $52,$4D,$48,$43,$3E,$39,$00
-E2DATA DB $39,$43,$4D,$57,$61,$6B,$00
+pnkmot lda m1vpos,x
+ cmp #$64
+ bne pnkout
+ lda m1stat,x
+ bne pnktst
+ lda #1
+ bne pnkchs
+pnktst and #$80
+ ora #2
+ bpl pnkchs
+ sta chaset
+ ldy #8
+ bne strdir
+pnkchs ldy #4
+strdir sty m1dirt,x
+strsts sta m1stat,x
+ rts
+pnkout lda #1
+pnkot1 sta m1dirt,x
+ jmp monhnd
 ;
-STRADD DW REDSTR,PNKSTR,GRNSTR,YELSTR
+reincr lda m1stat,x
+ and #$0f
+ sta m1stat,x
+ lda colors,x
+ sta pcolr0,x
+ rts
 ;
-; PATTERN START HPOS & VPOS
+grnmot lda m1hpos,x
+ cmp #$7c
+ beq pnkmot
+grnot1 lda #8
+ bne pnkot1
+;
+yelmot lda m1hpos,x
+ cmp #$7c
+ beq pnkmot
+yelout lda #4
+ bne pnkot1
+;
+pnkmin lda m1vpos,x
+ cmp #$74
+ bne pnkmdn
+ cpx #2
+ beq grnmin
+ cpx #3
+ beq yelmin
+ bne reincr
+pnkmdn lda #2
+ bne pnkot1
+;
+grnmin lda m1hpos,x
+ cmp #$70
+ bne yelout
+ beq reincr
+;
+yelmin lda m1hpos,x
+ cmp #$88
+ bne grnot1
+ beq reincr
+;
+strtmn ldx #1
+ckssql lda m1stat,x
+ and #$7f
+ bne nxckss
+ lda m1timr,x
+ beq cksmup
+ dec m1timr,x
+ jsr bounce
+ jmp nxckss
+cksmup cpx #3
+ bne ckm2up
+ jsr yelmot
+ jmp nxckss
+ckm2up cpx #2
+ bne ckm1up
+ jsr grnmot
+ jmp nxckss
+ckm1up jsr pnkmot
+nxckss inx
+ cpx #4
+ bne ckssql
+ rts
+;
+; startup sequence of
+; monsters exiting from
+; box.
+;
+bounce lda m1dirt,x
+ cmp #1
+ bne tsupsq
+ lda m1vpos,x
+ cmp #$70
+ bne nxtbnc
+ lda #2
+ bne stsqst
+tsupsq lda m1vpos,x
+ cmp #$78
+ bne nxtbnc
+ lda #1
+stsqst sta m1dirt,x
+nxtbnc lda m1dirt,x
+ jmp monhnd
+;
+monstr lda m1stat,x
+ bpl mntst1
+ lsr a
+ lsr a
+ lsr a
+ bcc mntsch
+ rts
+mntst1 cmp #1
+ beq mstrtp; monster start path
+mntst2 cmp #2
+ bne mntst3
+ lda chaset
+ bne mntsch
+ jmp gohome
+mntsch jmp mchase; monster is chasing
+mntst3 cmp #8
+ bne mntst4
+ jmp seekps; seek pattern start
+mntst4 cmp #$10
+ bne mntst5
+ jmp mpatrn; continue pattern
+mntst5 cmp #$20
+ bne mntst6
+ jmp gohome; seek home corner
+mntst6 rts
+
+mstrtp jsr mazhnd
+ bcc sampth
+ clc
+ inc m1sseq,x
+sampth txa
+ asl a
+ tay
+ lda stradd,y
+ sta pixget
+ iny
+ lda stradd,y
+ sta pixget+1
+ lda m1sseq,x
+ tay
+ lda (pixget),y
+ cmp #$0f
+ bne mnpath
+;
+; - monster has reached start posit
+;   set up to find pattern start
+;   and set timer for 20 secs
+;
+ cpx #0
+ bne setpat
+ lda #$50
+ sta chaset
+ jmp schase
+setpat lda #8
+ sta m1stat,x
+ lda #0
+ sta m1pcnt,x
+ lda random
+ and #$0f
+ sta m1pidx,x
+ asl a
+ tay
+ lda ptrnhv,y
+ sta m1thps,x
+ iny
+ lda ptrnhv,y
+ sta m1tvps,x
+ lda #$96
+ sta m1timr,x
+ bne seekps
+mnpath sta m1dirt,x
+ jmp monhnd
+;
+; go find start of pattern
+;
+seekps lda m1timr,x
+ bne sekps1
+ jmp gohome
+sekps1 jsr mazhnd
+ bcs sekps2
+findst jmp samemd
+sekps2 clc
+ jsr mdirct
+ lda m1hdir,x
+ bne findst
+ lda m1vdir,x
+ bne findst
+ lda #$10; reached pattern start
+ sta m1stat,x
+ clc
+ bcc smptrn
+;
+mpatrn lda m1timr,x
+ beq gohome
+mptrn1 jsr mazhnd
+ bcc smptrn
+ clc
+ inc m1pcnt,x
+smptrn lda m1pidx,x
+ tay
+ lda ptnidx,y
+ adc m1pcnt,x
+ tay
+ lda ptrn01,y
+ bne mptrn2
+ sta m1pcnt,x
+ lda m1pidx,x
+ tay
+ lda ptnidx,y
+ tay
+ lda ptrn01,y
+mptrn2 sta m1dirt,x
+ jmp samemd
+;
+gohome lda #$20
+ sta m1stat,x
+ txa
+ asl a
+ tay
+ lda homehv,y
+ sta m1thps,x
+ iny
+ lda homehv,y
+ sta m1tvps,x
+;
+ jsr mazhnd
+ bcc samemd
+ clc
+ jsr mdirct
+ lda m1hdir,x
+ bne samemd
+ lda m1vdir,x
+ bne samemd
+ jmp setpat
+;
+; takes care of chase & flight
+;
+schase lda #2
+ sta m1stat,x
+mchase lda pmhpos
+ sta m1thps,x
+ lda pmvpos
+ sta m1tvps,x
+ jsr mazhnd
+ bcc samemd
+ clc
+ jsr mdirct
+samemd lda m1dirt,x
+;
+; monster display handler
+;
+; x-reg value 0-3 to select
+; monster 1 - monster 4
+;
+; a-reg value  1 equals up
+;              2 equals down
+;              4 equals left
+;              8 equals right
+;
+; selected monster will be 
+; incremented 1 pixel in the
+; direction specified.
+;
+; if mstill > 0 then the monsters
+; will be drawn but not moved.
+;
+; bit 7 of status = flight image
+; bit 6 of status = eyes image
+;
+monhnd cmp #1; do repositioning
+ bne tstmdn
+ ldy mstill
+ bne mstlup
+ dec m1vpos,x
+ dec m1vpos,x
+mstlup lda #monsup-monsup
+ beq tstmsk
+tstmdn cmp #2
+ bne tstmlf
+ ldy mstill
+ bne mstldn
+ inc m1vpos,x
+ inc m1vpos,x
+mstldn lda #monsdn-monsup
+ bne tstmsk
+tstmlf cmp #4
+ bne tstmrt
+ ldy mstill
+ bne mstllf
+ dec m1hpos,x
+mstllf lda #monslf-monsup
+ bne tstmsk
+tstmrt cmp #8
+ bne nommot
+ ldy mstill
+ bne mstlrt
+ inc m1hpos,x
+mstlrt lda #monsrt-monsup
+ bne tstmsk
+nommot rts
+tstmsk ldy m1stat,x
+ bpl tsteye
+ lda #monsfl-monsup; flight image
+tsteye tay
+ lda m1stat,x
+ asl a
+ bmi mneyes
+ tya
+ ldy mskirt
+ beq mskl54
+ ldy #$aa
+ bne mnskrt
+mskl54 ldy #$54
+ bne mnskrt
+mneyes lda #monsey-monsup
+ ldy #0
+mnskrt sty monbuf+$0c
+ clc
+ adc #low monsup
+ sta pixget
+ lda #0
+ adc #high monsup
+ sta pixget+1
+ ldy #9
+mnldbl lda (pixget),y
+ sta monbuf+2,y
+ dey
+ bpl mnldbl
+ lda #low monbuf
+ sta pixget
+ lda #high monbuf
+ sta pixget+1
+ lda m1hpos,x
+ sta hposp0,x
+ lda m1vpos,x
+ sta pixput
+secure lda #high pmaddr+4
+ sta pixput+1
+ txa
+ clc
+ adc pixput+1
+ sta pixput+1
+ ldy #$0f
+mwrite lda (pixget),y
+ sta (pixput),y
+ dey
+ bpl mwrite
+ rts
+;
+; directions computed for
+; monsters
+;
+; x reg = monster #
+;
+; target vertical & horizontal
+; coordinates must be placed
+; into vsaver & hsaver prior
+; to entry
+;
+mdirct lda m1vpos,x
+ cmp m1tvps,x
+ beq vequal
+ bcc vgratr;monster is above target
+;
+; monster is below target
+;
+ lda m1stat,x
+ bmi vbiggr
+vlessr lda #1;point to up
+ bne strvrt
+vgratr lda m1stat,x
+ bmi vlessr
+vbiggr lda #2;point to down
+ bne strvrt
+vequal lda #0
+strvrt sta m1vdir,x
+ lda m1hpos,x
+ cmp m1thps,x
+ beq hequal
+ bcs hgratr;monster is rt of target
+;
+; monster is left of target
+;
+ lda m1stat,x
+ bmi hbiggr
+hlessr lda #8;point to rt
+ bne strhrz
+hgratr lda m1stat,x
+ bmi hlessr
+hbiggr lda #4;point to left
+ bne strhrz
+hequal lda #0
+strhrz sta m1hdir,x
+;
+ lda m1vdir,x
+ beq mhonly
+ bit temloc
+ beq mhonly
+ lda m1hdir,x
+ beq mvrtok
+ bit temloc
+ beq mvrtok
+;
+; choice of directions
+;
+ lda random
+ bmi mhrzok
+mvrtok lda m1vdir,x
+ bne setmdr
+mhrzok lda m1hdir,x
+ bne setmdr
+mhonly lda m1hdir,x
+ bit temloc
+ bne mhrzok
+;
+ lda random
+ and temloc
+ bne uptest
+ lda temloc;reload original
+uptest lsr a
+ bcc dntest
+ lda #1
+ bne setmdr
+dntest lsr a
+ bcc lftest
+ lda #2
+ bne setmdr
+lftest lsr a
+ bcc rttest
+ lda #4
+ bne setmdr
+rttest lda #8
+setmdr sta m1dirt,x
+sammdr lda m1dirt,x
+ rts
+;
+seepac lda m1vpos,x
+ cmp pmvpos
+ beq seevrt
+ lda m1hpos,x
+ cmp pmhpos
+ beq seehrz
+ rts
+seevrt ldy #9
+seevrl lda vtable,y
+ cmp pmvpos
+ beq seevr1
+ dey
+ bpl seevrl
+seevrx rts
+seevr1 lda m1hpos,x
+ cmp pmhpos
+ bcs seelft
+seergt lda m1dirt,x
+ cmp #8
+ bne seevrx
+seert1 lda hwalls,y
+ cmp #$ff
+ beq seechs
+ cmp m1hpos,x
+ bcs seert2
+ iny
+ bne seert1
+seert2 cmp pmhpos
+ bcs seechs
+ rts
+;
+seelft lda m1dirt,x
+ cmp #4
+ bne seevrx
+seelf1 lda hwalls,y
+ cmp #$ff
+ beq seechs
+ cmp pmhpos
+ bcs seelf2
+ iny
+ bne seelf1
+seelf2 cmp m1hpos,x
+ bcs seechs
+ rts
+;
+seehrz ldy #9
+seehrl lda htable,y
+ cmp pmhpos
+ beq seehr1
+ dey
+ bpl seehrl
+seehrx rts
+seehr1 lda m1vpos,x
+ cmp pmvpos
+ bcc seedwn
+;
+seeupp lda m1dirt,x
+ cmp #1
+ bne seehrx
+seeup1 lda vwalls,y
+ cmp #$ff
+ beq seechs
+ cmp pmvpos
+ bcs seeup2
+ iny
+ bne seeup1
+seeup2 cmp m1vpos,x
+ bcs seechs
+ rts
+;
+seedwn lda m1dirt,x
+ cmp #2
+ bne seehrx
+seedn1 lda vwalls,y
+ cmp #$ff
+ beq seechs
+ cmp m1vpos,x
+ bcs seedn2
+ iny
+ bne seedn1
+seedn2 cmp pmvpos
+ bcc seechx
+;
+seechs cpx #2
+ bne strchs
+ lda rtclok+2
+ bmi seechx
+strchs lda #2
+ sta m1stat,x
+ lda #$a0
+ sta chaset
+seechx rts
+;
+; intermission code
+;
+intmis ldx plynum
+ lda mazct1,x
+ ldx #$00
+ cmp #$01
+ beq l7221
+ inx 
+ inx 
+ cmp #$04
+ beq l7221
+ inx 
+ inx 
+ cmp #$08
+ beq l7221
+ cmp #$0c
+ beq l7221
+ cmp #$10
+ beq l7221
+ jmp l73aa
+l7221 stx intmod
+ lda #$ff
+ sta intcnt
+l7228 lda intcnt
+ bne l7228
+ ldx #$1c
+l722e lda intdlc,x
+ sta intrdl,x
+ dex 
+ bpl l722e
+ lda #indli1&255
+ sta vdslst
+ lda #indli1/256
+ sta vdslst+1
+ lda #intrdl&255
+ sta sdlstl
+ sta dlistl
+ lda #intrdl/256
+ sta sdlsth
+ sta dlisth
+ ldx #$03
+l7251 sta hposm0,x
+ dex 
+ bpl l7251
+l7257 jsr initpt
+ ldx intmod
+ lda l756b,x
+ tay 
+ ldx #$15
+l7263 lda l7571,y
+ sta pmaddr+$300,x
+ dey 
+ dex 
+ bpl l7263
+ lda intmod
+ cmp #$03
+ bne l727d
+ lda intseq
+ sta pmaddr+$31a
+ jmp l72a1
+l727d ror a
+ bcc l7288
+ lda #$2c
+ ldx #$7c
+ ldy #$cc
+ bne l7293
+l7288 lda #$ff
+ sta pmaddr+$318
+ lda #$00
+ ldx #$50
+ ldy #$a0
+l7293 sta intrdl+$12
+ stx intrdl+$15
+ sty intrdl+$18
+ lda #$00
+ sta hscrol
+l72a1 lda #$ff
+ sta intclk
+l72a5 lda #$ff
+ sta intcnt
+l72a9 lda intcnt
+ bne l72a9
+ lda #$ff
+ sta intcnt
+ lda pmaddr+$312
+ sta intseq
+ jsr l73e3
+ lda pmaddr+$317
+ cmp pmaddr+$30d
+ bcs l72c5
+ jmp l7346
+l72c5 lda intmod
+ cmp #$03
+ bne l72e9
+ lda pmaddr+$31e
+ cmp #$13
+ beq l72d6
+ jmp l7365
+l72d6 lda #$8f
+ sta pmaddr+$314
+ lda #$78
+ sta pmaddr+$315
+ lda #$00
+ tax 
+ jsr l746a
+ jmp l72a5
+l72e9 cmp #$02
+ bne l733e
+ lda pmaddr+$31f
+ beq l7319
+ jsr l74f7
+ ldx #$01
+ jsr l744b
+ lda pmaddr+$320
+ cmp #$07
+ beq l7365
+ lda pmaddr+$305
+ clc 
+ adc pmaddr+$307
+ sta pmaddr+$307
+ bcc l72a5
+ jsr l741d
+ jsr l7470
+ inc pmaddr+$320
+ jmp l72a5
+l7319 lda pmaddr+$31b
+ cmp #$13
+ bne l733e
+ lda #$01
+ sta pmaddr+$31f
+ ldy #$18
+l7327 lda l75f5,y
+ sta pmaddr+$300,y
+ dey 
+ bpl l7327
+ lda #$00
+ sta pmaddr+$31c
+ lda intseq
+ sta pmaddr+$312
+ jmp l7346
+l733e jsr l7411
+ ldx #$00
+ jsr l744b
+l7346 lda pmaddr+$310
+ beq l735b
+ lda pmaddr+$317
+ cmp pmaddr+$30e
+ bcc l735b
+ jsr l74f7
+ ldx #$01
+ jsr l744b
+l735b lda pmaddr+$317
+ cmp #$ff
+ beq l7365
+ inc pmaddr+$317
+l7365 lda pmaddr+$31e
+ cmp #$3c
+ beq l736f
+ jmp l72a5
+l736f inc intmod
+ lda intmod
+ cmp #$03
+ bne l739c
+ jsr l741d
+ jsr l741d
+ lda #l787a&255
+ sta pmaddr+$314
+ lda #l787a/256
+ sta pmaddr+$315
+ lda #$06
+ sta pmaddr+$30f
+ lda #$00
+ tax 
+ jsr l746a
+ lda #$01
+ sta pmaddr+$31e
+ jmp l72a5
+l739c ror a
+ bcc l73a2
+ jmp l7257
+l73a2 lda #$ff
+ sta intcnt
+l73a6 lda intcnt
+ bne l73a6
+l73aa jsr setnul
+ jsr initpt
+ lda #$ff
+ sta intcnt
+l73b4 lda intcnt
+ bne l73b4
+ lda #$00
+ sta nmien
+ sta irqen
+ lda #dlist&255
+ sta sdlstl
+ sta dlistl
+ lda #dlist/256
+ sta sdlsth
+ sta dlisth
+ lda #dliv&255
+ sta vdslst
+ lda #dliv/256
+ sta vdslst+1
+ lda #$c0
+ sta nmien
+ lda #$40
+ sta irqen
+ rts 
+;
+l73e3 lda intclk
+ cmp #$04
+ bcc l740e
+ lda pmaddr+$31e
+ asl a
+ asl a
+ tax 
+ lda imusic,x
+ sta audf1
+ lda imusic+1,x
+ sta audc1
+ lda imusic+2,x
+ sta audf2
+ lda imusic+3,x
+ sta audc2
+ inc pmaddr+$31e
+ lda #$ff
+ sta intclk
+l740e inc intclk
+ rts 
+l7411 lda pmaddr+$303
+ clc 
+ adc pmaddr+$318
+ sta pmaddr+$318
+ bcc l744a
+l741d lda pmaddr+$31a
+ and #$03
+ tax 
+ eor pmaddr+$300
+ sta hscrol
+ txa 
+ bne l7447
+ ldx #$06
+l742e lda intrdl+$12,x
+ clc 
+ adc pmaddr+$302
+ sta intrdl+$12,x
+ cmp #$ff
+ bne l743f
+ dec intrdl+$13,x
+l743f dex 
+ dex 
+ dex 
+ bpl l742e
+ inc pmaddr+$31b
+l7447 inc pmaddr+$31a
+l744a rts 
+l744b lda pmaddr+$307,x
+ clc 
+ adc pmaddr+$305,x
+ sta pmaddr+$307,x
+ bcc l74ac
+ inc pmaddr+$309,x
+ lda pmaddr+$309,x
+ cmp pmaddr+$30b,x
+ bcc l746d
+ lda #$00
+ sta pmaddr+$309,x
+ txa 
+ bne l746d
+l746a sta pmaddr+$31c
+l746d txa 
+ bne l74ad
+l7470 lda #$2c
+ bit pmaddr+$301
+ bmi l747d
+ lda #$28
+ sec 
+ sbc pmaddr+$30f
+l747d tax 
+ lda pmaddr+$30f
+ sta pmaddr+$316
+ ldy pmaddr+$31c
+ lda pmaddr+$314
+ sta pixget
+ lda pmaddr+$315
+ sta pixget+1
+l7491 lda (pixget),y
+ sta pmaddr+$400,x
+ iny 
+ lda (pixget),y
+ sta pmaddr+$450,x
+ iny 
+ lda (pixget),y
+ sta pmaddr+$4a0,x
+ iny 
+ inx 
+ dec pmaddr+$316
+ bne l7491
+ sty pmaddr+$31c
+l74ac rts 
+l74ad lda #pmaddr/256+5
+ sta pixput+1
+ lda pmaddr+$313
+ sta pixput
+ lda pmaddr+$30a
+ asl a
+ tay 
+ ldx intmod
+ cpx #$01
+ beq l74cb
+ lda l760e,y
+ ldx l760e+1,y
+ jmp l74d1
+l74cb lda l761a,y
+ ldx l761a+1,y
+l74d1 sta pixget
+ stx pixget+1
+ ldx pmaddr+$310
+l74d8 ldy pmaddr+$311
+ dey 
+l74dc lda (pixget),y
+ sta (pixput),y
+ dey 
+ bpl l74dc
+ dex 
+ beq l74ac
+ lda pixget
+ clc 
+ adc pmaddr+$311
+ sta pixget
+ bcc l74f2
+ inc pixget+1
+l74f2 inc pixput+1
+ jmp l74d8
+l74f7 lda pmaddr+$304
+ clc 
+ adc pmaddr+$319
+ sta pmaddr+$319
+ bcc l751b
+ lda pmaddr+$312
+ sec 
+ sbc pmaddr+$302
+ sta pmaddr+$312
+ ldx #$00
+l750f sta hposp1,x
+ clc 
+ adc #$08
+ inx 
+ cpx pmaddr+$310
+ bne l750f
+l751b rts 
+;
+indli1 pha 
+ txa 
+ pha 
+ lda #ichars/256
+ sta chbase
+ lda #$2a
+ sta colpm1
+ sta colpm2
+ sta colpm3
+ ldx intmod
+ lda icolr0,x
+ sta colpf0
+ lda icolr1,x
+ sta colpf1
+ lda icolr2,x
+ sta colpf2
+ lda icolr3,x
+ sta colpf3
+ pla 
+ tax 
+ pla 
+ rti
+;
+setnul lda #nulldl&255
+ sta sdlstl
+ sta dlistl
+ lda #nulldl/256
+ sta sdlsth
+ sta dlisth
+ rts
+;
+initpt ldx #0
+ txa
+ jmp initpl
+;
+ lda #$c0
+tnmsl1 cmp tuncnt
+ beq sttmsk
+ dec tuncnt
+ asl tunmsk
+ bcs tnmsl1
+ lda
+
+; eject
+
+; include d2:pacdat2.asm
+
+;
+; pac-man monster data
+;
+; monster up
+;
+monsup !byte $38,$7c,$d6,$d6,$d6,$fe
+ !byte $fe,$fe,$fe,$fe
+;
+; monster down
+;
+monsdn !byte $38,$7c,$fe,$fe,$fe,$fe
+ !byte $d6,$d6,$d6,$fe
+;
+; monster left
+;
+monslf !byte $38,$7c,$fe,$fe,$ae,$ae
+ !byte $ae,$fe,$fe,$fe
+;
+; monster right
+;
+monsrt !byte $38,$7c,$fe,$fe,$ea,$ea
+ !byte $ea,$fe,$fe,$fe
+;
+; monster flight
+;
+monsfl !byte $38,$7c,$fe,$d6,$d6,$d6
+ !byte $fe,$d6,$aa,$fe
+;
+; monster eyes
+;
+monsey !byte $00,$00,$00,$28,$28,$28
+ !byte $00,$00,$00,$00
+;
+; **** pacman shape data ****
+;
+; pacman not moving
+;
+pacdot !byte $38,$7c,$fe,$fe,$fe
+ !byte $fe,$fe,$fe,$7c,$38
+;
+;pacman right
+;
+pacrgt !byte $38,$7c,$fe,$f8,$e0
+ !byte $e0,$f8,$fe,$7c,$38
+;
+ !byte $38,$7c,$f8,$f0,$e0
+ !byte $e0,$f0,$f8,$7c,$38
+;
+;pacman left
+;
+paclft !byte $38,$7c,$fe,$3e,$0e
+ !byte $0e,$3e,$fe,$7c,$38
+;
+ !byte $38,$7c,$3e,$1e,$0e
+ !byte $0e,$1e,$3e,$7c,$38
+;
+;pacman up
+;
+pactop !byte $00,$44,$c6,$c6,$ee
+ !byte $ee,$fe,$fe,$7c,$38
+;
+pacdie !byte $00,$00,$82,$c6,$ee
+ !byte $ee,$fe,$fe,$7c,$38
+;
+;pacman down
+;
+pacbot !byte $38,$7c,$fe,$fe,$ee
+ !byte $ee,$c6,$c6,$44,$00
+;
+ !byte $38,$7c,$fe,$fe,$ee
+ !byte $ee,$c6,$82,$00
+;
+pacidx !byte $00,$0a
+;
+fizdat !byte $00,$82,$00,$c6,$82,$00,$7c
+ !byte $38,$10,$7c,$38,$38,$10,$10
+;
+;pacman data address pointers
+;
+pacadd dw pacdot,pacrgt,paclft,pactop,pacbot
+;
+; initialize screen data
+;
+inidat !byte $93,high pacmaz+2
+ !byte $02,$a6,$7a,$64,$74,$74,$74,$a4
+ !byte $7c,$7c,$70,$88,$7c,$04,$02,$01
+ !byte $01,$04
+;
+; pac-man maze direction data
+;
+; this data is used to determine
+; which directions are permitted
+;
+vtable !byte $2c,$44,$54,$64,$74,$84,$94,$a4,$b4,$c4
+htable !byte $3a,$46,$52,$62,$76,$82,$96,$a6,$b2,$be
+;
+; horizontal table addr pointers
+;
+htbadd dw htab01,htab02,htab03,htab04,htab05
+ dw htab06,htab07,htab08,htab09,htab10
+;
+hwall1 !byte $7c,$ff
+hwall2 !byte $58,$7c,$9e,$ff
+hwall3 !byte $58,$9e,$ff
+hwall4 !byte $3c,$ac,$ff
+hwall5 !byte $ff
+;
+hwalls !byte hwall1-hwall1
+ !byte hwall5-hwall1
+ !byte hwall2-hwall1
+ !byte hwall3-hwall1
+ !byte hwall1-hwall1
+ !byte hwall3-hwall1
+ !byte hwall1-hwall1
+ !byte hwall4-hwall1
+ !byte hwall2-hwall1
+ !byte hwall5-hwall1
+;
+vwall1 !byte $64,$84,$ff
+vwall2 !byte $38,$4c,$64,$84,$9c,$bc,$ff
+vwall3 !byte $3c,$ff
+vwall4 !byte $38,$5c,$9c,$bc,$ff
+vwall5 !byte $4c,$74,$8c,$ac,$ff
+;
+vwalls !byte vwall1-vwall1
+ !byte vwall2-vwall1
+ !byte vwall3-vwall1
+ !byte vwall4-vwall1
+ !byte vwall5-vwall1
+ !byte vwall5-vwall1
+ !byte vwall4-vwall1
+ !byte vwall3-vwall1
+ !byte vwall2-vwall1
+ !byte vwall1-vwall1
+;
+colors !byte $44,$4a,$d8,$28,$86,$0c,$00,$2a
+;
+ocolor !byte $da,$0c,$00,$2a
+;
+acolor !byte $3a,$44,$2a,$da
+;
+; timer values for blue monsters
+startv !byte $90,$60,$30,$04,$00,$00
+;
+blutim !byte $ff,$c0,$80,$40,$00
+ !byte $c0,$00,$00,$00,$c0
+ !byte $00,$00,$00,$40,$00
+;
+; pacman explosion
+;
+pacexp !byte $00,$00,$00,$00,$00,$92,$54,$00
+ !byte $c6,$00,$54,$92
+;
+; score data for pacman eating
+; blue monsters 200-400-800-1600
+;
+; right half of all scores
+blusc0 !byte $00,$00,$00,$00,$c6,$29,$29,$29,$29,$29,$c6,$00
+; left half of "200"
+blusc1 !byte $00,$00,$00,$00,$38,$45,$05,$19,$21,$41,$7c,$00
+; left half of "400"
+blusc2 !byte $00,$00,$00,$00,$08,$19,$29,$49,$7d,$09,$08,$00
+; left half of "800"
+blusc3 !byte $00,$00,$00,$00,$38,$45,$45,$39,$45,$45,$38,$00
+; left half of "1600"
+blusc4 !byte $00,$00,$00,$00,$8c,$91,$a1,$b9,$a5,$a5,$98,$00,$00
+;
+; hi notes for intro
+;
+hinot1 !byte $00,$00,$00,$3c,$00,$51,$00,$60
+ !byte $00,$3c,$51,$00,$00,$60,$60,$00
+ !byte $00,$00,$00,$39,$00,$4c,$00,$5b
+ !byte $00,$39,$4c,$00,$00,$5b,$5b,$00
+ !byte $00,$00,$00,$3c,$00,$51,$00,$60
+ !byte $00,$3c,$51,$00,$00,$60,$60,$00
+ !byte $00,$60,$5b,$55,$00,$55,$51,$4c
+ !byte $00,$4c,$48,$44,$00,$3c,$3c,$00
+;
+; lo notes for intro
+;
+lonot1 !byte $a2,$f3,$f3,$f3,$00,$00,$00,$00
+ !byte $a2,$f3,$f3,$f3,$00,$00,$00,$00
+ !byte $99,$e6,$e6,$e6,$00,$00,$00,$00
+ !byte $99,$e6,$e6,$e6,$00,$00,$00,$00
+ !byte $a2,$f3,$f3,$f3,$00,$00,$00,$00
+ !byte $a2,$f3,$f3,$f3,$00,$00,$00,$00
+ !byte $a2,$c1,$00,$00,$00,$ad,$00,$00
+ !byte $00,$99,$00,$00,$00,$79,$79,$00
+;
+; address pointers for blue scores
+;
+blsadd dw blusc1,blusc2,blusc3,blusc4
+;
+;
+; eating dots sound freq data
+;
+e1data !byte $52,$4d,$48,$43,$3e,$39,$00
+e2data !byte $39,$43,$4d,$57,$61,$6b,$00
+;
+stradd dw redstr,pnkstr,grnstr,yelstr
+;
+; pattern start hpos & vpos
 ;
 ; #1
-PTRNHV DB $96,$A4
+ptrnhv !byte $96,$a4
 ; #2
- DB $62,$74
+ !byte $62,$74
 ; #3
- DB $82,$64
+ !byte $82,$64
 ; #4
- DB $62,$64
+ !byte $62,$64
 ; #5
- DB $62,$94
+ !byte $62,$94
 ; #6
- DB $52,$74
+ !byte $52,$74
 ; #7
- DB $96,$94
+ !byte $96,$94
 ; #8
- DB $A6,$74
+ !byte $a6,$74
 ; #9
- DB $96,$54
+ !byte $96,$54
 ; #10
- DB $52,$B4
+ !byte $52,$b4
 ; #11
- DB $BE,$C4
+ !byte $be,$c4
 ; #12
- DB $82,$44
+ !byte $82,$44
 ; #13
- DB $52,$A4
+ !byte $52,$a4
 ; #14
- DB $B2,$B4
+ !byte $b2,$b4
 ; #15
- DB $82,$44
+ !byte $82,$44
 ; #16
- DB $52,$44
+ !byte $52,$44
 ;
-; HOME CORNER HPOS AND VPOS
+; home corner hpos and vpos
 ;
-HOMEHV DB $BE,$2C
- DB $3A,$2C
- DB $BE,$C4
- DB $3A,$C4
+homehv !byte $be,$2c
+ !byte $3a,$2c
+ !byte $be,$c4
+ !byte $3a,$c4
 ;
-; PATTERN INDEX VALUES
+; pattern index values
 ;
-PTNIDX DB PTRN01-PTRN01
- DB PTRN02-PTRN01
- DB PTRN03-PTRN01
- DB PTRN04-PTRN01
- DB PTRN05-PTRN01
- DB PTRN06-PTRN01
- DB PTRN07-PTRN01
- DB PTRN08-PTRN01
- DB PTRN09-PTRN01
- DB PTRN10-PTRN01
- DB PTRN11-PTRN01
- DB PTRN12-PTRN01
- DB PTRN13-PTRN01
- DB PTRN14-PTRN01
- DB PTRN15-PTRN01
- DB PTRN16-PTRN01
+ptnidx !byte ptrn01-ptrn01
+ !byte ptrn02-ptrn01
+ !byte ptrn03-ptrn01
+ !byte ptrn04-ptrn01
+ !byte ptrn05-ptrn01
+ !byte ptrn06-ptrn01
+ !byte ptrn07-ptrn01
+ !byte ptrn08-ptrn01
+ !byte ptrn09-ptrn01
+ !byte ptrn10-ptrn01
+ !byte ptrn11-ptrn01
+ !byte ptrn12-ptrn01
+ !byte ptrn13-ptrn01
+ !byte ptrn14-ptrn01
+ !byte ptrn15-ptrn01
+ !byte ptrn16-ptrn01
 ;
-; FRUIT CHARS FOR SCREEN
+; fruit chars for screen
 ;
-FRUCHR DB $3A,$3C,$3E,$3E,$40,$40
- DB $42,$42,$46,$46,$4A,$4A
+fruchr !byte $3a,$3c,$3e,$3e,$40,$40
+ !byte $42,$42,$46,$46,$4a,$4a
 ;
-; FRUIT DATA FOR FRUIT LINE
-; WHEN MAZCNT > 5
+; fruit data for fruit line
+; when mazcnt > 5
 ;
- DB $4C,$4C,$4C,$4C,$4C,$4C
- DB $4C,$4A,$4A,$48,$48,$44
-HIFRUT DB $44,$40,$40,$3E,$3E,$3C,$3A
+ !byte $4c,$4c,$4c,$4c,$4c,$4c
+ !byte $4c,$4a,$4a,$48,$48,$44
+hifrut !byte $44,$40,$40,$3e,$3e,$3c,$3a
 ;
-; PACMAN SPEEDS - INDEXED TO SPEED1
+; pacman speeds - indexed to speed1
 ;
-PACSPD DB $08
- DB SPEED3-SPEED1
- DB SPEED3-SPEED1
- DB SPEED4-SPEED1
- DB SPEED5-SPEED1
- DB SPEED6-SPEED1
- DB SPEED6-SPEED1
+pacspd !byte $08
+ !byte speed3-speed1
+ !byte speed3-speed1
+ !byte speed4-speed1
+ !byte speed5-speed1
+ !byte speed6-speed1
+ !byte speed6-speed1
 ;
-; MONSTER SPEEDS - INDEXED TO SPEED1
+; monster speeds - indexed to speed1
 ;
-MONSPD DB SPEED1-SPEED1
- DB SPEED2-SPEED1
- DB SPEED3-SPEED1
- DB SPEED3-SPEED1
- DB SPEED4-SPEED1
- DB SPEED5-SPEED1
- DB SPEED5-SPEED1
+monspd !byte speed1-speed1
+ !byte speed2-speed1
+ !byte speed3-speed1
+ !byte speed3-speed1
+ !byte speed4-speed1
+ !byte speed5-speed1
+ !byte speed5-speed1
 ;
-; HIGH SCORE TEXT
+; high score text
 ;
-HISCTX DB $28,$29,$27,$28,$00,$33,$23,$2F,$32,$25
+hisctx !byte $28,$29,$27,$28,$00,$33,$23,$2f,$32,$25
 ;
-OCINDX DB HIGH OPTCHR,HIGH CHRORG,HIGH PACCHR,HIGH CHRORG,HIGH PACCHR
-; PLAYER GAME (COLOR0)
-OPLGAM DB $30,$2C,$21,$39,$25,$32,$00,$27,$21,$2D,$25
-; PRESS SELECT FOR (COLOR0)
-OPRSEL DB $30,$32,$25,$33,$33,$00,$F3,$E5,$EC,$E5
- DB $E3,$F4,$00,$26,$2F,$32
-; PRESS OPTION TO (COLOR0)
-OPROP1 DB $30,$32,$25,$33,$33,$00,$EF,$F0,$F4,$E9
- DB $EF,$EE,$00,$34,$2F,$00
-; CHANGE DIFFICULTY (COLOR0)
-OPROP2 DB $23,$28,$21,$2E,$27,$25,$00,$24,$29,$26
- DB $26,$29,$23,$35,$2C,$34,$39
-; PRESS START TO (COLOR0)
-OPRST1 DB $30,$32,$25,$33,$33,$00,$F3,$F4,$E1,$F2
- DB $F4,$00,$34,$2F,$00,$00
-; PLAY GAME (COLOR0)
-OPRST2 DB $30,$2C,$21,$39,$00,$27,$21,$2D,$25
-; (C) ATARI 1982; COLOR 3
-OALOGO DB $C8,$E3,$C9,$00,$E1,$F4,$E1,$F2,$E9,$00
- DB $D1,$D9,$D8,$D2
-BPMSG1 DB $22,$2F,$2E,$35,$33,$00,$30,$21,$23,$2D
- DB $21,$2E,$00,$26,$2F,$32
-BPMSG2 DB $33,$23,$2F,$32,$29,$2E,$27,$00,$11,$10
- DB $0C,$10,$10,$10,$00,$30,$34,$33
+ocindx !byte high optchr,high chrorg,high pacchr,high chrorg,high pacchr
+; player game (color0)
+oplgam !byte $30,$2c,$21,$39,$25,$32,$00,$27,$21,$2d,$25
+; press select for (color0)
+oprsel !byte $30,$32,$25,$33,$33,$00,$f3,$e5,$ec,$e5
+ !byte $e3,$f4,$00,$26,$2f,$32
+; press option to (color0)
+oprop1 !byte $30,$32,$25,$33,$33,$00,$ef,$f0,$f4,$e9
+ !byte $ef,$ee,$00,$34,$2f,$00
+; change difficulty (color0)
+oprop2 !byte $23,$28,$21,$2e,$27,$25,$00,$24,$29,$26
+ !byte $26,$29,$23,$35,$2c,$34,$39
+; press start to (color0)
+oprst1 !byte $30,$32,$25,$33,$33,$00,$f3,$f4,$e1,$f2
+ !byte $f4,$00,$34,$2f,$00,$00
+; play game (color0)
+oprst2 !byte $30,$2c,$21,$39,$00,$27,$21,$2d,$25
+; (c) atari 1982; color 3
+oalogo !byte $c8,$e3,$c9,$00,$e1,$f4,$e1,$f2,$e9,$00
+ !byte $d1,$d9,$d8,$d2
+bpmsg1 !byte $22,$2f,$2e,$35,$33,$00,$30,$21,$23,$2d
+ !byte $21,$2e,$00,$26,$2f,$32
+bpmsg2 !byte $33,$23,$2f,$32,$29,$2e,$27,$00,$11,$10
+ !byte $0c,$10,$10,$10,$00,$30,$34,$33
 ;
-OPTFRT DB $3A,$3C,$3E,$3E,$40,$40
- DB $44,$44,$48,$48,$4A,$4A,$4C,$4C
+optfrt !byte $3a,$3c,$3e,$3e,$40,$40
+ !byte $44,$44,$48,$48,$4a,$4a,$4c,$4c
 ;
-; TOP OF PACMAN TITLE
+; top of pacman title
 ;
-PACTTL DB $00,$00,$FE,$FF,$FF,$FF,$FB,$FF
- DB $00,$00,$00,$80,$C0,$C1,$C1,$C3
- DB $00,$00,$40,$E0,$E0,$F0,$F0,$F8
- DB $00,$00,$03,$0F,$1F,$1F,$3F,$3F
- DB $00,$00,$E0,$F8,$FC,$F8,$F0,$E0
- DB $00,$00,$00,$00,$00,$00,$00,$3E
- DB $00,$00,$08,$0C,$0E,$0F,$0F,$0F
- DB $00,$00,$00,$01,$03,$07,$8F,$DF
- DB $00,$00,$80,$80,$80,$80,$80,$81
- DB $00,$00,$20,$70,$70,$F8,$F8,$FC
- DB $00,$00,$08,$0C,$0E,$0F,$0F,$0F
- DB $00,$00,$1F,$1F,$1F,$1F,$9F,$DF
+pacttl !byte $00,$00,$fe,$ff,$ff,$ff,$fb,$ff
+ !byte $00,$00,$00,$80,$c0,$c1,$c1,$c3
+ !byte $00,$00,$40,$e0,$e0,$f0,$f0,$f8
+ !byte $00,$00,$03,$0f,$1f,$1f,$3f,$3f
+ !byte $00,$00,$e0,$f8,$fc,$f8,$f0,$e0
+ !byte $00,$00,$00,$00,$00,$00,$00,$3e
+ !byte $00,$00,$08,$0c,$0e,$0f,$0f,$0f
+ !byte $00,$00,$00,$01,$03,$07,$8f,$df
+ !byte $00,$00,$80,$80,$80,$80,$80,$81
+ !byte $00,$00,$20,$70,$70,$f8,$f8,$fc
+ !byte $00,$00,$08,$0c,$0e,$0f,$0f,$0f
+ !byte $00,$00,$1f,$1f,$1f,$1f,$9f,$df
 ;
-; BOTTOM OF PACMAN TITLE
+; bottom of pacman title
 ;
- DB $FF,$FF,$FE,$F8,$F8,$F8,$F8,$00
- DB $C3,$87,$07,$0F,$0F,$1F,$1F,$00
- DB $F8,$BC,$FC,$FE,$FE,$FF,$FF,$00
- DB $3F,$3F,$3F,$1F,$1F,$0F,$03,$00
- DB $C0,$E0,$F0,$F8,$FC,$F8,$E0,$00
- DB $3E,$3E,$00,$00,$00,$00,$00,$00
- DB $0F,$0F,$0F,$0F,$0F,$0F,$0F,$00
- DB $FF,$FF,$FF,$FF,$FF,$FF,$FF,$00
- DB $81,$83,$83,$87,$87,$8F,$8F,$00
- DB $FC,$DE,$FE,$FF,$FF,$FF,$FF,$00
- DB $0F,$0F,$0F,$0F,$0F,$8F,$8F,$00
- DB $FF,$FF,$FF,$FF,$FF,$FF,$FF,$00
+ !byte $ff,$ff,$fe,$f8,$f8,$f8,$f8,$00
+ !byte $c3,$87,$07,$0f,$0f,$1f,$1f,$00
+ !byte $f8,$bc,$fc,$fe,$fe,$ff,$ff,$00
+ !byte $3f,$3f,$3f,$1f,$1f,$0f,$03,$00
+ !byte $c0,$e0,$f0,$f8,$fc,$f8,$e0,$00
+ !byte $3e,$3e,$00,$00,$00,$00,$00,$00
+ !byte $0f,$0f,$0f,$0f,$0f,$0f,$0f,$00
+ !byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$00
+ !byte $81,$83,$83,$87,$87,$8f,$8f,$00
+ !byte $fc,$de,$fe,$ff,$ff,$ff,$ff,$00
+ !byte $0f,$0f,$0f,$0f,$0f,$8f,$8f,$00
+ !byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$00
 ;
 ;
-; NIBBLES UNCOMPRESSED
+; nibbles uncompressed
 ;
-FIZIDX DB $06,$07,$07,$08,$08,$08,$09
- DB $09,$09,$0A,$0A,$0B,$0A,$0B
+fizidx !byte $06,$07,$07,$08,$08,$08,$09
+ !byte $09,$09,$0a,$0a,$0b,$0a,$0b
 ;
-HTAB01 DB $0A,$0C,$0E,$0C,$06,$0A,$0C,$0E,$0C,$06
-HTAB02 DB $0B,$0C,$0F,$0E,$0D,$0D,$0E,$0F,$0C,$07
-HTAB03 DB $09,$0C,$07,$09,$06,$0A,$05,$0B,$0C,$05
-HTAB04 DB $00,$00,$03,$0A,$0D,$0D,$06,$03,$00,$00
-HTAB05 DB $0C,$0C,$0F,$07,$00,$00,$0B,$0F,$0C,$0C
-HTAB06 DB $00,$00,$03,$0B,$0C,$0C,$07,$03,$00,$00
-HTAB07 DB $0A,$0C,$0F,$0D,$06,$0A,$0D,$0F,$0C,$06
-HTAB08 DB $09,$06,$0B,$0E,$0D,$0D,$0E,$07,$0A,$05
-HTAB09 DB $0A,$0D,$05,$09,$06,$0A,$05,$09,$0D,$06
-HTAB10 DB $09,$0C,$0C,$0C,$0D,$0D,$0C,$0C,$0C,$05
+htab01 !byte $0a,$0c,$0e,$0c,$06,$0a,$0c,$0e,$0c,$06
+htab02 !byte $0b,$0c,$0f,$0e,$0d,$0d,$0e,$0f,$0c,$07
+htab03 !byte $09,$0c,$07,$09,$06,$0a,$05,$0b,$0c,$05
+htab04 !byte $00,$00,$03,$0a,$0d,$0d,$06,$03,$00,$00
+htab05 !byte $0c,$0c,$0f,$07,$00,$00,$0b,$0f,$0c,$0c
+htab06 !byte $00,$00,$03,$0b,$0c,$0c,$07,$03,$00,$00
+htab07 !byte $0a,$0c,$0f,$0d,$06,$0a,$0d,$0f,$0c,$06
+htab08 !byte $09,$06,$0b,$0e,$0d,$0d,$0e,$07,$0a,$05
+htab09 !byte $0a,$0d,$05,$09,$06,$0a,$05,$09,$0d,$06
+htab10 !byte $09,$0c,$0c,$0c,$0d,$0d,$0c,$0c,$0c,$05
 ;
-; TIMER VALUES FOR FLASHING MONSTERS
+; timer values for flashing monsters
 ;
-FLSTIM DB $0B,$0B,$0B,$0B,$0B
- DB $0B,$0B,$0B,$07,$0B
- DB $0B,$07,$07,$07,$0B
- DB $07,$01,$07,$01,$01
+flstim !byte $0b,$0b,$0b,$0b,$0b
+ !byte $0b,$0b,$0b,$07,$0b
+ !byte $0b,$07,$07,$07,$0b
+ !byte $07,$01,$07,$01,$01
 ;
-; START UP PATHS FOR MONSTERS
-; LEAVING BOX IN CENTER
+; start up paths for monsters
+; leaving box in center
 ;
-REDSTR DB $04,$04,$02,$04,$01,$01,$01,$08,$08,$08,$08,$08,$0F
-PNKSTR DB $04,$04,$02,$04,$01,$01,$01,$0F
-GRNSTR DB $08,$08,$02,$02,$02,$08,$02,$0F
-YELSTR DB $08,$08,$02,$02,$04,$04,$04,$02,$04,$02,$0F
+redstr !byte $04,$04,$02,$04,$01,$01,$01,$08,$08,$08,$08,$08,$0f
+pnkstr !byte $04,$04,$02,$04,$01,$01,$01,$0f
+grnstr !byte $08,$08,$02,$02,$02,$08,$02,$0f
+yelstr !byte $08,$08,$02,$02,$04,$04,$04,$02,$04,$02,$0f
 ;
-; PATTERNS FOR MONSTERS TO RUN
+; patterns for monsters to run
 ;
-PTRN01 DB 2,4,2,4,1,4,1,8,8,8,0
-PTRN02 DB 1,8,8,8,2,2,4,4,4,1,0
-PTRN03 DB 4,4,2,2,8,8,8,1,1,4,0
-PTRN04 DB 8,1,4,1,4,2,2,2,8,1,0
-PTRN05 DB 8,2,4,4,1,8,0
-PTRN06 DB 8,2,2,4,1,1,0
-PTRN07 DB 4,2,8,8,1,4,0
-PTRN08 DB 4,2,2,8,1,1,0
-PTRN09 DB 1,8,2,2,2,4,1,4,1,8,0
-PTRN10 DB 1,8,2,8,2,4,4,4,4,1,8,8,0
-PTRN11 DB 1,4,4,1,4,2,4,2,8,8,8,8,0
-PTRN12 DB 1,8,8,2,4,2,4,2,4,4,2,4,1,1,1,8,8,8,0
-PTRN13 DB 1,4,4,2,8,2,4,2,8,8,8,8,1,4,1,8,1,4,1,1,4,2,2,2,0
-PTRN14 DB 1,8,1,4,4,2,2,8,8,2,4,4,4,4,1,8,1,4,1,8,1,1,8,2,2,2,2,8,0
-PTRN15 DB 8,2,4,2,8,2,2,4,4,4,1,1,8,1,4,1,8,8,0
-PTRN16 DB 2,4,4,1,8,8,1,8,8,2,8,1,8,8,8,8,2,4,4,4,2,4,2,4,1,4,1,4,0
+ptrn01 !byte 2,4,2,4,1,4,1,8,8,8,0
+ptrn02 !byte 1,8,8,8,2,2,4,4,4,1,0
+ptrn03 !byte 4,4,2,2,8,8,8,1,1,4,0
+ptrn04 !byte 8,1,4,1,4,2,2,2,8,1,0
+ptrn05 !byte 8,2,4,4,1,8,0
+ptrn06 !byte 8,2,2,4,1,1,0
+ptrn07 !byte 4,2,8,8,1,4,0
+ptrn08 !byte 4,2,2,8,1,1,0
+ptrn09 !byte 1,8,2,2,2,4,1,4,1,8,0
+ptrn10 !byte 1,8,2,8,2,4,4,4,4,1,8,8,0
+ptrn11 !byte 1,4,4,1,4,2,4,2,8,8,8,8,0
+ptrn12 !byte 1,8,8,2,4,2,4,2,4,4,2,4,1,1,1,8,8,8,0
+ptrn13 !byte 1,4,4,2,8,2,4,2,8,8,8,8,1,4,1,8,1,4,1,1,4,2,2,2,0
+ptrn14 !byte 1,8,1,4,4,2,2,8,8,2,4,4,4,4,1,8,1,4,1,8,1,1,8,2,2,2,2,8,0
+ptrn15 !byte 8,2,4,2,8,2,2,4,4,4,1,1,8,1,4,1,8,8,0
+ptrn16 !byte 2,4,4,1,8,8,1,8,8,2,8,1,8,8,8,8,2,4,4,4,2,4,2,4,1,4,1,4,0
 
 ;
-; FRUIT SCORE TABLE FOR COMPUTING
-; SCORE FOR ACTIVE PLAYER - 2 #S
+; fruit score table for computing
+; score for active player - 2 #s
 ;
-FRSTAB DB $00,$01,$00,$03,$00,$05,$00,$05
- DB $00,$07,$00,$07,$01,$00,$01,$00
- DB $02,$00,$02,$00,$03,$00,$03,$00
- DB $05,$00
+frstab !byte $00,$01,$00,$03,$00,$05,$00,$05
+ !byte $00,$07,$00,$07,$01,$00,$01,$00
+ !byte $02,$00,$02,$00,$03,$00,$03,$00
+ !byte $05,$00
 ;
-; SPEED SEQUENCING VALUES
+; speed sequencing values
 ;
-SPEED1 DB 3,3,3,3
-SPEED2 DB 3,2,3,2
-SPEED3 DB 2,2,2,3
-SPEED4 DB 2,2,2,2
-SPEED5 DB 2,2,2,1
-SPEED6 DB 1,2,1,2
+speed1 !byte 3,3,3,3
+speed2 !byte 3,2,3,2
+speed3 !byte 2,2,2,3
+speed4 !byte 2,2,2,2
+speed5 !byte 2,2,2,1
+speed6 !byte 1,2,1,2
 ;
-REVTAB DB $00,$0D,$0E,$00,$07,$00,$00,$00,$0B
-BLUREV DB $00,$02,$01,$00,$08,$00,$00,$00,$04
+revtab !byte $00,$0d,$0e,$00,$07,$00,$00,$00,$0b
+blurev !byte $00,$02,$01,$00,$08,$00,$00,$00,$04
 ;
-; FRUIT SCORES
+; fruit scores
 ;
-; FRUIT SCORE 100
-FS0100 DB $00,$4E,$4F,$5F,$60
-; FRUIT SCORE 300
-FS0300 DB $00,$50,$51,$5F,$60
-; FRUIT SCORE 500
-FS0500 DB $00,$52,$53,$5F,$60
-; FRUIT SCORE 700
-FS0700 DB $00,$54,$55,$5F,$60
-; FRUIT SCORE 1000
-FS1000 DB $56,$57,$5E,$5F,$60
-; FRUIT SCORE 2000
-FS2000 DB $58,$59,$5E,$5F,$60
-; FRUIT SCORE 3000
-FS3000 DB $5A,$5B,$5E,$5F,$60
-; FRUIT SCORE 5000
-FS5000 DB $5C,$5D,$5E,$5F,$60
+; fruit score 100
+fs0100 !byte $00,$4e,$4f,$5f,$60
+; fruit score 300
+fs0300 !byte $00,$50,$51,$5f,$60
+; fruit score 500
+fs0500 !byte $00,$52,$53,$5f,$60
+; fruit score 700
+fs0700 !byte $00,$54,$55,$5f,$60
+; fruit score 1000
+fs1000 !byte $56,$57,$5e,$5f,$60
+; fruit score 2000
+fs2000 !byte $58,$59,$5e,$5f,$60
+; fruit score 3000
+fs3000 !byte $5a,$5b,$5e,$5f,$60
+; fruit score 5000
+fs5000 !byte $5c,$5d,$5e,$5f,$60
 ;
-; INDEX VALUES FOR ABOVE SCORES
+; index values for above scores
 ;
-FSINDX DB $00,$05,$0A,$0A,$0F,$0F
- DB $14,$14,$19,$19,$1E,$1E,$23
+fsindx !byte $00,$05,$0a,$0a,$0f,$0f
+ !byte $14,$14,$19,$19,$1e,$1e,$23
 ;
-; ATTRACT MODE DATA
-;
-;
-; ATTRACT MODE COLORS
-;
-ACOLRS DB $44,$4A,$D8,$28,$44,$0C,$00,$28
-; SMALL DOT CHAR 3
-ATCHRS DB $00,$00,$00,$18,$18,$00,$00,$00
-; ENERGIZER DOT CHAR 4
- DB $18,$18,$3C,$3C,$3C,$3C,$18,$18
-; TOP OF MONSTER CHAR 5
- DB $00,$00,$00,$00,$00,$38,$7C,$FE
-; BODY OF MONSTER CHAR 6
- DB $FE,$EA,$EA,$EA,$FE,$FE,$FE,$AA
-;
-; TEXT FOR CHAR/NICKNAME (COLOR 1)
-CHNKTX DB $00,$63,$68,$61,$72,$61,$63,$74,$65,$72
- DB $4F,$6E,$69,$63,$6B,$6E,$61,$6D,$65,$00
-; TEXT FOR W SHADOW (COLOR 0)
-CHARTX DB $00,$06,$00,$33,$28,$21,$24,$2F,$37,$00
-; TEXT FOR "BLINKY" (COLOR 0)
- DB $00,$02,$22,$2C,$29,$2E,$2B,$39,$02,$00
-; TEXT FOR X SPEEDY (COLOR 1)
- DB $00,$46,$00,$73,$70,$65,$65,$64,$79,$00
-; TEXT FOR "PINKY"  (COLOR 1)
- DB $00,$42,$70,$69,$6E,$6B,$79,$42,$00,$00
-; TEXT FOR Y BASHFUL (COLOR 2)
- DB $00,$86,$00,$A2,$A1,$B3,$A8,$A6,$B5,$AC
-; TEXT FOR "INKY"    (COLOR 2)
- DB $00,$82,$A9,$AE,$AB,$B9,$82,$00,$00,$00
-; TEXT FOR Z POKEY   (COLOR 3)
- DB $00,$C6,$00,$F0,$EF,$EB,$E5,$F9,$00,$00
-; TEXT FOR "CLYDE"   (COLOR 3)
- DB $00,$C2,$E3,$EC,$F9,$E4,$E5,$C2,$00,$00
-; TEXT FOR A 10 PTS
-; TEXT IS COLOR 0 DOT IS COLOR 2
-AM10PT DB $83,$00,$11,$10,$00,$30,$34,$33
-; TEXT FOR B 50 PTS
-AM50PT DB $84,$00,$15,$10,$00,$30,$34,$33
-; (C) ATARI 1982     (COLOR 2)
-COPMSG DB $00,$00,$00,$88,$A3,$89,$00,$A1,$B4,$A1
- DB $B2,$A9,$00,$91,$99,$98,$92,$00,$00,$00
+; attract mode data
 ;
 ;
-; DATA FOR INTERMISSIONS
+; attract mode colors
 ;
-L756B = *; Y INDEX VALUE
+acolrs !byte $44,$4a,$d8,$28,$44,$0c,$00,$28
+; small dot char 3
+atchrs !byte $00,$00,$00,$18,$18,$00,$00,$00
+; energizer dot char 4
+ !byte $18,$18,$3c,$3c,$3c,$3c,$18,$18
+; top of monster char 5
+ !byte $00,$00,$00,$00,$00,$38,$7c,$fe
+; body of monster char 6
+ !byte $fe,$ea,$ea,$ea,$fe,$fe,$fe,$aa
 ;
- DB $15,$2B,$41,$57,$6D,$83
+; text for char/nickname (color 1)
+chnktx !byte $00,$63,$68,$61,$72,$61,$63,$74,$65,$72
+ !byte $4f,$6e,$69,$63,$6b,$6e,$61,$6d,$65,$00
+; text for w shadow (color 0)
+chartx !byte $00,$06,$00,$33,$28,$21,$24,$2f,$37,$00
+; text for "blinky" (color 0)
+ !byte $00,$02,$22,$2c,$29,$2e,$2b,$39,$02,$00
+; text for x speedy (color 1)
+ !byte $00,$46,$00,$73,$70,$65,$65,$64,$79,$00
+; text for "pinky"  (color 1)
+ !byte $00,$42,$70,$69,$6e,$6b,$79,$42,$00,$00
+; text for y bashful (color 2)
+ !byte $00,$86,$00,$a2,$a1,$b3,$a8,$a6,$b5,$ac
+; text for "inky"    (color 2)
+ !byte $00,$82,$a9,$ae,$ab,$b9,$82,$00,$00,$00
+; text for z pokey   (color 3)
+ !byte $00,$c6,$00,$f0,$ef,$eb,$e5,$f9,$00,$00
+; text for "clyde"   (color 3)
+ !byte $00,$c2,$e3,$ec,$f9,$e4,$e5,$c2,$00,$00
+; text for a 10 pts
+; text is color 0 dot is color 2
+am10pt !byte $83,$00,$11,$10,$00,$30,$34,$33
+; text for b 50 pts
+am50pt !byte $84,$00,$15,$10,$00,$30,$34,$33
+; (c) atari 1982     (color 2)
+copmsg !byte $00,$00,$00,$88,$a3,$89,$00,$a1,$b4,$a1
+ !byte $b2,$a9,$00,$91,$99,$98,$92,$00,$00,$00
 ;
-L7571 = *
 ;
- DB $03,$80,$01,$C0,$BA,$20,$50,$00
- DB $00,$02,$05,$02,$05,$1D,$00,$04
- DB $02,$13,$D0,$84
- DW L780B
+; data for intermissions
 ;
- DB $00,$00,$FF,$C0,$FF,$20,$50,$00
- DB $00,$02,$03,$02,$03,$00,$70,$04
- DB $03,$27,$10,$72
- DW L77F3
+l756b = *; y index value
 ;
- DB $03,$80,$01,$C0,$BA,$20,$50,$00
- DB $00,$02,$05,$02,$05,$30,$00,$04
- DB $02,$13,$D0,$84
- DW L780B
+ !byte $15,$2b,$41,$57,$6d,$83
 ;
- DB $03,$80,$01,$00,$00,$04,$10,$00
- DB $00,$04,$00,$04,$00,$00,$00,$07
- DB $00,$00,$00,$00
- DW L787A
+l7571 = *
 ;
- DB $03,$80,$01,$C0,$BA,$20,$50,$00
- DB $00,$02,$05,$02,$05,$30,$00,$04
- DB $02,$13,$D0,$84
- DW L7823
+ !byte $03,$80,$01,$c0,$ba,$20,$50,$00
+ !byte $00,$02,$05,$02,$05,$1d,$00,$04
+ !byte $02,$13,$d0,$84
+ dw l780b
 ;
- DB $00,$00,$FF,$B8,$00,$20,$00,$00
- DB $00,$03,$00,$03,$00,$00,$00,$07
- DB $00,$00,$00,$00
- DW L783B
+ !byte $00,$00,$ff,$c0,$ff,$20,$50,$00
+ !byte $00,$02,$03,$02,$03,$00,$70,$04
+ !byte $03,$27,$10,$72
+ dw l77f3
 ;
-L75F5 = *
+ !byte $03,$80,$01,$c0,$ba,$20,$50,$00
+ !byte $00,$02,$05,$02,$05,$30,$00,$04
+ !byte $02,$13,$d0,$84
+ dw l780b
 ;
- DB $03,$80,$01,$30,$BA,$30,$50,$00
- DB $00,$02,$05,$02,$05,$00,$00,$06
- DB $02,$13,$D0,$84
- DW L78A4
+ !byte $03,$80,$01,$00,$00,$04,$10,$00
+ !byte $00,$04,$00,$04,$00,$00,$00,$07
+ !byte $00,$00,$00,$00
+ dw l787a
+;
+ !byte $03,$80,$01,$c0,$ba,$20,$50,$00
+ !byte $00,$02,$05,$02,$05,$30,$00,$04
+ !byte $02,$13,$d0,$84
+ dw l7823
+;
+ !byte $00,$00,$ff,$b8,$00,$20,$00,$00
+ !byte $00,$03,$00,$03,$00,$00,$00,$07
+ !byte $00,$00,$00,$00
+ dw l783b
+;
+l75f5 = *
+;
+ !byte $03,$80,$01,$30,$ba,$30,$50,$00
+ !byte $00,$02,$05,$02,$05,$00,$00,$06
+ !byte $02,$13,$d0,$84
+ dw l78a4
 
- DB $00,$00,$00
+ !byte $00,$00,$00
 ;
-L760E = *
+l760e = *
 ;
- DW L7622,L7648,L766E
- DW L7622,L7648,L766E
+ dw l7622,l7648,l766e
+ dw l7622,l7648,l766e
 ;
-L761A = *
+l761a = *
 ;
- DW L7694,L7709,L777E,L7709
+ dw l7694,l7709,l777e,l7709
 ;
-L7622 = *
+l7622 = *
 ;
- DB $07,$1F,$3F,$1F,$0F,$07,$03,$01
- DB $00,$00,$00,$01,$03,$07,$0F,$1F
- DB $3F,$1F,$07,$00,$C0,$E0,$E0,$F0
- DB $F0,$F0,$F8,$F8,$78,$F8,$F8,$F0
- DB $F0,$F0,$E0,$E0,$C0,$00
+ !byte $07,$1f,$3f,$1f,$0f,$07,$03,$01
+ !byte $00,$00,$00,$01,$03,$07,$0f,$1f
+ !byte $3f,$1f,$07,$00,$c0,$e0,$e0,$f0
+ !byte $f0,$f0,$f8,$f8,$78,$f8,$f8,$f0
+ !byte $f0,$f0,$e0,$e0,$c0,$00
 ;
-L7648 = *
+l7648 = *
 ;
- DB $07,$1F,$3F,$3F,$7F,$7F,$7F,$0F
- DB $01,$00,$01,$0F,$7F,$7F,$7F,$3F
- DB $3F,$1F,$07,$00,$C0,$E0,$E0,$F0
- DB $F0,$F0,$F8,$F8,$78,$F8,$F8,$F0
- DB $F0,$F0,$E0,$E0,$C0,$00
+ !byte $07,$1f,$3f,$3f,$7f,$7f,$7f,$0f
+ !byte $01,$00,$01,$0f,$7f,$7f,$7f,$3f
+ !byte $3f,$1f,$07,$00,$c0,$e0,$e0,$f0
+ !byte $f0,$f0,$f8,$f8,$78,$f8,$f8,$f0
+ !byte $f0,$f0,$e0,$e0,$c0,$00
 ;
-L766E = *
+l766e = *
 ;
- DB $07,$1F,$3F,$3F,$7F,$7F,$7F,$FF
- DB $FF,$FF,$FF,$FF,$7F,$7F,$7F,$3F
- DB $3F,$1F,$07,$00,$C0,$E0,$E0,$F0
- DB $F0,$F0,$F8,$F8,$F8,$F8,$F8,$F0
- DB $F0,$F0,$E0,$E0,$C0,$00
+ !byte $07,$1f,$3f,$3f,$7f,$7f,$7f,$ff
+ !byte $ff,$ff,$ff,$ff,$7f,$7f,$7f,$3f
+ !byte $3f,$1f,$07,$00,$c0,$e0,$e0,$f0
+ !byte $f0,$f0,$f8,$f8,$f8,$f8,$f8,$f0
+ !byte $f0,$f0,$e0,$e0,$c0,$00
 ;
-L7694 = *
+l7694 = *
 ;
- DB $00,$01
- DB $03,$07,$0F,$0F,$1F,$1F,$3F,$3F
- DB $3F,$7F,$7F,$7F,$7F,$FF,$FF,$FF
- DB $FF,$FF,$FF,$FF,$FF,$FF,$7F,$7F
- DB $7F,$7F,$3F,$3F,$3F,$1F,$1F,$0F
- DB $0F,$07,$03,$01,$00,$78,$FE,$FF
- DB $FF,$FF,$FF,$FF,$FF,$FF,$FE,$FE
- DB $FC,$F8,$F8,$F0,$E0,$E0,$C0,$C0
- DB $80,$C0,$C0,$E0,$E0,$F0,$F8,$F8
- DB $FC,$FE,$FE,$FF,$FF,$FF,$FF,$FF
- DB $FF,$FF,$FE,$78,$00,$00,$00,$80
- DB $C0,$C0,$80,$80,$00,$00,$00,$00
- DB $00,$00,$00,$00,$00,$00,$00,$00
- DB $00,$00,$00,$00,$00,$00,$00,$00
- DB $00,$00,$00,$80,$80,$C0,$C0,$80
- DB $00,$00,$00
+ !byte $00,$01
+ !byte $03,$07,$0f,$0f,$1f,$1f,$3f,$3f
+ !byte $3f,$7f,$7f,$7f,$7f,$ff,$ff,$ff
+ !byte $ff,$ff,$ff,$ff,$ff,$ff,$7f,$7f
+ !byte $7f,$7f,$3f,$3f,$3f,$1f,$1f,$0f
+ !byte $0f,$07,$03,$01,$00,$78,$fe,$ff
+ !byte $ff,$ff,$ff,$ff,$ff,$ff,$fe,$fe
+ !byte $fc,$f8,$f8,$f0,$e0,$e0,$c0,$c0
+ !byte $80,$c0,$c0,$e0,$e0,$f0,$f8,$f8
+ !byte $fc,$fe,$fe,$ff,$ff,$ff,$ff,$ff
+ !byte $ff,$ff,$fe,$78,$00,$00,$00,$80
+ !byte $c0,$c0,$80,$80,$00,$00,$00,$00
+ !byte $00,$00,$00,$00,$00,$00,$00,$00
+ !byte $00,$00,$00,$00,$00,$00,$00,$00
+ !byte $00,$00,$00,$80,$80,$c0,$c0,$80
+ !byte $00,$00,$00
 ;
-L7709 = *
+l7709 = *
 ;
- DB $00,$01,$03,$07,$0F
- DB $0F,$1F,$1F,$3F,$3F,$3F,$7F,$7F
- DB $7F,$7F,$FF,$FF,$FF,$FF,$FF,$FF
- DB $FF,$FF,$FF,$7F,$7F,$7F,$7F,$3F
- DB $3F,$3F,$1F,$1F,$0F,$0F,$07,$03
- DB $01,$00,$78,$FE,$FF,$FF,$FF,$FF
- DB $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
- DB $FF,$FF,$FE,$F8,$E0,$80,$E0,$F8
- DB $FE,$FF,$FF,$FF,$FF,$FF,$FF,$FF
- DB $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FE
- DB $78,$00,$00,$00,$80,$C0,$C0,$E0
- DB $E0,$F0,$F0,$F0,$F8,$F8,$F8,$E0
- DB $80,$00,$00,$00,$00,$00,$00,$00
- DB $80,$E0,$F8,$F8,$F8,$F0,$F0,$F0
- DB $E0,$E0,$C0,$C0,$80,$00,$00,$00
+ !byte $00,$01,$03,$07,$0f
+ !byte $0f,$1f,$1f,$3f,$3f,$3f,$7f,$7f
+ !byte $7f,$7f,$ff,$ff,$ff,$ff,$ff,$ff
+ !byte $ff,$ff,$ff,$7f,$7f,$7f,$7f,$3f
+ !byte $3f,$3f,$1f,$1f,$0f,$0f,$07,$03
+ !byte $01,$00,$78,$fe,$ff,$ff,$ff,$ff
+ !byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+ !byte $ff,$ff,$fe,$f8,$e0,$80,$e0,$f8
+ !byte $fe,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+ !byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$fe
+ !byte $78,$00,$00,$00,$80,$c0,$c0,$e0
+ !byte $e0,$f0,$f0,$f0,$f8,$f8,$f8,$e0
+ !byte $80,$00,$00,$00,$00,$00,$00,$00
+ !byte $80,$e0,$f8,$f8,$f8,$f0,$f0,$f0
+ !byte $e0,$e0,$c0,$c0,$80,$00,$00,$00
 ;
-L777E = *
+l777e = *
 ;
- DB $00,$01,$03,$07,$0F,$0F,$1F,$1F
- DB $3F,$3F,$3F,$7F,$7F,$7F,$7F,$FF
- DB $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
- DB $7F,$7F,$7F,$7F,$3F,$3F,$3F,$1F
- DB $1F,$0F,$0F,$07,$03,$01,$00,$78
- DB $FE,$FF,$FF,$FF,$FF,$FF,$FF,$FF
- DB $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
- DB $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
- DB $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
- DB $FF,$FF,$FF,$FF,$FE,$78,$00,$00
- DB $00,$80,$C0,$C0,$E0,$E0,$F0,$F0
- DB $F0,$F8,$F8,$F8,$F8,$FC,$FC,$FC
- DB $FC,$FC,$FC,$FC,$FC,$FC,$F8,$F8
- DB $F8,$F8,$F0,$F0,$F0,$E0,$E0,$C0
- DB $C0,$80,$00,$00,$00
+ !byte $00,$01,$03,$07,$0f,$0f,$1f,$1f
+ !byte $3f,$3f,$3f,$7f,$7f,$7f,$7f,$ff
+ !byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+ !byte $7f,$7f,$7f,$7f,$3f,$3f,$3f,$1f
+ !byte $1f,$0f,$0f,$07,$03,$01,$00,$78
+ !byte $fe,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+ !byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+ !byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+ !byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+ !byte $ff,$ff,$ff,$ff,$fe,$78,$00,$00
+ !byte $00,$80,$c0,$c0,$e0,$e0,$f0,$f0
+ !byte $f0,$f8,$f8,$f8,$f8,$fc,$fc,$fc
+ !byte $fc,$fc,$fc,$fc,$fc,$fc,$f8,$f8
+ !byte $f8,$f8,$f0,$f0,$f0,$e0,$e0,$c0
+ !byte $c0,$80,$00,$00,$00
 ;
-L77F3 = *
+l77f3 = *
 ;
- DB $01,$04,$08,$02,$05,$09,$03,$06
- DB $0A,$00,$07,$0B,$01,$04,$0C,$02
- DB $05,$0D,$03,$06,$0E,$00,$07,$0F
+ !byte $01,$04,$08,$02,$05,$09,$03,$06
+ !byte $0a,$00,$07,$0b,$01,$04,$0c,$02
+ !byte $05,$0d,$03,$06,$0e,$00,$07,$0f
 ;
-L780B = *
+l780b = *
 ;
- DB $01,$10,$14,$02,$11,$15,$03,$12
- DB $16,$00,$13,$17,$01,$10,$18,$02
- DB $11,$19,$03,$12,$1A,$00,$13,$1B
+ !byte $01,$10,$14,$02,$11,$15,$03,$12
+ !byte $16,$00,$13,$17,$01,$10,$18,$02
+ !byte $11,$19,$03,$12,$1a,$00,$13,$1b
 ;
-L7823 = *
+l7823 = *
 ;
- DB $01,$10,$14,$02,$11,$15,$03,$54
- DB $D6,$00,$D5,$57,$01,$10,$18,$02
- DB $11,$19,$03,$58,$DA,$00,$D9,$5B
+ !byte $01,$10,$14,$02,$11,$15,$03,$54
+ !byte $d6,$00,$d5,$57,$01,$10,$18,$02
+ !byte $11,$19,$03,$58,$da,$00,$d9,$5b
 ;
-L783B = *
+l783b = *
 ;
- DB $00,$00,$3A,$00,$00,$3B,$00,$00
- DB $3C,$00,$36,$3D,$00,$B7,$3E,$00
- DB $B8,$3F,$00,$B9,$00,$00,$00,$44
+ !byte $00,$00,$3a,$00,$00,$3b,$00,$00
+ !byte $3c,$00,$36,$3d,$00,$b7,$3e,$00
+ !byte $b8,$3f,$00,$b9,$00,$00,$00,$44
 ;
- DB $00,$00,$45
- DB $00,$00,$46,$00,$40,$47,$00,$C1
- DB $48,$00,$C2,$49,$00,$C3,$00,$00
- DB $00,$4E,$00,$00,$4F,$00,$00,$50
- DB $00,$4A,$51,$00,$CB,$52,$00,$CC
- DB $53,$00,$CD,$00
+ !byte $00,$00,$45
+ !byte $00,$00,$46,$00,$40,$47,$00,$c1
+ !byte $48,$00,$c2,$49,$00,$c3,$00,$00
+ !byte $00,$4e,$00,$00,$4f,$00,$00,$50
+ !byte $00,$4a,$51,$00,$cb,$52,$00,$cc
+ !byte $53,$00,$cd,$00
 ;
-L787A = *
- DB $00,$2B,$14,$29
- DB $2C,$15,$2A,$2D,$AF,$00,$AE,$B0
- DB $00,$00,$00,$00,$00,$31,$00,$00
- DB $32,$00,$33,$14,$29,$34,$15,$2A
- DB $35,$AF,$00,$AE,$B0,$00,$00,$00
- DB $00,$00,$31,$00,$00,$32
+l787a = *
+ !byte $00,$2b,$14,$29
+ !byte $2c,$15,$2a,$2d,$af,$00,$ae,$b0
+ !byte $00,$00,$00,$00,$00,$31,$00,$00
+ !byte $32,$00,$33,$14,$29,$34,$15,$2a
+ !byte $35,$af,$00,$ae,$b0,$00,$00,$00
+ !byte $00,$00,$31,$00,$00,$32
 ;
-L78A4 = *
- DB $01,$10
- DB $14,$02,$11,$15,$03,$12,$16,$00
- DB $13,$1C,$00,$00,$00,$00,$00,$00
- DB $01,$10,$18,$02,$11,$19,$03,$12
- DB $1D,$00,$13,$1E,$00,$00,$00,$00
- DB $00,$00,$01,$10,$14,$02,$11,$15
- DB $03,$12,$16,$00,$13,$1F,$00,$00
- DB $00,$00,$00,$00,$01,$10,$18,$02
- DB $11,$19,$03,$12,$1D,$00,$13,$20
- DB $00,$00,$21,$00,$00,$00,$01,$10
- DB $14,$02,$11,$15,$03,$12,$16,$00
- DB $22,$23,$00,$00,$24,$00,$00,$00
- DB $01,$10,$18,$02,$11,$19,$03,$12
- DB $1D,$00,$25,$26,$00,$00,$1F,$00
- DB $00,$00,$01,$10,$18,$02,$11,$19
- DB $03,$12,$1D,$00,$27,$26,$00,$00
- DB $20,$00,$00,$28
+l78a4 = *
+ !byte $01,$10
+ !byte $14,$02,$11,$15,$03,$12,$16,$00
+ !byte $13,$1c,$00,$00,$00,$00,$00,$00
+ !byte $01,$10,$18,$02,$11,$19,$03,$12
+ !byte $1d,$00,$13,$1e,$00,$00,$00,$00
+ !byte $00,$00,$01,$10,$14,$02,$11,$15
+ !byte $03,$12,$16,$00,$13,$1f,$00,$00
+ !byte $00,$00,$00,$00,$01,$10,$18,$02
+ !byte $11,$19,$03,$12,$1d,$00,$13,$20
+ !byte $00,$00,$21,$00,$00,$00,$01,$10
+ !byte $14,$02,$11,$15,$03,$12,$16,$00
+ !byte $22,$23,$00,$00,$24,$00,$00,$00
+ !byte $01,$10,$18,$02,$11,$19,$03,$12
+ !byte $1d,$00,$25,$26,$00,$00,$1f,$00
+ !byte $00,$00,$01,$10,$18,$02,$11,$19
+ !byte $03,$12,$1d,$00,$27,$26,$00,$00
+ !byte $20,$00,$00,$28
 ;
-ICOLR0 DB $32,$82,$32,$32,$32,$0F
-ICOLR1 DB $0F,$0F,$0F,$0F,$0F,$FA
-ICOLR2 DB $63,$00,$63,$64,$64,$33
-ICOLR3 DB $00,$00,$FA,$FA,$FA,$83
+icolr0 !byte $32,$82,$32,$32,$32,$0f
+icolr1 !byte $0f,$0f,$0f,$0f,$0f,$fa
+icolr2 !byte $63,$00,$63,$64,$64,$33
+icolr3 !byte $00,$00,$fa,$fa,$fa,$83
 ;
 ;
-IMUSIC = *
+imusic = *
 ;
- DB $48,$AA,$90,$A8,$00,$AA,$90,$A8
- DB $48,$AA,$00,$A8,$00,$AA,$90,$A8
- DB $48,$AA,$90,$A8,$00,$AA,$90,$A8
- DB $55,$AA,$00,$A8,$60,$AA,$90,$A8
- DB $48,$AA,$90,$A8,$48,$AA,$90,$A8
- DB $48,$AA,$00,$A8,$48,$AA,$90,$A8
- DB $39,$AA,$72,$A8,$39,$AA,$6C,$A8
- DB $39,$AA,$66,$A8,$39,$AA,$60,$A8
- DB $48,$AA,$90,$A8,$48,$A0,$90,$A8
- DB $48,$AA,$90,$A0,$48,$A0,$90,$A8
- DB $48,$AA,$90,$A8,$48,$A0,$90,$A8
- DB $55,$AA,$00,$A8,$60,$AA,$90,$A8
- DB $48,$AA,$90,$A8,$48,$AA,$90,$A8
- DB $55,$AA,$00,$A8,$72,$AA,$90,$A8
- DB $72,$AA,$6C,$A8,$72,$AA,$66,$A8
- DB $72,$AA,$60,$A8,$48,$AA,$90,$A8
- DB $00,$AA,$90,$A8,$48,$AA,$00,$A8
- DB $00,$AA,$90,$A8,$48,$AA,$90,$A8
- DB $55,$A0,$90,$A8,$55,$AA,$1D,$A0
- DB $60,$AA,$90,$A8,$48,$AA,$90,$A8
- DB $48,$AA,$90,$A8,$39,$AA,$90,$A0
- DB $39,$AA,$90,$A8,$35,$AA,$72,$A8
- DB $35,$AA,$6C,$A8,$32,$AA,$66,$A8
- DB $32,$AA,$60,$A8,$2F,$AA,$5B,$A8
- DB $2F,$AA,$60,$A8,$35,$AA,$6C,$A8
- DB $35,$AA,$6C,$A8,$39,$AA,$72,$A8
- DB $39,$AA,$72,$A8,$48,$AA,$90,$A8
- DB $48,$AA,$90,$A8,$39,$AA,$60,$A8
- DB $39,$AA,$60,$A8,$48,$AA,$72,$A8
- DB $48,$AA,$72,$A8,$00,$00,$00,$00
+ !byte $48,$aa,$90,$a8,$00,$aa,$90,$a8
+ !byte $48,$aa,$00,$a8,$00,$aa,$90,$a8
+ !byte $48,$aa,$90,$a8,$00,$aa,$90,$a8
+ !byte $55,$aa,$00,$a8,$60,$aa,$90,$a8
+ !byte $48,$aa,$90,$a8,$48,$aa,$90,$a8
+ !byte $48,$aa,$00,$a8,$48,$aa,$90,$a8
+ !byte $39,$aa,$72,$a8,$39,$aa,$6c,$a8
+ !byte $39,$aa,$66,$a8,$39,$aa,$60,$a8
+ !byte $48,$aa,$90,$a8,$48,$a0,$90,$a8
+ !byte $48,$aa,$90,$a0,$48,$a0,$90,$a8
+ !byte $48,$aa,$90,$a8,$48,$a0,$90,$a8
+ !byte $55,$aa,$00,$a8,$60,$aa,$90,$a8
+ !byte $48,$aa,$90,$a8,$48,$aa,$90,$a8
+ !byte $55,$aa,$00,$a8,$72,$aa,$90,$a8
+ !byte $72,$aa,$6c,$a8,$72,$aa,$66,$a8
+ !byte $72,$aa,$60,$a8,$48,$aa,$90,$a8
+ !byte $00,$aa,$90,$a8,$48,$aa,$00,$a8
+ !byte $00,$aa,$90,$a8,$48,$aa,$90,$a8
+ !byte $55,$a0,$90,$a8,$55,$aa,$1d,$a0
+ !byte $60,$aa,$90,$a8,$48,$aa,$90,$a8
+ !byte $48,$aa,$90,$a8,$39,$aa,$90,$a0
+ !byte $39,$aa,$90,$a8,$35,$aa,$72,$a8
+ !byte $35,$aa,$6c,$a8,$32,$aa,$66,$a8
+ !byte $32,$aa,$60,$a8,$2f,$aa,$5b,$a8
+ !byte $2f,$aa,$60,$a8,$35,$aa,$6c,$a8
+ !byte $35,$aa,$6c,$a8,$39,$aa,$72,$a8
+ !byte $39,$aa,$72,$a8,$48,$aa,$90,$a8
+ !byte $48,$aa,$90,$a8,$39,$aa,$60,$a8
+ !byte $39,$aa,$60,$a8,$48,$aa,$72,$a8
+ !byte $48,$aa,$72,$a8,$00,$00,$00,$00
 ;
 
-; EJECT
+; eject
 ;
- ORG $7400
+ org $7400
 ;
- INCLUDE D2:PACDAT3.ASM
+ include d2:pacdat3.asm
 ;
- END INIT
+ end init

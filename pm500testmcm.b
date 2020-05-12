@@ -4,8 +4,8 @@
 ; Converted for P500 by Vossi 05/2020
 !cpu 6502
 ; switches
-;P500 = 1		; P500 bank 0 file
-;MCMLOGO = 1
+P500 = 1		; P500 bank 0 file
+MCMLOGO = 1
 ;CRT = 1		; CRT header for VICE
 !ifdef 	P500{!to "pm500.prg", cbm
 } else{ !ifdef CRT {!to "pm500.crt", plain
@@ -69,16 +69,10 @@ LIGHTBLUE				= $0e
 GRAY3					= $0f
 MCM						= $08		; bit#3 for multicolor character
 ; game
-!ifdef MCMLOGO{
-RASTERLINE1				= $32+7*8	; Above PACMAN logo
-MCMOFFSET				= $c8		; +5 lines displacement for PACMAN logo
-MCMOFFSET2				= $78		; -3 lines displacement for Player selection text
-} else{
-RASTERLINE1				= $32+11*8	; just above the menu fruit in line 11 
-MCMOFFSET				= 0			; no offset
-MCMOFFSET2				= 0
-}
-RASTERLINE2				= $33+12*8	; just below the menu fruit in line 11 
+RASTERLINE1				= $33+4*8	; just below the PACMAN logo in line 2+3
+RASTERLINE2				= $32+10*8	; just above the difficulty fruit in line 11 
+RASTERLINE3				= $33+13*8	; just below the difficulty fruit in line 11 
+RASTERLINE4				= $33+200	; just below the lower text line 19 
 LIVES					= 3			; start lives
 FRUITDELAY				= $c0		; fruit delay
 ; ************************************** P500 REGISTER ********************************************
@@ -451,7 +445,7 @@ charcpy:lda CharGame+$1cf,x
 		lda #$1b
 		ldy #VR_MODEY
 		sta (VIC),y						; VIC RC8 = 0, DEN, 40 columns, Y = 3
-		lda #RASTERLINE2
+		lda #RASTERLINE4
 		ldy #VR_RASTER
 		sta (VIC),y						; VIC raster reg = $032 (start visible screen)
 } else{
@@ -630,7 +624,7 @@ Interrupt: ; game interrupt routine every 20ms = 1 jiffy
 		pha
 		tya
 		pha
-		lda IndirectBank				; load actibe indirct bank
+		lda IndirectBank				; load active indirect bank
 		pha								; remember on stack
 		lda #SYSTEMBANK
 		sta IndirectBank				; select bank 15
@@ -641,34 +635,51 @@ Interrupt: ; game interrupt routine every 20ms = 1 jiffy
 		beq jendirq						; skip if source is not raster interrupt
 		ldy #VR_RASTER
 		lda (VIC),y						; set VIC raster reg again
-		cmp #RASTERLINE1
-		beq raslin1
-		lda state
-		beq setrl1
+		ldy state
+		beq gamerun
+		cmp #RASTERLINE4
+		bmi notras4
+		lda #RASTERLINE1
+		bne update
+
+notras4:cmp #RASTERLINE3
+		bmi notras3
 		lda #$c8
 		ldy #VR_MCMCSX
 		sta (VIC),y						; VIC multicolormode MCM=1, 40 columns
-		lda #RASTERLINE1
-		ldy #VR_RASTER
-		sta (VIC),y						; set VIC raster reg again
-		lda #$81
-		ldy #VR_IRQ
-		sta (VIC),y						; clear VIC raster interrupt
-jendirq:jmp endirq
-raslin1:inc jiffy						; increase jiffy
+		lda #RASTERLINE4
+		bne setrast
+
+notras3:cmp #RASTERLINE2
+		bmi ras1
 		lda #$d8
 		ldy #VR_MCMCSX
-		sta (VIC),y						; VIC multicolormode MCM=1, 40 columns
-		lda state
-		beq setrl1
-		lda #RASTERLINE2
+		sta (VIC),y						; VIC multicolormode MCM=0, 40 columns
+		lda #RASTERLINE1
 		bne setrast
-setrl1:	lda #RASTERLINE1
+		
+ras1	lda #$c8
+		ldy #VR_MCMCSX
+		sta (VIC),y						; VIC multicolormode MCM=0, 40 columns
+		lda #RASTERLINE2
+
 setrast:ldy #VR_RASTER
 		sta (VIC),y						; set VIC raster reg again
 		lda #$81
 		ldy #VR_IRQ
 		sta (VIC),y						; clear VIC raster interrupt
+jendirq:jmp endirq
+
+gamerun:lda #RASTERLINE4
+update:	ldy #VR_RASTER
+		sta (VIC),y						; set VIC raster reg again
+		lda #$d8
+		ldy #VR_MCMCSX
+		sta (VIC),y						; VIC multicolormode MCM=1, 40 columns
+		lda #$81
+		ldy #VR_IRQ
+		sta (VIC),y						; clear VIC raster interrupt		
+		inc jiffy						; increase jiffy
 		dec bounce_timer_ATARI							;
 		jsr UpdateScreen				; sub: Update screen: Startup, Menu, Game
 
@@ -756,14 +767,9 @@ InitMenu:
 		dex
 		bpl -
 		lda #$3a						; VM13-10=$3 screen $0c00, CB13,12,11,x=1010 char $2800						; VIC memory pointers
-!ifdef P500{
+!ifdef 	P500{
 		ldy #VR_MEMPT
 		sta (VIC),y						; set VIC memory pointers
-		lda #$c8
-!ifndef MCMLOGO{
-		ldy #VR_MCMCSX
-		sta (VIC),y						; set VIC Multicolor mode off, 40 Columns
-}
 		jsr SoundOff					; returns with A=$00
 		ldy #VR_MOBENA
 		sta (VIC),y						; VIC disable sprites
@@ -889,10 +895,10 @@ atarilp:lda Text_Atari1983,x			; write "Atari 1983" to screen
 pacmlp:	txa								; write PACMAN logo to screen
 		clc
 		adc #$01
-		sta MenuScreen+$5f+MCMOFFSET,x	; first line char 1 - 12
+		sta MenuScreen+$5f,x			; first line char 1 - 12
 		txa
 		adc #$0d
-		sta MenuScreen+$87+MCMOFFSET,x	; second line char 13 - 24
+		sta MenuScreen+$87,x			; second line char 13 - 24
 		inx
 		cpx #$0c
 		bne pacmlp
@@ -913,7 +919,7 @@ Menu:	ldx players
 		inx								; add 1 to get 1/2
 		txa
 		ora #$90
-		sta MenuScreen+$d7-MCMOFFSET2	; add $90 for char and print 1/2 players to screen
+		sta MenuScreen+$d7				; add $90 for char and print 1/2 players to screen
 		lda players
 		bne m2playr						; skip if 2 players
 		cpy #$03
@@ -925,17 +931,17 @@ m2playr:cpy #$03
 		bne m2nots3						; skip if not state 3
 		jsr Init2Player					; sub: print 1Up, 2Up, print zero scores on game screen
 m2nots3:lda #$91
-mskp2pl:sta MenuScreen+$14f-MCMOFFSET2	; write 2/1 player for F3 to screen
+mskp2pl:sta MenuScreen+$14f				; write 2/1 player for F3 to screen
 		ldx #$0a
 -		lda Text_PlayerGame,x
-		sta MenuScreen+$151-MCMOFFSET2,x; write "Player Game" twice 
-		sta MenuScreen+$d9-MCMOFFSET2,x
+		sta MenuScreen+$151,x			; write "Player Game" twice 
+		sta MenuScreen+$d9,x
 		dex
 		bpl -
 		jsr InitMenu					; sub: Init menu - set VIC, sound off, clears sprite x
 		ldx #$0b
 -		lda Text_PressF3To,x			; write F-key messages to screen 
-		sta MenuScreen+$127-MCMOFFSET2,x
+		sta MenuScreen+$127,x
 		lda Text_PressF5To,x
 		sta MenuScreen+$240,x
 		lda Text_PressF1To,x
