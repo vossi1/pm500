@@ -40,7 +40,7 @@ P500 = 1		; P500 bank 0 file
 ; SID voice 3 with noise and reg $1b used for random number generation 
 ; Monsters/Ghosts/Goblins: Lightred=Pinky, Lightred=Pinky, Green=Inky, Orange=Clyde
 ; ******************************************* FONT ************************************************
-; Optionsfont:		$00-$17 = PACMAN logo 2 rows of 12 chars
+; Optionsfont:	$00-$17 = PACMAN logo 2 rows of 12 chars
 ; Gamefont:	 	$00-$21 = Maze parts except $01 = pill, $03 = cross, $1b = mini-pacman (live)
 ; (all MCM)		$22-$2b = READY:
 ;				$2c-$39	= GAME OVER
@@ -194,7 +194,7 @@ SR_RANDOM				= $1b
 !addr freeze_flag		= $a4
 
 !addr fizzle_status		= $ac
-;						= $04		 ; 0 -> Sprite Direction loop
+
 !addr flash_up			= $b9		; Blink counter 1up/2up 0/1=off/on
 !addr spritedata_ptr	= $c0		; 16bit pointer for sprite data copy
 !addr pressed_key		= $c5		; Pressed key from interrupt
@@ -379,7 +379,7 @@ reinilp:sta game_over_flag,x			; clear game variables $0e-$2d
 		sta $d022						; VIC background color1 = lightblue
 }
 ; now initialize player screens
-		jsr InitColors					; sub: init color RAM and VIC Sprite colors
+		jsr SetColor					; sub: init color RAM and VIC Sprite colors
 		jsr InitGameScreen				; sub: copy game screen to screen RAM
 		jsr SaveScreenPlayer1			; sub: init game screen player1 $4400
 		jsr SaveScreenPlayer2			; sub: init game screen player2 $4800
@@ -409,7 +409,7 @@ pacgmlp:cmp jiffy
 		sta $d015						; VIC enable spritess 0-4
 		sta $d01d						; VIC x-expand sprites 0-4
 }
-		jsr Initcstart					; sub: init new game
+		jsr Setup						; sub: init new game
 		jsr InitGameVariables			; sub: Init game variables: lives, level, score...
 		lda players
 		beq p1scini						; skip if 1 player
@@ -898,7 +898,7 @@ sdpcopy:sta SpriteDataPtr,x
 		dex
 		bpl sdpcopy
 ; $874d copy pacman sprite data		
-		lda monster_vpos+4					; set data pointer to $5345 (pacman $5348-$5351)
+		lda monster_vpos+4				; set data pointer to pacman
 		sta spritedata_ptr
 		lda #$53
 		sta spritedata_ptr+1
@@ -1315,7 +1315,7 @@ l89f7:	lda $65
 l8a00:	sta $63
 		lda #$00
 		sta $64
-		jsr l91bd
+		jsr pmstik
 		lda #$00
 		sta $65
 		jsr l9384
@@ -1463,7 +1463,7 @@ l8b2a:	rts
 l8b2b:	ldx player_number
 		lda extra_pacman1,x
 		beq l8b3a
-		jsr Initcstart					; sub: init new game
+		jsr Setup					; sub: init new game
 		jsr Ready						; sub: print READY: and difficulty fruits
 		jmp ready2					; sub: Player dead: die-animation, decrease lives
 l8b3a:	lda #$2c
@@ -1710,7 +1710,7 @@ l8ca7:
 ; $8caf
 l8caf:	cmp #$03
 		bne l8cb9
-		jsr Initcstart					; sub: init new game
+		jsr Setup					; sub: init new game
 		inc $15
 		rts
 ; -------------------------------------------------------------------------------------------------
@@ -1903,13 +1903,13 @@ fl1stor:sta GameScreen+$04						; write to screen left side
 flashxx:rts
 ; -------------------------------------------------------------------------------------------------
 ; $8df3 init new game
-Initcstart:
-		jsr ClearSpriteRAM				; clear sprite RAM at $3000, $5300
+Setup:
+		jsr InitSpriteMemory			; clear sprite areas at $3000, $5300
 		ldx #$8a
--		sta $3b,x
+clrpgz:	sta $3b,x
 		dex
-		bne -							; clear ZP $3c - $c5
-		jsr InitColors					; sub: init color RAM and VIC Sprite colors
+		bne clrpgz						; clear ZP $3c - $c5
+		jsr SetColor					; sub: init color RAM and VIC Sprite colors
 		ldx player_number
 		lda maze_count1,x				; load player difficulty
 		cmp #$06
@@ -2435,7 +2435,7 @@ l90cc:	lda $d027,x						; load VIC sprites color 3-0 (monsters)
 ; $90d7
 l90d7:	lda #$00
 		sta $63
-		jsr l91bd
+		jsr pmstik
 		inc $64
 		jmp l9384
 l90e3:	lda $b3
@@ -2489,11 +2489,11 @@ SoundOff:
 		rts
 }
 ; -------------------------------------------------------------------------------------------------
-; $911d clear RAM areas $3000-$31ff (Sprite data) and $5300-$57ff (sprite data source RAM)
-ClearSpriteRAM:
+; $911d initialize sprite areas $3000-$31ff (VIC sprite data) and $5300-$57ff (Sprite data source)
+InitSpriteMemory:
 		ldx #$00
 		txa
-clramlp:sta SpriteData,x
+inipmlp:sta SpriteData,x
 		sta SpriteData+$100,x
 		sta SpriteRAM,x
 		sta SpriteRAM+$100,x
@@ -2501,58 +2501,58 @@ clramlp:sta SpriteData,x
 		sta SpriteRAM+$300,x
 		sta SpriteRAM+$400,x
 		inx
-		bne clramlp
+		bne inipmlp
 		txa
 		rts
 ; -------------------------------------------------------------------------------------------------
-; $913a Init color RAM + Sprite colors
-InitColors:
+; $913a Initialize color RAM + Sprite colors
+SetColor:
 !ifdef 	P500{
 		lda #YELLOW+MCM
 		ldy #$00
-coinlp1:sta (ColorRAM0),y				; init color RAM with yellow + bit#3 for multicolor
+collp1:	sta (ColorRAM0),y				; init color RAM with yellow + bit#3 for multicolor
 		sta (ColorRAM1),y
 		sta (ColorRAM2),y
 		sta (ColorRAM3),y
 		dey
-		bne coinlp1
+		bne collp1
 		ldy #40*2 - 1
 		lda #WHITE
-coinlp2:sta (ColorRAM0),y				; init lines 0-1 with white
+collp2:sta (ColorRAM0),y				; init lines 0-1 with white
 		dey
-		bpl coinlp2
+		bpl collp2
 		ldy #7							; sprite 7-0
-coinlp3:lda SpriteColors,y
+collp3:lda SpriteColors,y
 		sta (VIC27),y					; init VIC Sprite colors from table
 		dey
-		bpl coinlp3
+		bpl collp3
 		rts
 } else{
 		ldx #$00
 		lda #YELLOW+MCM
-coinlp1:sta ColorRAM64,x				; init color RAM with yellow + bit#3 for multicolor
+collp1:	sta ColorRAM64,x				; init color RAM with yellow + bit#3 for multicolor
 		sta ColorRAM64+$100,x
 		sta ColorRAM64+$200,x
 		sta ColorRAM64+$300,x
 		dex
-		bne coinlp1
+		bne collp1
 		ldx #40*2 - 1
 		lda #WHITE
-coinlp2:sta ColorRAM64,x				; init lines 0-1 with white
+collp2:	sta ColorRAM64,x				; init lines 0-1 with white
 		dex
-		bpl coinlp2
+		bpl collp2
 		ldx #7							; sprite 7-0
-coinlp3:lda SpriteColors,x
+collp3:	lda SpriteColors,x
 		sta $d027,x						; init VIC Sprite colors from table
 		dex
-		bpl coinlp3
+		bpl collp3
 		rts
 }
 ; -------------------------------------------------------------------------------------------------
 ; $9163 copy game screen to screen RAM
 InitGameScreen:
 		ldx #$00
-scrinlp:lda MazeData,x					; load decompressed Screen Data
+inigslp:lda MazeData,x					; load decompressed Screen Data
 		sta Maze,x					; copy to game screen from line2
 		lda MazeData+$100,x
 		sta Maze+$100,x
@@ -2561,13 +2561,13 @@ scrinlp:lda MazeData,x					; load decompressed Screen Data
 		lda MazeData+$300,x
 		sta Maze+$300,x
 		inx
-		bne scrinlp
+		bne inigslp
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $9181 backup game screen player 1 to $4400
 SaveScreenPlayer1:
 		ldx #$00
-bscr1lp:lda Maze,x
+savp1lp:lda Maze,x
 		sta Player1Save,x
 		lda Maze+$100,x
 		sta Player1Save+$100,x
@@ -2576,13 +2576,13 @@ bscr1lp:lda Maze,x
 		lda Maze+$300,x
 		sta Player1Save+$300,x
 		inx
-		bne bscr1lp
+		bne savp1lp
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $919f backup game screen player 2 to $4800
 SaveScreenPlayer2:
 		ldx #$00
-bscr2lp:lda Maze,x
+savp2lp:lda Maze,x
 		sta Player2Save,x
 		lda Maze+$100,x
 		sta Player2Save+$100,x
@@ -2591,12 +2591,15 @@ bscr2lp:lda Maze,x
 		lda Maze+$300,x
 		sta Player2Save+$300,x
 		inx
-		bne bscr2lp
-l91bc:	rts
+		bne savp2lp
+sav2px:	rts
 ; -------------------------------------------------------------------------------------------------
-; $91bd
-l91bd:	lda $66
-		bmi l91bc
+; $91bd ATARI: This subroutine will test joytick input and determine if direction chosen is valid.
+; the pacman will then move in the proper direction with it's mouth opening and closing.
+; this code is called during vblank and initiates motion during alternate occurances of vblank.
+; mouth animation is performed every vblank.
+pmstik:	lda $66
+		bmi sav2px
 		ldx #$04
 		jsr MazeHandler
 		clc
@@ -2840,7 +2843,7 @@ l937c:	lda (pixel_get_ptr),y
 }
 l9383:	rts
 ; -------------------------------------------------------------------------------------------------
-; $9384
+; $9384 munchy subroutine eats dots
 l9384:	lda pacman_byte_ctr
 		bne l93e8
 		lda $62
@@ -2986,6 +2989,8 @@ l944b:	lda monster_status,x
 l9467:	dex
 		bpl l944b
 		jmp l93d0
+; -------------------------------------------------------------------------------------------------
+; $946d pscore will add any points scored to the players' score		
 l946d:	lda #$00
 		sta score_carry_bit
 		sed								; set decimal mode
@@ -3060,29 +3065,29 @@ MazeHandler:
 		lda monster_vpos,x
 		stx temp
 		ldx #$09
-l94e8:	cmp VTable,x
-		beq l94fc
+l94e8:	cmp VTable,x					; search vpos
+		beq l94fc						; match found
 		dex
-		bpl l94e8
-		lda hpos_saver
+		bpl l94e8						; keep looking
+		lda hpos_saver					; none found so try hpos
 		ldy #$09
-l94f4:	cmp HTable,y
-		beq l950d
+l94f4:	cmp HTable,y					; search hpos
+		beq l950d						; match found
 		dey
 		bpl l94f4
-l94fc:	ldy #$09
-		lda hpos_saver
+l94fc:	ldy #$09						; now we check hpos table
+		lda hpos_saver					; to see if decision pt.
 l9500:	cmp HTable,y
-		beq l9512
+		beq l9512						; yes - make choice
 		dey
 		bpl l9500
-		lda #$0c
+		lda #$0c						; no - keep going
 		clc
 		bcc l9523
-l950d:	lda #$03
+l950d:	lda #$03						; only one match found
 		clc
 		bcc l9523
-l9512:	txa
+l9512:	txa								; now index into table
 		asl
 		tax
 		lda HorizontalTablePointers,x
@@ -3204,7 +3209,6 @@ l95cb:	asl
 		bit temp
 		bne l95dc
 		rts
-; -------------------------------------------------------------------------------------------------
 ; $95d1
 l95d1:	ldy #$00
 		sty GameScreen+$cb
@@ -3213,12 +3217,13 @@ l95d1:	ldy #$00
 l95dc:	sty GameScreen+$2f4
 		rts
 ; -------------------------------------------------------------------------------------------------
-; $95e0
+; $95e0 speed sequencing for objects x reg = index value for object 
+; x=0 to 3 for monsters 1 - 4, x=4 for pacman
+; on exit: a reg = 0 indicates update time
 l95e0:	dec $71,x
 		beq l95e7
 		lda #$ff
 		rts
-; -------------------------------------------------------------------------------------------------
 ; $95e7
 l95e7:	lda $6c,x
 		cmp #$03
@@ -3245,7 +3250,7 @@ l9608:	lda DifficultyTable2,y
 		lda #$00
 		rts
 ; -------------------------------------------------------------------------------------------------
-; $9617
+; $9617 chase sequencing
 l9617:	lda jiffy
 		and #$07
 		bne l9623
@@ -3313,8 +3318,6 @@ l968c:	sta GameScreen+$241,x
 		dex
 		bpl l968c
 		rts
-; -------------------------------------------------------------------------------------------------
-; $9693
 l9693:	dec $5e
 l9695:	rts
 ; -------------------------------------------------------------------------------------------------
