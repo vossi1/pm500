@@ -5,13 +5,11 @@
 !cpu 6502
 ; switches
 ;P500 = 1		; P500 bank 0 file
-;MCMLOGO = 1
 ;CRT = 1		; CRT header for VICE
 !ifdef 	P500{!to "pm500.prg", cbm
-} else{ !ifdef CRT {!to "pm500.crt", plain
-		} else{ !to "pm500.rom", plain }}
+} else{ !ifdef CRT {!to "pacman.crt", plain : *= $7fb0 : !source "crthead.b"
+} else{ !to "pacman.rom", plain }}
 ; ########################################### TODO ################################################
-;
 ; nothing
 ; ########################################### BUGS ################################################
 ;
@@ -68,17 +66,13 @@ LIGHTRED				= $0a
 LIGHTBLUE				= $0e
 GRAY3					= $0f
 MCM						= $08		; bit#3 for multicolor character
-; game
-!ifdef MCMLOGO{
+!ifdef P500{OFFSETLOGO	= $c8		; +5 lines displacement for PACMAN logo
+			OFFSETTEXT	= $78		; -3 lines displacement for Player selection text
+} else{		OFFSETLOGO	= 0			; no offset
+			OFFSETTEXT	= 0}
 RASTERLINE1				= $32+7*8	; Above PACMAN logo
-MCMOFFSET				= $c8		; +5 lines displacement for PACMAN logo
-MCMOFFSET2				= $78		; -3 lines displacement for Player selection text
-} else{
-RASTERLINE1				= $32+11*8	; just above the menu fruit in line 11 
-MCMOFFSET				= 0			; no offset
-MCMOFFSET2				= 0
-}
 RASTERLINE2				= $33+12*8	; just below the menu fruit in line 11 
+; game
 LIVES					= 3			; start lives
 FRUITDELAY				= $c0		; fruit delay
 ; ************************************** P500 REGISTER ********************************************
@@ -126,7 +120,7 @@ SR_RANDOM				= $1b
 !addr cint				= $ff5b		; Kernal video init
 ; ************************************** USER ADDRESSES *******************************************
 !addr GameScreen		= $0400		; Game screen page
-!addr SpriteDataPointer	= $07f8		; 5 Pointer to sprite 0-4
+!addr SpriteDataPtr		= $07f8		; 5 Pointer to sprite 0-4
 !addr Playfield			= GameScreen + 2*40	; Line 2 of game screen
 !addr MenuScreen		= $0c00		; Game screen page
 !addr CharGame			= $2000		; User character game
@@ -159,10 +153,10 @@ SR_RANDOM				= $1b
 !addr bigdot_status		= $20 ; $21   Big dot status player 1,2
 !addr dots_eaten_lo		= $22 ; $23	  Dots eaten player 1,2 lowbyte
 !addr dots_eaten_hi		= $24 ; $25	  Dots eaten player 1,2 highbyte
-!addr score_pointer1	= $26		;
-!addr score_pointer2	= $28		;
-!addr pointer1			= $2a		; Source pointer
-!addr pointer2			= $2c		; Target pointer
+!addr score_ptr1		= $26		;
+!addr score_ptr2		= $28		;
+!addr pixel_get_ptr		= $2a		; Source pointer
+!addr pixel_put_ptr		= $2c		; Target pointer
 !addr fruit_counter		= $2e ; $2f	  Fruit counter player 1, 2
 !addr bounce_timer_ATARI= $30		; ATARI key debounce - not used on Commodore
 !addr ATARI_32			= $32		; ATARI - not used
@@ -195,7 +189,7 @@ SR_RANDOM				= $1b
 !addr jiffy				= $a2		; Jiffy clock 20ms counter from raster interrupt = Vsync
 ;						= $04		 ; 0 -> Sprite Direction loop
 !addr blink_counter		= $b9		; Blink counter 1up/2up 0/1=off/on
-!addr spritedata_pointer= $c0		; 16bit pointer for sprite data copy
+!addr spritedata_ptr= $c0		; 16bit pointer for sprite data copy
 !addr pressed_key		= $c5		; Pressed key from interrupt
 ; ***************************************** VARIABLES *********************************************
 !addr sprite_x			= $02d0	; -$02d4 Sprite 0-4 x positions (VIC >>1 +$2c)
@@ -216,38 +210,26 @@ SR_RANDOM				= $1b
 !addr TPI2				= $fa
 !addr CharROM0			= $fc
 !addr CharROM1			= $fe
-; **************************************** CRT HEADER *********************************************
-!zone crt
-!ifdef 	CRT{
-*= $7fb0
-		!byte $43, $36, $34, $20, $43, $41, $52, $54, $52, $49, $44, $47, $45, $20, $20, $20
-		!byte $00, $00, $00, $40, $01, $00, $00, $00, $00, $01, $00, $00, $00, $00, $00, $00
-		!byte $50, $61, $63, $2d, $4d, $61, $6e, $00, $00, $00, $00, $00, $00, $00, $00, $00
-		!byte $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-		!byte $43, $48, $49, $50, $00, $00, $20, $10, $00, $00, $00, $00, $80, $00, $20, $00
-}
 ; ***************************************** ZONE INIT *********************************************
 !zone init
 !initmem FILL
 *= $8000
 !ifdef 	P500{
-Cold:
-		sei
+Cold:	sei
 		cld
 		ldx #$ff
 		txs
 		jmp Start
-} else{ 	
-; ROM ident
+} else{ ; ROM ident
 		!byte <Start, >Start, <Warm, >Warm	; ROM start addresses
-		!byte $c3, $c2, $cd, "8"			; cbm-rom ident-bytes 'C'= with init, 'BM', '8' = 4k-block 8
+		!byte $c3, $c2, $cd, "8"	; cbm-rom ident-bytes 'C'= with init, 'BM', '8' = 4k-block 8
 }
 ; ***************************************** ZONE DATA1 ********************************************
 !zone data1
 *= $8008
 ; $8008 table unused
 		!byte $30, $02, $bb, $5a, $30, $5f, $ee, $3d, $a8
-; ONLY C64 ROM: Adresses to decoded ROM data, Encoded font, compressed maze
+; ONLY C64 ROM: Addresses to decoded ROM data, Encoded font, compressed maze
 !ifndef P500 {!source "c64cdata.b"}
 ; ***************************************** ZONE CODE *********************************************
 !zone code
@@ -276,62 +258,6 @@ clearzp:sta $02,x						; clear zero page $03 - $c4
 		ldx jiffy						; load jiffy = $00 (cleared at ZP clear loop)
 		dex
 		stx delay_menu					; remember jiffy-1 for 255 x 20ms = 5s menu delay
-!ifndef P500{
-; $83b3 Copy and uncompress maze
-		lda #<MazeData
-		sta pointer2
-		lda #>MazeData
-		sta pointer2+1					; set target pointer = MazeData
-		lda #<CompressedMazeData
-		sta pointer1
-		lda #>CompressedMazeData
-		sta pointer1+1					; set source pointer = compressed MazeData
-		ldy #$00
-mazcopy:lda (pointer1),y				; load byte from maze
-		sta temp						; store for later bit#6 check
-		bmi mazbit7						; skip if bit#7 = 1
-		bpl mazchar						; branch if normal char
-mazbit7:cmp #$ff						; check if $ff = end of data
-		beq lookupt:					; exit loop
-		bit temp
-		bvs mazbit6						; branch if bit#6 = 1
-		and #$7f						; clear ident bit#7
-		tax								; use value in X as repeat counter
-		jsr IncPointer1					; read next byte
-		jsr LoadIncPointer1
-mazrptb:jsr StoreIncPointer2			; copy byte to maze
-		dex
-		bpl mazrptb						; repeat store byte X times
-		bmi mazcopy						; read next byte
-mazbit6:and #$3f						; clear ident bits#7,6
-		jsr StoreIncPointer2			; store byte to maze
-		jsr IncPointer1					; next byte
-		jsr LoadHiNibblePointer1		; load and shift high nibble 4 bits right
-		jsr StoreIncPointer2			; store hi nibble
-		lda (pointer1),y
-		and #$0f						; isolate low nibble
-mazchar:jsr StoreIncPointer2			; copy byte to maze
-		jsr IncPointer1
-		jmp mazcopy						; read next byte
-; $8401 Copy and decode Nibbles
-lookupt:lda #<CompressedNibbles
-		sta pointer1
-		lda #>CompressedNibbles
-		sta pointer1+1					; set source pointer = $9f0e
-		lda #<NibbleTable
-		sta pointer2
-		lda #>NibbleTable
-		sta pointer2+1					; set target pointer = NibbleTable
-		ldy #$00
-		ldx #$00
-lutcopy:jsr LoadHiNibblePointer1		; load and shift high nibble 4 bits right
-		jsr StoreIncPointer2			; store high nibble
-		jsr LoadIncPointer1
-		and #$0f
-		jsr StoreIncPointer2			; store low nibble
-		inx
-		bne lutcopy						; next byte
-}
 !ifdef 	P500{
 ; P500 Copy chars $00-$3f of the first (graphic) fontset to $80 of tboth custom fonts
 		lda #SYSTEMBANK					; select bank 15 to get font from char ROM
@@ -345,31 +271,6 @@ fontcpy:lda (CharROM1),y				; load from character ROM - Y already $00
 		dey
 		bne fontcpy
 		sty IndirectBank				; select bank 0 - Y already $00
-} else{
-; $8426 C64
-		lda $dc0e						; stop CIA1 timer A to prevent problems when switching CharROM 
-		and #$fe
-		sta $dc0e
-		lda CPUPort64					; enable character ROM
-		and #$fb
-		sta CPUPort64
-		ldx #$00
-fontcpy:lda CharROM64+$100,x			; load from character ROM
-		sta CharGame+$400,x				; store to game fontset from char $80
-		sta CharMenu+$400,x				; store to menu fontset from char $80
-		lda CharROM64,x
-		sta CharGame+$500,x
-		sta CharMenu+$500,x
-		dex
-		bne fontcpy
-		lda CPUPort64					; disable character ROM
-		ora #$04
-		sta CPUPort64
-		lda $dc0e						; start CIA1 timer A
-		ora #$01
-		sta $dc0e
-}
-!ifdef 	P500{
 ; Copy User chars
 ufntcpy:lda UserFontGame,y	
 		sta CharGame,y
@@ -383,34 +284,6 @@ ufntcpy:lda UserFontGame,y
 		sta CharMenu,y
 		dey
 		bne ufntcpy
-} else{
-; $8459 Copy and decode user fonts
-		lda #<EncodedUserFontGame
-		sta pointer1
-		lda #>EncodedUserFontGame
-		sta pointer1+1					; pointer1 = $8011
-		lda #<CharGame
-		sta pointer2
-		lda #>CharGame
-		sta pointer2+1					; pointer2 = $2000
-		jsr UncompressUserFont			; copy game user font
-		lda #<EncodedUserFontMenu
-		sta pointer1
-		lda #>EncodedUserFontMenu
-		sta pointer1+1					; pointer1 = $9e82
-		lda #<(CharMenu+$08)
-		sta pointer2
-		lda #>(CharMenu+$08)
-		sta pointer2+1					; pointer2 = $2808
-		jsr UncompressUserFont			; copy menu user font
-; $847f Copy user chars to menu user font
-		ldx #$1f
-ucmcopy:lda UserCharMenu,x				; copy 32 bytes to menu user font
-		sta CharMenu+$a8,x
-		dex
-		bpl ucmcopy						; next byte
-}
-!ifdef 	P500{
 ; P500 SID init							; x already $ff
 		lda #SYSTEMBANK
 		sta IndirectBank	; select bank 15 - from here as STANDARD!
@@ -428,6 +301,8 @@ ucmcopy:lda UserCharMenu,x				; copy 32 bytes to menu user font
 		ldy #SR_V2SR
 		sta (SID),y						; SID voice 2 SR To $f0
 } else{
+; C64 decompress, decode and data copy routines 
+!source "c64decod.b"
 ; $848a SID init						; x already $ff
 		stx $d40e						; SID voice 3 frequency lo to $ff 
 		stx $d40f						; SID voice 3 frequency hi to $ff 
@@ -565,7 +440,6 @@ keydebo:cmp pressed_key
 		cmp #$05
 		beq TogglePlayers				; F3 -> toggle players
 		bne notgame
-
 } else{
 checkey:lda #$10
 		bit $dc00						; check CIA1 Porta column 4 = Joy 2 button
@@ -759,11 +633,6 @@ InitMenu:
 !ifdef P500{
 		ldy #VR_MEMPT
 		sta (VIC),y						; set VIC memory pointers
-		lda #$c8
-!ifndef MCMLOGO{
-		ldy #VR_MCMCSX
-		sta (VIC),y						; set VIC Multicolor mode off, 40 Columns
-}
 		jsr SoundOff					; returns with A=$00
 		ldy #VR_MOBENA
 		sta (VIC),y						; VIC disable sprites
@@ -803,17 +672,19 @@ Init2Player:
 		bpl -
 		bmi iplayr1
 ; -------------------------------------------------------------------------------------------------
+; C64 copy and uncompress subroutines 
+!ifndef P500{
 ; $8602 copy and uncompress user font
 UncompressUserFont:	
 		ldy #$00
-		lda (pointer1),y				; load byte
+		lda (pixel_get_ptr),y			; load byte
 		and #$c0
 		bne ucfnt67						; branch if bit 6 or 7 = 1
-		lda (pointer1),y				; load byte again
+		lda (pixel_get_ptr),y			; load byte again
 		tax								; move to X as index
 		lda UserFontTiles,x				; load part 0-$3f from table
-		jsr StoreIncPointer2			; store in user font
-ucfntlp:jsr IncPointer1
+		jsr StoreIncPutPtr				; store in user font
+ucfntlp:jsr IncGetPtr
 		jmp UncompressUserFont			; next byte
 ucfnt67:lsr								; shift bit#6+7 to 1+0
 		lsr
@@ -822,43 +693,41 @@ ucfnt67:lsr								; shift bit#6+7 to 1+0
 		lsr
 		lsr
 		sta temp						; store in temp as repeat counter
-		lda (pointer1),y				; load byte again
+		lda (pixel_get_ptr),y			; load byte again
 		cmp #$ff						; check if end of table
 		beq ucfntrt						; branch to rts
 		and #$3f
 		tax
 		lda UserFontTiles,x				; load part 0-$3f from table
-ucfntrp:jsr StoreIncPointer2			; store in user font
+ucfntrp:jsr StoreIncPutPtr				; store in user font
 		dec temp
 		bpl ucfntrp						; repeat number of temp counter 
 		bmi ucfntlp						; next byte
-; -------------------------------------------------------------------------------------------------
 ; $8636 Load++ pointer 1
-LoadIncPointer1:
-		lda (pointer1),y
-IncPointer1:
-		inc pointer1
+LoadIncGetPtr:
+		lda (pixel_get_ptr),y
+IncGetPtr:
+		inc pixel_get_ptr
 		bne +
-		inc pointer1+1
+		inc pixel_get_ptr+1
 ucfntrt:
 +		rts
-; -------------------------------------------------------------------------------------------------
 ; $863f Store++ pointer 2
-StoreIncPointer2:
-		sta (pointer2),y
-		inc pointer2
+StoreIncPutPtr:
+		sta (pixel_put_ptr),y
+		inc pixel_put_ptr
 		bne +
-		inc pointer2+1
+		inc pixel_put_ptr+1
 +		rts
-; -------------------------------------------------------------------------------------------------
 ; $8648 Load byte from pointer 1 and shift high nibble to low
-LoadHiNibblePointer1:
-		lda (pointer1),y
+LoadHiNibbleGetPtr:
+		lda (pixel_get_ptr),y
 		lsr
 		lsr
 		lsr
 		lsr
 		rts
+}
 ; -------------------------------------------------------------------------------------------------
 ; $864f Update screen: Startup, Menu, Game
 UpdateScreen:
@@ -889,10 +758,10 @@ atarilp:lda Text_Atari1983,x			; write "Atari 1983" to screen
 pacmlp:	txa								; write PACMAN logo to screen
 		clc
 		adc #$01
-		sta MenuScreen+$5f+MCMOFFSET,x	; first line char 1 - 12
+		sta MenuScreen+$5f+OFFSETLOGO,x	; first line char 1 - 12
 		txa
 		adc #$0d
-		sta MenuScreen+$87+MCMOFFSET,x	; second line char 13 - 24
+		sta MenuScreen+$87+OFFSETLOGO,x	; second line char 13 - 24
 		inx
 		cpx #$0c
 		bne pacmlp
@@ -913,7 +782,7 @@ Menu:	ldx players
 		inx								; add 1 to get 1/2
 		txa
 		ora #$90
-		sta MenuScreen+$d7-MCMOFFSET2	; add $90 for char and print 1/2 players to screen
+		sta MenuScreen+$d7-OFFSETTEXT	; add $90 for char and print 1/2 players to screen
 		lda players
 		bne m2playr						; skip if 2 players
 		cpy #$03
@@ -925,17 +794,17 @@ m2playr:cpy #$03
 		bne m2nots3						; skip if not state 3
 		jsr Init2Player					; sub: print 1Up, 2Up, print zero scores on game screen
 m2nots3:lda #$91
-mskp2pl:sta MenuScreen+$14f-MCMOFFSET2	; write 2/1 player for F3 to screen
+mskp2pl:sta MenuScreen+$14f-OFFSETTEXT	; write 2/1 player for F3 to screen
 		ldx #$0a
 -		lda Text_PlayerGame,x
-		sta MenuScreen+$151-MCMOFFSET2,x; write "Player Game" twice 
-		sta MenuScreen+$d9-MCMOFFSET2,x
+		sta MenuScreen+$151-OFFSETTEXT,x; write "Player Game" twice 
+		sta MenuScreen+$d9-OFFSETTEXT,x
 		dex
 		bpl -
 		jsr InitMenu					; sub: Init menu - set VIC, sound off, clears sprite x
 		ldx #$0b
 -		lda Text_PressF3To,x			; write F-key messages to screen 
-		sta MenuScreen+$127-MCMOFFSET2,x
+		sta MenuScreen+$127-OFFSETTEXT,x
 		lda Text_PressF5To,x
 		sta MenuScreen+$240,x
 		lda Text_PressF1To,x
@@ -1015,22 +884,22 @@ spnoclr:sta $d010						; store new X-MSB-byte to VIC
 ; $8740 copy sprite data pointer for all 5 sprites
 		ldx #$04
 		lda #(SpriteData/$40)+4			; VIC Sprite Data at $c0-$c4
-sdpcopy:sta SpriteDataPointer,x
+sdpcopy:sta SpriteDataPtr,x
 		sec
 		sbc #$01
 		dex
 		bpl sdpcopy
 ; $874d copy pacman sprite data		
 		lda monster_vpos+4					; set data pointer to $5345 (pacman $5348-$5351)
-		sta spritedata_pointer
+		sta spritedata_ptr
 		lda #$53
-		sta spritedata_pointer+1
+		sta spritedata_ptr+1
 		jsr SetPacmanDataEnd			; sub: Set last row, last byte of pacman
 !ifdef 	P500{
 		lda #GAMEBANK
 		sta IndirectBank				; select bank 0 for $cx access
 }
-spmcopy:lda (spritedata_pointer),y		; copy pacman sprite data
+spmcopy:lda (spritedata_ptr),y		; copy pacman sprite data
 		sta SpriteData+$100,x
 		dex
 		dex
@@ -1041,7 +910,7 @@ spmcopy:lda (spritedata_pointer),y		; copy pacman sprite data
 		lda monster_vpos+0
 		jsr SetMonsterDataEnd				; sub: Calc pointer, set last row, last byte of monster
 ; $876a copy sprite data of 4 monsters
-sm0copy:lda (spritedata_pointer),y		; copy monster 0 sprite data
+sm0copy:lda (spritedata_ptr),y		; copy monster 0 sprite data
 		sta SpriteData,x
 		dex
 		dex
@@ -1051,7 +920,7 @@ sm0copy:lda (spritedata_pointer),y		; copy monster 0 sprite data
 		bne sm0copy
 		lda monster_vpos+1
 		jsr SetMonsterDataEnd				; sub: Calc pointer, set last row, last byte of monster
-sm1copy:lda (spritedata_pointer),y		; copy monster 1 sprite data
+sm1copy:lda (spritedata_ptr),y		; copy monster 1 sprite data
 		sta SpriteData+$40,x
 		dex
 		dex
@@ -1061,7 +930,7 @@ sm1copy:lda (spritedata_pointer),y		; copy monster 1 sprite data
 		bne sm1copy
 		lda monster_vpos+2
 		jsr SetMonsterDataEnd				; sub: Calc pointer, set last row, last byte of monster
-sm2copy:lda (spritedata_pointer),y		; copy monster 2 sprite data
+sm2copy:lda (spritedata_ptr),y		; copy monster 2 sprite data
 		sta SpriteData+$80,x
 		dex
 		dex
@@ -1071,7 +940,7 @@ sm2copy:lda (spritedata_pointer),y		; copy monster 2 sprite data
 		bne sm2copy
 		lda monster_vpos+3
 		jsr SetMonsterDataEnd			; sub: Calc pointer, set last row, last byte of monster
-sm3copy:lda (spritedata_pointer),y		; copy monster 3 sprite data
+sm3copy:lda (spritedata_ptr),y		; copy monster 3 sprite data
 		sta SpriteData+$c0,x
 		dex
 		dex
@@ -1139,8 +1008,8 @@ l87f6:	inc intro_flag
 ; -------------------------------------------------------------------------------------------------
 ; $8801 calc new monster data pointer
 SetMonsterDataEnd:
-		sta spritedata_pointer
-		inc spritedata_pointer+1
+		sta spritedata_ptr
+		inc spritedata_ptr+1
 ; $8805 Set last row, last byte of pacman
 SetPacmanDataEnd:
 		ldy #$0c						; last sprite line monsters/pacman
@@ -1297,8 +1166,8 @@ l88d0:	lda #$42
 l8904:	lda #$02
 l8906:	clc
 		adc pacman_vpos
-l8909:	sta score_pointer1
-		sta score_pointer2
+l8909:	sta score_ptr1
+		sta score_ptr2
 		lda #$53
 		sta $27
 		txa
@@ -1310,16 +1179,16 @@ l8909:	sta score_pointer1
 		asl
 		tay
 		lda BlueScorePointers,y
-		sta pointer1
+		sta pixel_get_ptr
 		iny
 		lda BlueScorePointers,y
-		sta pointer1+1
+		sta pixel_get_ptr+1
 !ifdef 	P500{
 		lda #GAMEBANK
 		sta IndirectBank				; select bank 0 for pointer operations
 }
 		ldy #$0f
--		lda (pointer1),y
+-		lda (pixel_get_ptr),y
 		sta ($26),y
 		lda BlueScore0,y
 		sta ($28),y
@@ -1879,25 +1748,25 @@ l8cf8:	sty fruit_score_flag			; ATARI - only stored, not used on Commodore
 		bcs l8d25						; branch if A >= $06
 		sta temp
 		lda #$e2
-		sta pointer2
-		lda #$07						; pointer2 = fruit screen position $07e2
-		sta pointer2+1
+		sta pixel_put_ptr
+		lda #$07						; pixel_put_ptr = fruit screen position $07e2
+		sta pixel_put_ptr+1
 		ldx #$00
 !ifdef 	P500{				; X already $00
 		stx IndirectBank				; select bank 0 for pointer operations
 }
 l8d0c:	lda FruitChars,x				; load fruit char from table
-		sta (pointer2),y				; store fruit code to screen
-		inc pointer2					; screen pointer to second char
+		sta (pixel_put_ptr),y				; store fruit code to screen
+		inc pixel_put_ptr					; screen pointer to second char
 		clc
 		adc #$01						; add 1 to char code for second fruit char
-		sta (pointer2),y
+		sta (pixel_put_ptr),y
 		cpx temp
 		beq l8d51
 		inx
-		dec pointer2					; next fruit position to the left
-		dec pointer2
-		dec pointer2
+		dec pixel_put_ptr					; next fruit position to the left
+		dec pixel_put_ptr
+		dec pixel_put_ptr
 		bne l8d0c
 l8d25:	cmp #$12
 		bcc l8d2b
@@ -1908,12 +1777,12 @@ l8d2b:	sec
 		sec
 		lda #<(HighFruitChars)			; = $8a
 		sbc temp
-		sta pointer1
+		sta pixel_get_ptr
 		lda #>(HighFruitChars)			; pointer to end of table = $9d8a (min -$0c)
 		sbc #$00
-		sta pointer1+1
+		sta pixel_get_ptr+1
 		ldx #$00
-l8d3f:	lda (pointer1),y
+l8d3f:	lda (pixel_get_ptr),y
 		sta GameScreen+$3d6,x
 		clc
 		adc #$01
@@ -2243,9 +2112,9 @@ l8f3e:
 		lda $a9
 		beq l8f9a
 		lda pacman_vpos
-		sta pointer2
+		sta pixel_put_ptr
 		lda #$53
-		sta pointer2+1
+		sta pixel_put_ptr+1
 		lda $ab
 		beq l8f52
 		dec $ab
@@ -2270,7 +2139,7 @@ l8f5e:	lda $aa
 		sta IndirectBank				; select bank 0 for pointer operations
 }
 		lda FizzieData,x
-		sta (pointer2),y
+		sta (pixel_put_ptr),y
 !ifdef 	P500{
 		lda #SYSTEMBANK
 		sta IndirectBank				; switch back to bank 15
@@ -2285,7 +2154,7 @@ l8f73:	ldy #$0c			; already bank 0 selected
 		sta IndirectBank				; select bank 0 for pointer operations
 }
 l8f77:	lda PacmanTop+$0a,x
-		sta (pointer2),y
+		sta (pixel_put_ptr),y
 		dey
 		dex
 		bpl l8f77
@@ -2303,7 +2172,7 @@ l8f81:	ldy #$0f			; already bank 0 selected
 		sta IndirectBank				; select bank 0 for pointer operations
 }
 l8f85:	lda PacmanExplosion,x
-		sta (pointer2),y
+		sta (pixel_put_ptr),y
 		dey
 		dex
 		bpl l8f85
@@ -2320,7 +2189,7 @@ l8f8f:	ldy #$0f			; already bank 0 selected
 		lda #GAMEBANK
 		sta IndirectBank				; select bank 0 for pointer operations
 }
-l8f93:	sta (pointer2),y
+l8f93:	sta (pixel_put_ptr),y
 		dey
 		bpl l8f93
 		sta $a9
@@ -2914,34 +2783,34 @@ l9325:	dex
 l9331:	inc $67
 l9333:	tax
 		lda PacmanDataPointers,y
-		sta pointer1
+		sta pixel_get_ptr
 		iny
 		lda PacmanDataPointers,y
-		sta pointer1+1
+		sta pixel_get_ptr+1
 		txa
 		clc
-		adc pointer1
-		sta pointer1
+		adc pixel_get_ptr
+		sta pixel_get_ptr
 		lda #$00
-		adc pointer1+1
-		sta pointer1+1
+		adc pixel_get_ptr+1
+		sta pixel_get_ptr+1
 		ldy #$09
 !ifdef 	P500{
 		lda #GAMEBANK
 		sta IndirectBank				; select bank 0 for pointer operations
 }
-l934d:	lda (pointer1),y
+l934d:	lda (pixel_get_ptr),y
 		sta PacmanBuffer+3,y
 		dey
 		bpl l934d
 		lda #<PacmanBuffer
-		sta pointer1
+		sta pixel_get_ptr
 		lda #>PacmanBuffer
-		sta pointer1+1
+		sta pixel_get_ptr+1
 		lda pacman_vpos
-		sta pointer2
+		sta pixel_put_ptr
 		lda #$53
-		sta pointer2+1
+		sta pixel_put_ptr+1
 		clc
 		lda pacman_hpos
 		sta $02d4
@@ -2952,8 +2821,8 @@ l934d:	lda (pointer1),y
 		adc #$02
 		sta $02d5
 		ldy #$0f
-l937c:	lda (pointer1),y
-		sta (pointer2),y
+l937c:	lda (pixel_get_ptr),y
+		sta (pixel_put_ptr),y
 		dey
 		bpl l937c
 !ifdef 	P500{
@@ -3208,15 +3077,15 @@ l9512:	txa
 		asl
 		tax
 		lda HorizontalTablePointers,x
-		sta pointer1
+		sta pixel_get_ptr
 		inx
 		lda HorizontalTablePointers,x
-		sta pointer1+1
+		sta pixel_get_ptr+1
 !ifdef 	P500{
 		lda #GAMEBANK
 		sta IndirectBank				; select bank 0 for pointer operations
 }
-		lda (pointer1),y
+		lda (pixel_get_ptr),y
 !ifdef 	P500{
 		ldx #SYSTEMBANK
 		stx IndirectBank				; switch back to bank 15
@@ -3712,17 +3581,17 @@ l987f:	txa
 		asl
 		tay
 		lda MonsterStartPointer,y
-		sta pointer1
+		sta pixel_get_ptr
 		iny
 		lda MonsterStartPointer,y
-		sta pointer1+1
+		sta pixel_get_ptr+1
 		lda $8e,x
 		tay
 !ifdef 	P500{
 		lda #GAMEBANK
 		sta IndirectBank				; select bank 0 for pointer operations
 }
-		lda (pointer1),y
+		lda (pixel_get_ptr),y
 !ifdef 	P500{
 		ldy #SYSTEMBANK
 		sty IndirectBank				; switch back to bank 15
@@ -3878,36 +3747,36 @@ l99a8:	lda #$32
 l99ac:	sty MonsterBuffer+12
 		clc
 		adc #<MonsterUp
-		sta pointer1
+		sta pixel_get_ptr
 		lda #$00
 		adc #>MonsterUp					; pointer to sprite data
-		sta pointer1+1
+		sta pixel_get_ptr+1
 		ldy #$09
 !ifdef 	P500{
 		lda #GAMEBANK
 		sta IndirectBank				; select bank 0 for pointer operations
 }	
-l99bc:	lda (pointer1),y
+l99bc:	lda (pixel_get_ptr),y
 		sta MonsterBuffer+2,y
 		dey
 		bpl l99bc
 		lda #<MonsterBuffer
-		sta pointer1
+		sta pixel_get_ptr
 		lda #>MonsterBuffer
-		sta pointer1+1
+		sta pixel_get_ptr+1
 		lda monster_hpos,x
 		sta sprite_x,x
 		lda monster_vpos,x
-		sta pointer2
+		sta pixel_put_ptr
 		lda #$54
-		sta pointer2+1
+		sta pixel_put_ptr+1
 		txa
 		clc
-		adc pointer2+1
-		sta pointer2+1
+		adc pixel_put_ptr+1
+		sta pixel_put_ptr+1
 		ldy #$0f
-l99e1:	lda (pointer1),y
-		sta (pointer2),y
+l99e1:	lda (pixel_get_ptr),y
+		sta (pixel_put_ptr),y
 		dey
 		bpl l99e1
 !ifdef 	P500{
@@ -4095,7 +3964,7 @@ l9b07:	lda #$02
 l9b0f:	rts
 ; ***************************************** ZONE DATA2 ********************************************
 !zone data2
-!source "pm500dat.b"				; C64 + P500 data
+!source "pm500dat.b"				; C64 + P500 common data
 !ifndef	P500{!source "c64enibb.b"}	; C64 encoded nibbles
 ; ***************************************** ZONE P500 *********************************************
 !zone p500

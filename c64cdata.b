@@ -1,3 +1,5 @@
+; c64cdata.b
+; ONLY C64 ROM: Addresses to decoded ROM data, Encoded font, compressed maze
 ; ************************************** USER ADDRESSES *******************************************
 ; addresses for ROM version
 !addr MazeData			= $4000		; Maze data

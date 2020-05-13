@@ -1,4 +1,5 @@
-; Pacman P500 data
+; p500data.b
+; PM500 - Pacman P500 data
 ; -------------------------------------------------------------------------------------------------
 ; I/O pointer table
 IOPointerTable:
@@ -309,7 +310,8 @@ UserFontGame:
 ; -------------------------------------------------------------------------------------------------
 ; Menu user char $00-$18 PACMAN logo 2 rows with 12 chars
 UserFontMenu:
-!ifdef MCMLOGO{
+!ifdef P500{
+; Multicolor PACMAN logo
 		!byte $00, $00, $00, $00, $00, $00, $00, $00
 		!byte $00, $00, $55, $55, $55, $55, $51, $51
 		!byte $00, $00, $00, $40, $41, $41, $41, $41
@@ -336,6 +338,7 @@ UserFontMenu:
 		!byte $0a, $0a, $0a, $0a, $8a, $8a, $8a, $00
 		!byte $aa, $aa, $aa, $aa, $aa, $aa, $aa, $00
 } else{
+; Standard PACMAN logo - not used for P500, C64-Logo in encoded C64 datas
 		!byte $00, $00, $00, $00, $00, $00, $00, $00	; SPACE
 		!byte $00, $00, $fe, $ff, $ff, $ff, $fb, $ff 	; First row
 		!byte $00, $00, $00, $80, $c0, $c1, $c1, $c3
