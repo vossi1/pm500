@@ -40,7 +40,7 @@ introf ds 1 ;intro flag					; 10
 swappf ds 1 ;swap player flag			; 11
 resetf ds 1 ;reset flag					; 12
 resett ds 1 ;reset timer				; 13
-rrflag ds 1 ;rerack flag
+rrflag ds 1 ;rerack flag				; 14
 rrsequ ds 1 ;rerack sequence #
 rrtimr ds 1 ;rerack timer
 rrflct ds 1 ;rerack flash count
@@ -431,6 +431,7 @@ pressw cmp #3
  cmp #5
  beq cselec
  jmp loop
+
 cstart lda #0
  sta gmovrf;start function-new game
  sta option
@@ -438,6 +439,7 @@ cstart lda #0
  lda #1
  sta rstrtf
  jmp reinit
+
 cselec lda numply
  bne pcnse1;process select changes
  lda #1
@@ -450,6 +452,7 @@ pcext1 sta option
  lda #7
  sta atclok
  jmp loop
+
 copton lda difopt
  cmp #2
  bcs pcnop1;process option changes
