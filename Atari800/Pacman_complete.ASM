@@ -70,7 +70,7 @@ frutp1 ds 1 ;fruit counter #1			2E
 frutp2 ds 1 ;fruit counter #2			2F
 bcount ds 1 ;bounce timer count			30
 savcns ds 1 ;save consol data
-tunloc ds 2 ;used for tunnel logic
+tunloc ds 2 ;used for tunnel logic		32-33
 ;
  org $005a
 m1dely ds 1 ;monster 1 delay			34
@@ -185,26 +185,26 @@ vglpc2 ds 1 ;gulp count2
 gulped ds 1 ;last monster eaten			a7
 glpcnt ds 1 ;gulp count
 fizzle ds 1 ;fizzle flag 1=fizl			a9
-fizptr ds 1 ;fizzle addr pointer
-fiztim ds 1 ;fizzle timer
+fizptr ds 1 ;fizzle addr pointer		aa
+fiztim ds 1 ;fizzle timer				ab
 vfizst ds 1 ;fizzle status				ac
-vfizsq ds 1 ;fizzle sequence #
+vfizsq ds 1 ;fizzle sequence #			ad
 vfizbs ds 1 ;fizzle freq base
 vfizfq ds 1 ;fizzle current freq
-vfizct ds 1 ;fizzle counter				af
-tweetr ds 1 ;tweet sound flag			b0
-tweetf ds 1 ;tweet sound freq				
-eaterf ds 1 ;eat dot sound flag			b2
-eaterc ds 1 ;eat dot sound count
-eatert ds 1 ;eat dot toggle
-gobbld ds 1 ;gobble dirctn (fruits)		b5
-gobblf ds 1 ;gobble frequency
-blinkt ds 1 ;blink timer				b7
-flshup ds 1 ;flash 1up 2up timer		b8
-flasht ds 1 ;flash timer
-flashc ds 1 ;flash count
-flitmr ds 1 ;flight timer
-tunmsk ds 1 ;tunnel bit mask			bc
+vfizct ds 1 ;fizzle counter				b0
+tweetr ds 1 ;tweet sound flag			b1
+tweetf ds 1 ;tweet sound freq			b2	
+eaterf ds 1 ;eat dot sound flag			b3
+eaterc ds 1 ;eat dot sound count		b4
+eatert ds 1 ;eat dot toggle				b5
+gobbld ds 1 ;gobble dirctn (fruits)		b6	
+gobblf ds 1 ;gobble frequency			b7
+blinkt ds 1 ;blink timer				b8
+flshup ds 1 ;flash 1up 2up timer		b9
+flasht ds 1 ;flash timer				ba
+flashc ds 1 ;flash count				bb
+flitmr ds 1 ;flight timer				bc
+tunmsk ds 1 ;tunnel bit mask
 tuncnt ds 1 ;tunnel iteration count
 ;
  eject
