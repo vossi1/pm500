@@ -64,11 +64,11 @@ lutcopy:jsr LoadHiNibbleGetPtr			; load and shift high nibble 4 bits right
 		sta CPUPort64
 		ldx #$00
 fontcpy:lda CharROM64+$100,x			; load from character ROM
-		sta CharGame+$400,x				; store to game fontset from char $80
-		sta CharMenu+$400,x				; store to menu fontset from char $80
+		sta GameChar+$400,x				; store to game fontset from char $80
+		sta OptionsChar+$400,x			; store to menu fontset from char $80
 		lda CharROM64,x
-		sta CharGame+$500,x
-		sta CharMenu+$500,x
+		sta GameChar+$500,x
+		sta OptionsChar+$500,x
 		dex
 		bne fontcpy
 		lda CPUPort64					; disable character ROM
@@ -79,28 +79,28 @@ fontcpy:lda CharROM64+$100,x			; load from character ROM
 		sta $dc0e
 
 ; $8459 Copy and decode user fonts
-		lda #<EncodedUserFontGame
+		lda #<EncodedGameChar
 		sta pixel_get_ptr
-		lda #>EncodedUserFontGame
+		lda #>EncodedGameChar
 		sta pixel_get_ptr+1				; pixel_get_ptr = $8011
-		lda #<CharGame
+		lda #<GameChar
 		sta pixel_put_ptr
-		lda #>CharGame
+		lda #>GameChar
 		sta pixel_put_ptr+1				; pixel_put_ptr = $2000
-		jsr UncompressUserFont			; copy game user font
-		lda #<EncodedUserFontMenu
+		jsr UncompressChar				; copy game user font
+		lda #<EncodedOptionsChar
 		sta pixel_get_ptr
-		lda #>EncodedUserFontMenu
+		lda #>EncodedOptionsChar
 		sta pixel_get_ptr+1				; pointer1 = $9e82
-		lda #<(CharMenu+$08)
+		lda #<(OptionsChar+$08)
 		sta pixel_put_ptr
-		lda #>(CharMenu+$08)
+		lda #>(OptionsChar+$08)
 		sta pixel_put_ptr+1				; pixel_put_ptr = $2808
-		jsr UncompressUserFont			; copy menu user font
+		jsr UncompressChar				; copy menu user font
 		
 ; $847f Copy user chars to menu user font
 		ldx #$1f
-ucmcopy:lda UserCharMenu,x				; copy 32 bytes to menu user font
-		sta CharMenu+$a8,x
+ucmcopy:lda UserOptionsChar,x			; copy 32 bytes to menu user font
+		sta OptionsChar+$a8,x
 		dex
 		bpl ucmcopy						; next byte

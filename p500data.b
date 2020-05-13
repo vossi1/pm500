@@ -309,7 +309,7 @@ UserFontGame:
 		!byte $40, $40, $15, $00, $00, $55, $00, $00
 ; -------------------------------------------------------------------------------------------------
 ; Menu user char $00-$18 PACMAN logo 2 rows with 12 chars
-UserFontMenu:
+UserFontOptions:
 !ifdef P500{
 ; Multicolor PACMAN logo
 		!byte $00, $00, $00, $00, $00, $00, $00, $00

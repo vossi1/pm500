@@ -26,8 +26,8 @@
 !addr HTab09			= $4c5e
 !addr HTab10			= $4c68
 ; -------------------------------------------------------------------------------------------------
-; $8011 Encoded game user font (bytes 0-$3f from FontData, bit 6+7 = count)
-EncodedUserFontGame:
+; $8011 Encoded game user char (bytes 0-$3f from FontData, bit 6+7 = count)
+EncodedGameChar:
 		!byte $c0, $c0, $80, $57, $80, $57, $ee, $57
 		!byte $40, $01, $c4, $04, $40, $19, $ca, $ca
 		!byte $4a, $19, $40, $c4, $04, $01, $c0, $1e

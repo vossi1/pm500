@@ -250,12 +250,12 @@ Text_ChangeDifficulty:
 		!byte $a9, $a6, $a6, $a9, $a3, $b5, $ac, $b4
 		!byte $b9
 ; $9e74
-DifficultyFruitsMenu:
+DifficultyFruitsOptions:
 		!byte $3a, $3c, $3e, $3e, $40, $40, $44, $44 ; first of two fruit chars: $3a,$3b = cherry
 		!byte $48, $48, $4a, $4a, $4c, $4c
 ; -------------------------------------------------------------------------------------------------
-; $9e82 encoded menu user font (bytes 0-$3f from FontData, bit 6+7 = count)
-EncodedUserFontMenu:
+; $9e82 encoded options user chars (bytes 0-$3f from FontData, bit 6+7 = count)
+EncodedOptionsChar:
 		!byte $40, $31, $ae, $32, $2e, $80, $1f, $25
 		!byte $73, $26, $40, $19, $69, $6b, $34, $40
 		!byte $03, $09, $75, $6f, $40, $29, $34, $2d
@@ -272,7 +272,7 @@ EncodedUserFontMenu:
 ; -------------------------------------------------------------------------------------------------
 !ifndef	P500{
 ; $9ee4 
-UserCharMenu:
+UserOptionsChar:
 		!byte $81, $83, $83, $87, $87, $8f, $8f, $00
 		!byte $fc, $de, $fe, $ff, $ff, $ff, $ff, $00
 		!byte $0f, $0f, $0f, $0f, $0f, $8f, $8f, $00
