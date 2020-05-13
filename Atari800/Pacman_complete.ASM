@@ -26,57 +26,57 @@
  org $0018
 ;
 dlicnt ds 1 ;display list int. count
-option ds 1 ;option mode flag	; 07
-numply ds 1 ;number of players	; 08
-difopt ds 1 ;difficulty option	; 09
-rstrtf ds 1 ;restart flag		; 0A
+option ds 1 ;option mode flag			07
+numply ds 1 ;number of players			08
+difopt ds 1 ;difficulty option			09
+rstrtf ds 1 ;restart flag				0A
 atclok ds 1 ;attract countdown clock
-attimr ds 1 ;attract mode timer	; 0C
+attimr ds 1 ;attract mode timer			0C
 atsequ ds 1 ;attract mode sequence #
 ;
-gmovrf ds 1 ;game over flag				; 0E
-readyf ds 1 ;ready flag					; 0F
-introf ds 1 ;intro flag					; 10
-swappf ds 1 ;swap player flag			; 11
-resetf ds 1 ;reset flag					; 12
-resett ds 1 ;reset timer				; 13
-rrflag ds 1 ;rerack flag				; 14
+gmovrf ds 1 ;game over flag				0E
+readyf ds 1 ;ready flag					0F
+introf ds 1 ;intro flag					10
+swappf ds 1 ;swap player flag			11
+resetf ds 1 ;reset flag					12
+resett ds 1 ;reset timer				13
+rrflag ds 1 ;rerack flag				14
 rrsequ ds 1 ;rerack sequence #
 rrtimr ds 1 ;rerack timer
 rrflct ds 1 ;rerack flash count
-temloc ds 1 ;temporary storage			; 18
-plynum ds 1 ;player # 0=1 1=2			; 19
-xpacp1 ds 1 ;extra pacman player 1		; 1A
-xpacp2 ds 1 ;extra pacman player 2		; 1B
-bpacp1 ds 1 ;bonus pacman player 1		; 1C
-bpacp2 ds 1 ;bonus pacman player 2		; 1D
-mazct1 ds 1 ;maze count player 1		; 1E
-mazct2 ds 1 ;maze count player 2		; 1F
-bigdt1 ds 1 ;big dot status #1			; 20
+temloc ds 1 ;temporary storage			18
+plynum ds 1 ;player # 0=1 1=2			19
+xpacp1 ds 1 ;extra pacman player 1		1A
+xpacp2 ds 1 ;extra pacman player 2		1B
+bpacp1 ds 1 ;bonus pacman player 1		1C
+bpacp2 ds 1 ;bonus pacman player 2		1D
+mazct1 ds 1 ;maze count player 1		1E
+mazct2 ds 1 ;maze count player 2		1F
+bigdt1 ds 1 ;big dot status #1			20
 bigdt2 ds 1 ;big dot status #2
-dtctl1 ds 1 ;dots eaten ctr lsb #1		; 22
+dtctl1 ds 1 ;dots eaten ctr lsb #1		22
 dtctl2 ds 1 ;dots eaten ctr lsb #2
-dtctm1 ds 1 ;dots eaten ctr msb #1		; 24
+dtctm1 ds 1 ;dots eaten ctr msb #1		24
 dtctm2 ds 1 ;dots eaten ctr msb #2
-scnsc1 ds 2 ;screen score 1 address		; 26
-scnsc2 ds 2 ;screen score 2 address		; 28
-pixget ds 2 ;p/m pix get address		; 2A
-pixput ds 2 ;p/m pix put address		; 2C
+scnsc1 ds 2 ;screen score 1 address		26
+scnsc2 ds 2 ;screen score 2 address		28
+pixget ds 2 ;p/m pix get address		2A
+pixput ds 2 ;p/m pix put address		2C
 pacclr ds 1 ;attract pacman color
 ;
  org $0043
 ;
-frutp1 ds 1 ;fruit counter #1			; 2E
-frutp2 ds 1 ;fruit counter #2			; 2F
-bcount ds 1 ;bounce timer count			; 30
+frutp1 ds 1 ;fruit counter #1			2E
+frutp2 ds 1 ;fruit counter #2			2F
+bcount ds 1 ;bounce timer count			30
 savcns ds 1 ;save consol data
 tunloc ds 2 ;used for tunnel logic
 ;
  org $005a
-m1dely ds 1 ;monster 1 delay			; 34
+m1dely ds 1 ;monster 1 delay			34
 m2dely ds 1 ;monster 2 delay
 m3dely ds 1 ;monster 3 delay
-m4dely ds 1 ;monster 4 delay			; 37
+m4dely ds 1 ;monster 4 delay			37
 acolr1 ds 1 ;attract color 1 - $3a
 acolr2 ds 1 ;attract color 2 - $44
 acolr3 ds 1 ;attract color 3 - $2a
@@ -85,42 +85,42 @@ intcnt ds 1 ;intermission counter
 intclk ds 1 ;intermission clock
  org $0080
 ;
-pacscn ds 2 ;pacman screen mem addr		; 3c
-pacbyt ds 1 ;pacman byte counter		; 3e
-pvsave ds 1 ;pacman vpos save			; 3f
-phsave ds 1 ;pacman hpos save			; 40
-m1vpos ds 1 ;monster 1 vertical posit	; 41
+pacscn ds 2 ;pacman screen mem addr		3c
+pacbyt ds 1 ;pacman byte counter		3e
+pvsave ds 1 ;pacman vpos save			3f
+phsave ds 1 ;pacman hpos save			40
+m1vpos ds 1 ;monster 1 vertical posit	41
 m2vpos ds 1 ;monster 2 vertical posit
 m3vpos ds 1 ;monster 3 vertical posit
 m4vpos ds 1 ;monster 4 vertical posit
-pmvpos ds 1 ;pacman vertical position	; 45
-m1hpos ds 1 ;monster 1 horiz position	; 46
+pmvpos ds 1 ;pacman vertical position	45
+m1hpos ds 1 ;monster 1 horiz position	46
 m2hpos ds 1 ;monster 2 horiz position
 m3hpos ds 1 ;monster 3 horiz position
 m4hpos ds 1 ;monster 4 horiz position
-pmhpos ds 1 ;pacman horizontal posit	; 4a
-m1dirt ds 1 ;monster 1 direction		; 4b
+pmhpos ds 1 ;pacman horizontal posit	4a
+m1dirt ds 1 ;monster 1 direction		4b
 m2dirt ds 1 ;monster 2 direction
 m3dirt ds 1 ;monster 3 direction
 m4dirt ds 1 ;monster 4 direction
-pmodir ds 1 ;pacman old direction		; 4f
-scorex ds 6 ;player score for text		; 50-55
-carryb ds 1 ;carry bit for above		; 56
-pausef ds 1 ;pause flag					; 57
-whiney ds 1 ;chase whine delta			; 58
-frutmr ds 2 ;fruit timer (10 secs)		; 59
-fruflg ds 1 ;fruit display flag			; 5b
-fruclr ds 1 ;fruit color				; 5c
-frscrf ds 1 ;fruit score flag			; 5d
-frscrt ds 1 ;fruit score timer			; 5e
-notcnt ds 1 ;note count for tunes		; 5f
-vsaver ds 1 ;vertical posit save		; 60
-hsaver ds 1 ;horizontal posit save		; 61
-pacmap ds 1 ;pacman vert map counter	; 62
+pmodir ds 1 ;pacman old direction		4f
+scorex ds 6 ;player score for text		50-55
+carryb ds 1 ;carry bit for above		56
+pausef ds 1 ;pause flag					57
+whiney ds 1 ;chase whine delta			58
+frutmr ds 2 ;fruit timer (10 secs)		59
+fruflg ds 1 ;fruit display flag			5b
+fruclr ds 1 ;fruit color				5c
+frscrf ds 1 ;fruit score flag			5d
+frscrt ds 1 ;fruit score timer			5e
+notcnt ds 1 ;note count for tunes		5f
+vsaver ds 1 ;vertical posit save
+hsaver ds 1 ;horizontal posit save		61
+pacmap ds 1 ;pacman vert map counter	62
 paccnt ds 1 ;pacman motion count
 pacadv ds 1 ;pacman advance-turning
 pacdly ds 1 ;pacman delay-eating dots
-pmstat ds 1 ;pacman status
+pmstat ds 1 ;pacman status				66
 pmsequ ds 1 ;pacman sequence (mouth)
 pmndir ds 1 ;pacman new direction
 chaset ds 1 ;chase timer
@@ -156,55 +156,55 @@ m1timr ds 1 ;monster 1 timer
 m2timr ds 1 ;monster 2 timer
 m3timr ds 1 ;monster 3 timer
 m4timr ds 1 ;monster 4 timer
-m1stat ds 1 ;monster 1 status
+m1stat ds 1 ;monster 1 status			8a
 m2stat ds 1 ;monster 2 status
 m3stat ds 1 ;monster 3 status
 m4stat ds 1 ;monster 4 status
-m1sseq ds 1 ;monster 1 start sequence
+m1sseq ds 1 ;monster 1 start sequence	8e
 m2sseq ds 1 ;monster 2 start sequence
 m3sseq ds 1 ;monster 3 start sequence
 m4sseq ds 1 ;monster 4 start sequence
-m1vdir ds 1 ;monster 1 vert choice
+m1vdir ds 1 ;monster 1 vert choice		92
 m2vdir ds 1 ;monster 2 vert choice
 m3vdir ds 1 ;monster 3 vert choice
 m4vdir ds 1 ;monster 4 vert choice
-m1hdir ds 1 ;monster 1 horz choice
+m1hdir ds 1 ;monster 1 horz choice		96
 m2hdir ds 1 ;monster 2 horz choice
 m3hdir ds 1 ;monster 3 horz choice
 m4hdir ds 1 ;monster 4 horz choice
-vchasf ds 1 ;chase freq
-vchasd ds 1 ;direction 1=inc 2=dec
-vchass ds 1 ;chase sound start
+vchasf ds 1 ;chase freq					9a
+vchasd ds 1 ;direction 1=inc 2=dec		9b
+vchass ds 1 ;chase sound start			9c
 vflitf ds 1 ;flight freq
 vflitd ds 1 ;direction same
-vflitv ds 1 ;flight volume
+vflitv ds 1 ;flight volume			a2 = cbm jiffy
 vflits ds 1 ;flight sound start
-vfreez ds 1 ;freeze flag
+vfreez ds 1 ;freeze flag				a4
 vglpc1 ds 1 ;gulp count1
 vglpc2 ds 1 ;gulp count2
-gulped ds 1 ;last monster eaten
+gulped ds 1 ;last monster eaten			a7
 glpcnt ds 1 ;gulp count
-fizzle ds 1 ;fizzle flag 1=fizl
+fizzle ds 1 ;fizzle flag 1=fizl			a9
 fizptr ds 1 ;fizzle addr pointer
 fiztim ds 1 ;fizzle timer
-vfizst ds 1 ;fizzle status
+vfizst ds 1 ;fizzle status				ac
 vfizsq ds 1 ;fizzle sequence #
 vfizbs ds 1 ;fizzle freq base
 vfizfq ds 1 ;fizzle current freq
-vfizct ds 1 ;fizzle counter
-tweetr ds 1 ;tweet sound flag
-tweetf ds 1 ;tweet sound freq
-eaterf ds 1 ;eat dot sound flag
+vfizct ds 1 ;fizzle counter				af
+tweetr ds 1 ;tweet sound flag			b0
+tweetf ds 1 ;tweet sound freq				
+eaterf ds 1 ;eat dot sound flag			b2
 eaterc ds 1 ;eat dot sound count
 eatert ds 1 ;eat dot toggle
-gobbld ds 1 ;gobble dirctn (fruits)
+gobbld ds 1 ;gobble dirctn (fruits)		b5
 gobblf ds 1 ;gobble frequency
-blinkt ds 1 ;blink timer
-flshup ds 1 ;flash 1up 2up timer
+blinkt ds 1 ;blink timer				b7
+flshup ds 1 ;flash 1up 2up timer		b8
 flasht ds 1 ;flash timer
 flashc ds 1 ;flash count
 flitmr ds 1 ;flight timer
-tunmsk ds 1 ;tunnel bit mask
+tunmsk ds 1 ;tunnel bit mask			bc
 tuncnt ds 1 ;tunnel iteration count
 ;
  eject
