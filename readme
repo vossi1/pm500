@@ -1,2 +1,6 @@
 P500 PM Game
-Disassembled and converted from the C64 by Vossi 2020
+Disassembled and converted from the C64 ROM version by Vossi 05/2020
+P500 extras:
+- Multicolor PACMAN logo
+- Fruits in options in Multicolor with raster-irq
+- Highscore text after game
