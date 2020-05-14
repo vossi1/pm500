@@ -4,7 +4,7 @@
 ; Converted for P500 by Vossi 05/2020
 !cpu 6502
 ; switches
-;P500 = 1		; P500 bank 0 file
+P500 = 1		; P500 bank 0 file
 ;CRT = 1		; CRT header for VICE
 !ifdef 	P500{!to "pm500.prg", cbm
 } else{ !ifdef CRT {!to "pacman.crt", plain : *= $7fb0 : !source "crthead.b"
@@ -250,6 +250,7 @@ SR_RANDOM				= $1b
 !addr pressed_key		= $c5		; Pressed key from interrupt - only Commodore
 ; ***************************************** VARIABLES *********************************************
 !addr sprite_x			= $02d0	; -$02d4 Sprite 0-4 x positions (VIC >>1 +$2c) ATARI: GTIA HPOSP0
+!addr sprite_pacman_x	= $02d5 ; -$02d7 Pacman X storage ?
 !addr PacmanBuffer		= $5800 ; -$580f Pacman image buffer 16 bytes
 !addr MonsterBuffer		= $5810 ; -$581f Monster image buffer 16 bytes
 
@@ -1198,11 +1199,11 @@ l88d0:	lda #$42
 		sec
 		lda pacman_hpos
 		sbc #$04
-		sta $02d4
+		sta sprite_x+4
 		clc
 		ldy #$02
 -		adc #$02
-		sta $02d5,y
+		sta sprite_pacman_x,y
 		dey
 		bpl -
 		adc #$02
@@ -1354,27 +1355,27 @@ l89df:	jsr flitec
 		jsr veater
 		jsr l8c0d
 		jsr skirts
-		lda pacman_dly_eating
+		lda pacman_adv_turning
 		beq l89f7
 		lda #$00
 		beq l8a00
-l89f7:	lda pacman_status
+l89f7:	lda pacman_dly_eating
 		bne l8a00
 		ldx #$04
 		jsr l95e0
-l8a00:	sta pacman_adv_turning
+l8a00:	sta pacman_motion_cnt
 		lda #$00
-		sta pacman_dly_eating
+		sta pacman_adv_turning
 		jsr pmstik
 		lda #$00
-		sta pacman_status
+		sta pacman_dly_eating
 		jsr Munchy
 		lda jiffy
 		and #$03
 		bne l8a19
 		jsr l97f5
 l8a19:	jsr l9617
-		lda pacman_dly_eating
+		lda pacman_adv_turning
 		bne l8a77
 		ldx #$03
 ; $8a22 speed handler for monsters
@@ -1969,7 +1970,7 @@ clrpgz:	sta $3b,x
 		lda DifficultyTable1,y				; load from table as index
 		tax
 		lda Speed,x						; copy data from RAM to ZP with index
-		sta monster_speed_cnt
+		sta pacman_speed_count
 		lda DifficultyTable2,y
 		tay
 		ldx #$03
@@ -2007,6 +2008,13 @@ InitGameVariables:
 		jsr inzersc						; zero score
 newbrd:	jsr InitGameScreen				; sub: copy game screen to screen RAM
 		jsr UpdateExtraPacs				; sub: Update extra pacmans
+		ldx player_number
+		lda maze_count1,x
+		tay
+		bne +
+		lda jiffy
+		bpl +
+-		jsr Init87_89
 		jmp ++
 +		iny
 		bne -
@@ -2442,42 +2450,41 @@ distrt:	lda #$02
 		sta (SID),y						; SID voice 1 frequency hi
 		ldy #SR_V2FREQ+1
 		sta (SID),y						; SID voice 2 frequency hi
-gbranch:lda #$21
-		ldy #SR_V2CTRL
+		lda #$21
+gbranch:ldy #SR_V2CTRL
 		sta (SID),y						; SID voice 2 control = sawtooth, on
 } else{
 		sta $d401						; SID voice 1 frequency hi
 		sta $d408						; SID voice 2 frequency hi
-gbranch:lda #$21
-		sta $d40b						; SID voice 2 control = sawtooth, on
+		lda #$21
+gbranch:sta $d40b						; SID voice 2 control = sawtooth, on
 }
 		bne veatrs
-gulpoff:jsr ClearAudio
+gulpoff:jsr ClearAudio			; returns with Y=$ff
 		sta freeze_flag
-		sta pacman_adv_turning
+		sta pacman_motion_cnt
 		sty gulped_last
 		lda #$0f
 		sta $02c7
 !ifdef 	P500{
-rsetpcl:ldy #$03						; 3-0 monsters
-		lda (VIC27),y				; load VIC sprites color 3-0 (monsters)
+		ldy #$03						; 3-0 monsters
+rsetpcl:lda (VIC27),y					; load VIC sprites color 3-0 (monsters)
 		cmp #$f1
 		beq rsetplc
 		dey
 } else{
-rsetpcl:ldx #$03						; 3-0 monsters
-		lda $d027,x					; load VIC sprites color 3-0 (monsters)
+		ldx #$03						; 3-0 monsters
+rsetpcl:lda $d027,x						; load VIC sprites color 3-0 (monsters)
 		cmp #$f1
 		beq rsetplc
 		dex
 }
 		bpl rsetpcl
 		rts
-; $90d7
 rsetplc:lda #$00
-		sta pacman_adv_turning
+		sta pacman_motion_cnt
 		jsr pmstik
-		inc pacman_dly_eating
+		inc pacman_adv_turning
 		jmp Munchy
 ; -------------------------------------------------------------------------------------------------
 ; $90e3 Eat dot sound
@@ -2658,7 +2665,7 @@ pmstik:	lda pacman_status
 		tya
 		and #$0c
 		beq l91df
-		sty pacman_dly_eating
+		sty pacman_adv_turning
 l91df:	lda pacman_new_dir
 		sta pacman_direction
 l91e3:	ldx player_number
@@ -2702,7 +2709,7 @@ l9213:	cmp #$01
 l9222:	cmp #$08
 		beq l9285
 		jmp pacstp
-l9229:	lda pacman_adv_turning
+l9229:	lda pacman_motion_cnt
 		bne l9252
 		dec pacman_vpos
 		dec pacman_vpos
@@ -2725,7 +2732,7 @@ l923b:	dec pacman_vmap_count
 		sta pacman_screen_ptr+1
 l9252:	ldy #$06						; point to pac top
 		jmp l931d
-l9257:	lda pacman_adv_turning
+l9257:	lda pacman_motion_cnt
 		bne l9280
 		inc pacman_vpos
 		inc pacman_vpos
@@ -2748,7 +2755,7 @@ l9257:	lda pacman_adv_turning
 l927e:	inc pacman_vmap_count
 l9280:	ldy #$08						; point to pac bottom
 		jmp l931d
-l9285:	lda pacman_adv_turning
+l9285:	lda pacman_motion_cnt
 		bne l92b5
 		lda pacman_hpos
 		cmp #$ca
@@ -2774,7 +2781,7 @@ l929b:	lda pacman_byte_ctr
 l92b3:	inc pacman_byte_ctr
 l92b5:	ldy #$02						; point to pac right
 		bne l931d
-l92b9:	lda pacman_adv_turning
+l92b9:	lda pacman_motion_cnt
 		bne l92f0
 		lda pacman_hpos
 		cmp #$2a
@@ -2868,13 +2875,13 @@ l934d:	lda (pixel_get_ptr),y
 		sta pixel_put_ptr+1
 		clc
 		lda pacman_hpos
-		sta $02d4
+		sta sprite_x+4
 		adc #$02
-		sta $02d7
+		sta sprite_pacman_x+2
 		adc #$02
-		sta $02d6
+		sta sprite_pacman_x+1
 		adc #$02
-		sta $02d5
+		sta sprite_pacman_x
 		ldy #$0f
 l937c:	lda (pixel_get_ptr),y
 		sta (pixel_put_ptr),y
@@ -2929,7 +2936,7 @@ l93b0:	sta player_score_text+4
 		jsr l946d
 		lda #$01
 		sta eatdot_sound_flag
-		sta pacman_status
+		sta pacman_dly_eating
 		lda #$00
 		sta eatdot_sound_cnt
 		lda eatdot_sound_togg

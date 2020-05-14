@@ -1,4 +1,4 @@
 #!/bin/sh
 acme -v pm500.b
-diff -s pm500.rom original/pm.rom
-cmp pm500.rom original/pm.rom
+diff -s pacman.rom original/pm.rom
+cmp pacman.rom original/pm.rom
