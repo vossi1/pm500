@@ -2213,7 +2213,7 @@ l8f73:	ldy #$0c			; already bank 0 selected
 		lda #GAMEBANK
 		sta IndirectBank				; select bank 0 for pointer operations
 }
-l8f77:	lda PacmanTop+$0a,x
+l8f77:	lda PacmanDie,x
 		sta (pixel_put_ptr),y
 		dey
 		dex

@@ -16,18 +16,19 @@ MonsterEyes:
 		!byte $00, $00, $00, $28, $28, $28, $00, $00, $00, $00
 ; $9b4c Pacman shape data
 PacmanDot:
-		!byte $38, $7c, $fe, $fe, $fe, $fe, $fe, $fe, $7c, $38
+		!byte $38, $7c, $fe, $fe, $fe, $fe, $fe, $fe, $7c, $38	; pacman not moving
 PacmanRight:
-		!byte $38, $7c, $fe, $f8, $e0, $e0, $f8, $fe, $7c, $38
+		!byte $38, $7c, $fe, $f8, $e0, $e0, $f8, $fe, $7c, $38	; pacman right
 		!byte $38, $7c, $f8, $f0, $e0, $e0, $f0, $f8, $7c, $38		
 PacmanLeft:
-		!byte $38, $7c, $fe, $3e, $0e, $0e, $3e, $fe, $7c, $38
+		!byte $38, $7c, $fe, $3e, $0e, $0e, $3e, $fe, $7c, $38	; pacmon left
 		!byte $38, $7c, $3e, $1e, $0e, $0e, $1e, $3e, $7c, $38
 PacmanTop:
-		!byte $00, $44, $c6, $c6, $ee, $ee, $fe, $fe, $7c, $38
-		!byte $00, $00, $82, $c6, $ee, $ee, $fe, $fe, $7c, $38
+		!byte $00, $44, $c6, $c6, $ee, $ee, $fe, $fe, $7c, $38	; pacmen up
+PacmanDie:
+		!byte $00, $00, $82, $c6, $ee, $ee, $fe, $fe, $7c, $38	; pacman dies
 PacmanBottom:
-		!byte $38, $7c, $fe, $fe, $ee, $ee, $c6, $c6, $44, $00
+		!byte $38, $7c, $fe, $fe, $ee, $ee, $c6, $c6, $44, $00	; pacman down
 		!byte $38, $7c, $fe, $fe, $ee, $ee, $c6, $82, $00
 ; $9ba5
 PacmanIndex:
