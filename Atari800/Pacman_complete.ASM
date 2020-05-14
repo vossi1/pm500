@@ -74,8 +74,8 @@ tunloc ds 2 ;used for tunnel logic		32-33
 ;
  org $005a
 m1dely ds 1 ;monster 1 delay			34
-m2dely ds 1 ;monster 2 delay
-m3dely ds 1 ;monster 3 delay
+m2dely ds 1 ;monster 2 delay			35
+m3dely ds 1 ;monster 3 delay			36
 m4dely ds 1 ;monster 4 delay			37
 acolr1 ds 1 ;attract color 1 - $3a
 acolr2 ds 1 ;attract color 2 - $44
@@ -114,28 +114,28 @@ fruclr ds 1 ;fruit color				5c
 frscrf ds 1 ;fruit score flag			5d
 frscrt ds 1 ;fruit score timer			5e
 notcnt ds 1 ;note count for tunes		5f
-vsaver ds 1 ;vertical posit save
+vsaver ds 1 ;vertical posit save		60
 hsaver ds 1 ;horizontal posit save		61
 pacmap ds 1 ;pacman vert map counter	62
-paccnt ds 1 ;pacman motion count
-pacadv ds 1 ;pacman advance-turning
-pacdly ds 1 ;pacman delay-eating dots
+paccnt ds 1 ;pacman motion count		63
+pacadv ds 1 ;pacman advance-turning		64
+pacdly ds 1 ;pacman delay-eating dots	65
 pmstat ds 1 ;pacman status				66
-pmsequ ds 1 ;pacman sequence (mouth)
-pmndir ds 1 ;pacman new direction
-chaset ds 1 ;chase timer
-mstill ds 1 ;monsters still flag	
-mskirt ds 1 ;monster skirt flag			
-m1spsq ds 1 ;monster 1 speed sequence	
+pmsequ ds 1 ;pacman sequence (mouth)	67
+pmndir ds 1 ;pacman new direction		68
+chaset ds 1 ;chase timer				69
+mstill ds 1 ;monsters still flag		6a
+mskirt ds 1 ;monster skirt flag			6b		
+m1spsq ds 1 ;monster 1 speed sequence	6c
 m2spsq ds 1 ;monster 2 speed sequence
 m3spsq ds 1 ;monster 3 speed sequence
 m4spsq ds 1 ;monster 4 speed sequence
-pmspsq ds 1 ;pacman speed sequence		
-m1spct ds 1 ;monster 1 speed count	
+pmspsq ds 1 ;pacman speed sequence		70
+m1spct ds 1 ;monster 1 speed count		71
 m2spct ds 1 ;monster 2 speed count
 m3spct ds 1 ;monster 3 speed count
 m4spct ds 1 ;monster 4 speed count
-pmspct ds 1 ;pacman  speed count		
+pmspct ds 1 ;pacman  speed count		75
 m1pidx ds 1 ;monster 1 pattern index	76
 m2pidx ds 1 ;monster 2 pattern index
 m3pidx ds 1 ;monster 3 pattern index
@@ -177,8 +177,8 @@ vchasd ds 1 ;direction 1=inc 2=dec		9b
 vchass ds 1 ;chase sound start			9c
 vflitf ds 1 ;flight freq				9d
 vflitd ds 1 ;direction same				9e
-vflitv ds 1 ;flight volume			a2 = cbm jiffy
-vflits ds 1 ;flight sound start
+vflitv ds 1 ;flight volume				9f
+vflits ds 1 ;flight sound start			a3
 vfreez ds 1 ;freeze flag				a4
 vglpc1 ds 1 ;gulp count1				a5
 vglpc2 ds 1 ;gulp count2				a6

@@ -189,16 +189,19 @@ SR_RANDOM				= $1b
 !addr notes_counter		= $5f		; Counter for music
 ;!addr vpos_saver		= $60		; verical position saver - not used on Commodore
 !addr hpos_saver		= $61		; horizontal position saver
-!addr 
-!addr 
-!addr 
-!addr 
-!addr 
-!addr 
-!addr 
-!addr 
-!addr 
-!addr 
+!addr pacman_vmap_count = $62
+!addr pacman_motion_cnt	= $63
+!addr pacman_adv_turning= $64
+!addr pacman_dly_eating	= $65		; pacman delay eating dots
+!addr pacman_status		= $66
+!addr pacman_sequence	= $67
+!addr pacman_new_dir	= $68
+!addr chase_timer		= $69
+!addr monster_still_flag= $6a
+!addr monster_skirt_flag= $6b
+!addr monster_speed_sequ= $6c ; -$70  Monster 1-4, Pacman speed sequence
+!addr monster_speed_cnt	= $71 ; -$74  Monster 1-4 speed count
+!addr pacman_speed_count= $75
 !addr monster_patt_index= $76
 !addr monster_patt_count= $7a
 !addr monster_targ_hpos	= $7e ; -$81 Monster 1-4 target horizontal position 
@@ -213,17 +216,9 @@ SR_RANDOM				= $1b
 !addr chase_sound_start	= $9c
 !addr flight_sound_freq	= $9d
 !addr flight_sound_dir	= $9e
-!addr 
-!addr 
-!addr 
-!addr 
-
+!addr flight_volume		= $9f
 !addr jiffy				= $a2		; Jiffy clock 20ms counter from raster interrupt = Vsync
-!addr 
-!addr 
-!addr 
-!addr 
-
+!addr flight_sound_start= $a3
 !addr freeze_flag		= $a4
 !addr gulp_count1		= $a5		; GULP = eat monster
 !addr gulp_count2		= $a6
@@ -254,7 +249,7 @@ SR_RANDOM				= $1b
 !addr spritedata_ptr	= $c0		; 16bit pointer for sprite data copy
 !addr pressed_key		= $c5		; Pressed key from interrupt - only Commodore
 ; ***************************************** VARIABLES *********************************************
-!addr sprite_x			= $02d0	; -$02d4 Sprite 0-4 x positions (VIC >>1 +$2c)
+!addr sprite_x			= $02d0	; -$02d4 Sprite 0-4 x positions (VIC >>1 +$2c) ATARI: GTIA HPOSP0
 !addr PacmanBuffer		= $5800 ; -$580f Pacman image buffer 16 bytes
 !addr MonsterBuffer		= $5810 ; -$581f Monster image buffer 16 bytes
 
@@ -1139,7 +1134,7 @@ vcontn:	jsr blink3
 		lda fizzle_status
 		beq vplayer
 		jsr vfizzl
-		jmp fizzie
+		jmp Fizzie
 vplayer:jsr eyeonly
 		lda freeze_flag
 		beq vfruit
@@ -1291,12 +1286,12 @@ l895d:	lda #$01
 		lda #$06
 l8963:	sta player_score_text+3
 		jmp l946d
-l8968:	lda $66
+l8968:	lda pacman_status
 		ora #$80
-		sta $66
+		sta pacman_status
 		jsr ClearAudio
 		lda #$01
-		sta $6a
+		sta monster_still_flag
 		sta fizzle_status
 		lda #$60
 		sta fizzle_sequence_no
@@ -1353,33 +1348,33 @@ l89da:	lda fizzle_status
 l89de:	rts
 ; -------------------------------------------------------------------------------------------------
 ; $89df
-l89df:	jsr l8f9b
+l89df:	jsr flitec
 		lda freeze_flag
 		bne l89de
-		jsr l90e3
+		jsr veater
 		jsr l8c0d
 		jsr skirts
-		lda $64
+		lda pacman_dly_eating
 		beq l89f7
 		lda #$00
 		beq l8a00
-l89f7:	lda $65
+l89f7:	lda pacman_status
 		bne l8a00
 		ldx #$04
 		jsr l95e0
-l8a00:	sta $63
+l8a00:	sta pacman_adv_turning
 		lda #$00
-		sta $64
+		sta pacman_dly_eating
 		jsr pmstik
 		lda #$00
-		sta $65
-		jsr l9384
+		sta pacman_status
+		jsr Munchy
 		lda jiffy
 		and #$03
 		bne l8a19
 		jsr l97f5
 l8a19:	jsr l9617
-		lda $64
+		lda pacman_dly_eating
 		bne l8a77
 		ldx #$03
 ; $8a22 speed handler for monsters
@@ -1701,12 +1696,12 @@ l8c48:	rts
 skirts:	lda jiffy
 		and #$0f
 		bne l8c5b
-		lda $6b
+		lda monster_skirt_flag
 		beq l8c59
 		lda #$00
-		sta $6b
+		sta monster_skirt_flag
 		beq l8c5b
-l8c59:	inc $6b
+l8c59:	inc monster_skirt_flag
 l8c5b:	rts
 ; -------------------------------------------------------------------------------------------------
 ; $8c5c rerack will reset maze after a player has cleared all dots
@@ -1900,14 +1895,14 @@ clr1liv:stx GameScreen+$3c8
 ; $8d8d
 Drawit:
 		lda #$01
-		sta $6a
+		sta monster_still_flag
 		ldx #$03
 l8d93:	lda monster_direction,x
 		jsr monhnd
 		dex
 		bpl l8d93
 		lda #$00
-		sta $6a
+		sta monster_still_flag
 		jmp l9318
 ready3:	ldx #$0d
 		lda #$00
@@ -1976,12 +1971,12 @@ clrpgz:	sta $3b,x
 		lda DifficultyTable1,y				; load from table as index
 		tax
 		lda Speed,x						; copy data from RAM to ZP with index
-		sta $75
+		sta monster_speed_cnt
 		lda DifficultyTable2,y
 		tay
 		ldx #$03
 -		lda Speed,y
-		sta $71,x
+		sta monster_speed_cnt,x
 		dex
 		bpl -
 		ldx #$13
@@ -2173,10 +2168,10 @@ l8f34:	lda fizzle_counter
 l8f3b:	dec fizzle_counter
 		rts
 ; -------------------------------------------------------------------------------------------------
-; $8f3e
-fizzie:	
+; $8f3e Fizzie will draw the pacman folding up in sequence
+Fizzie:	
 		lda fizzle_flag
-		beq l8f9a
+		beq fizziex
 		lda pacman_vpos
 		sta pixel_put_ptr
 		lda #$53
@@ -2211,7 +2206,6 @@ l8f5e:	lda fizzle_ptr
 		sta IndirectBank				; switch back to bank 15
 }
 		rts
-; -------------------------------------------------------------------------------------------------
 ; $8f73
 l8f73:	ldy #$0c			; already bank 0 selected
 		ldx #$09
@@ -2229,7 +2223,6 @@ l8f77:	lda PacmanTop+$0a,x
 		sta IndirectBank				; switch back to bank 15
 }
 		rts
-; -------------------------------------------------------------------------------------------------
 ; $8f81
 l8f81:	ldy #$0f			; already bank 0 selected
 		ldx #$0f
@@ -2247,7 +2240,6 @@ l8f85:	lda PacmanExplosion,x
 		sta IndirectBank				; switch back to bank 15
 }
 		rts
-; -------------------------------------------------------------------------------------------------
 ; $8f8f
 l8f8f:	ldy #$0f			; already bank 0 selected
 		lda #$00
@@ -2263,22 +2255,23 @@ l8f93:	sta (pixel_put_ptr),y
 		lda #SYSTEMBANK
 		sta IndirectBank				; switch back to bank 15
 }
-l8f9a:	rts
+fizziex:	rts
 ; -------------------------------------------------------------------------------------------------
 ; $8f9b
-l8f9b:	lda flash_count
-		beq l8faf
+flitec:
+		lda flash_count
+		beq noflit
 		lda tweet_sound_flag
-		bne l8fa6
-		jsr l901e
-l8fa6:	lda flight_timer
-		beq l8fb6
+		bne chkfltm
+		jsr vrverb
+chkfltm:lda flight_timer
+		beq flashsq
 		dec flight_timer
-		jmp l9005
-l8faf:	lda tweet_sound_flag
-		bne l8f9a
-		jmp l9558
-l8fb6:	ldx player_number
+		jmp setflc
+noflit:	lda tweet_sound_flag
+		bne fizziex
+		jmp vchase
+flashsq:ldx player_number
 		lda maze_count1,x
 		tax
 		lda FlashingTimerTable,x
@@ -2317,9 +2310,9 @@ l8fe9:	dex
 		lda #$00
 		sta flash_count
 		sta flash_timer
-		sta $a3
+		sta flight_sound_start
 		lda #$a0
-		sta $69
+		sta chase_timer
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $8ff9 Toggle monster color blue/white
@@ -2329,7 +2322,7 @@ l8ff9:	lda flash_timer
 		lda #$18
 		sta flash_timer
 l9003:	dec flash_timer
-l9005:	lda flash_count
+setflc:	lda flash_count
 		lsr
 		bcc mwhite						; color monsters white
 !ifdef 	P500{
@@ -2357,13 +2350,13 @@ mskip:	dex
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $901e
-l901e:	lda $a3
+vrverb:	lda flight_sound_start
 		bne l9030
 		lda #$05
-		sta $9f
+		sta flight_volume
 		lda #$02
 		sta flight_sound_dir
-		inc $a3
+		inc flight_sound_start
 		lda #$0e
 		sta flight_sound_freq
 l9030:	lda flight_sound_dir
@@ -2372,12 +2365,12 @@ l9030:	lda flight_sound_dir
 		lda flight_sound_freq
 		cmp #$0e
 		bne l904e
-		lda $9f
+		lda flight_volume
 		cmp #$03
 		bne l9046
 		lda #$05
-		sta $9f
-l9046:	dec $9f
+		sta flight_volume
+l9046:	dec flight_volume
 		lda #$02
 		sta flight_sound_dir
 		bne l9061
@@ -2408,7 +2401,7 @@ l906d:	sta $d40b						; SID voice 2 control = sawtooth, on
 }
 		rts
 ; -------------------------------------------------------------------------------------------------
-; $9071
+; $9071 Gulp = Eat monster
 vtweet:	lda tweet_sound_freq
 		bne l9079
 		lda #$97
@@ -2427,6 +2420,7 @@ l907f:	sec
 }
 		lda #$21
 		bne l906d
+;
 vgulpr:	dec gulp_count1
 		beq l90a4
 		sec
@@ -2434,7 +2428,7 @@ vgulpr:	dec gulp_count1
 		sbc #$04
 		sta gulp_count2
 		cmp #$10
-		beq l90bc
+		beq gulpoff
 !ifdef 	P500{
 		ldy #SR_V1FREQ+1
 		sta (SID),y						; SID voice 1 frequency hi
@@ -2467,35 +2461,36 @@ l90b7:	ldy #SR_V2CTRL
 l90b7:	sta $d40b						; SID voice 2 control = sawtooth, on
 }
 		bne l9109
-l90bc:	jsr ClearAudio
+gulpoff:jsr ClearAudio
 		sta freeze_flag
-		sta $63
+		sta pacman_adv_turning
 		sty gulped_last
 		lda #$0f
 		sta $02c7
 !ifdef 	P500{
 		ldy #$03						; 3-0 monsters
-l90cc:	lda (VIC27),y					; load VIC sprites color 3-0 (monsters)
+rsetpcl:	lda (VIC27),y				; load VIC sprites color 3-0 (monsters)
 		cmp #$f1
-		beq l90d7
+		beq rsetplc
 		dey
 } else{
 		ldx #$03						; 3-0 monsters
-l90cc:	lda $d027,x						; load VIC sprites color 3-0 (monsters)
+rsetpcl:	lda $d027,x					; load VIC sprites color 3-0 (monsters)
 		cmp #$f1
-		beq l90d7
+		beq rsetplc
 		dex
 }
-		bpl l90cc
+		bpl rsetpcl
 		rts
-; -------------------------------------------------------------------------------------------------
 ; $90d7
-l90d7:	lda #$00
-		sta $63
+rsetplc:lda #$00
+		sta pacman_adv_turning
 		jsr pmstik
-		inc $64
-		jmp l9384
-l90e3:	lda eatdot_sound_flag
+		inc pacman_dly_eating
+		jmp Munchy
+; -------------------------------------------------------------------------------------------------
+; $90e3 Eat dot sound
+veater:	lda eatdot_sound_flag
 		beq l910c
 		ldx eatdot_sound_cnt
 		cpx #$06
@@ -2655,12 +2650,12 @@ sav2px:	rts
 ; the pacman will then move in the proper direction with it's mouth opening and closing.
 ; this code is called during vblank and initiates motion during alternate occurances of vblank.
 ; mouth animation is performed every vblank.
-pmstik:	lda $66
+pmstik:	lda pacman_status
 		bmi sav2px
 		ldx #$04
 		jsr MazeHandler
 		clc
-		lda $68							; see if we change direction
+		lda pacman_new_dir				; see if we change direction
 		bit temp						; is it valid ?
 		beq l91e3						; no
 		cmp pacman_direction
@@ -2672,8 +2667,8 @@ pmstik:	lda $66
 		tya
 		and #$0c
 		beq l91df
-		sty $64
-l91df:	lda $68
+		sty pacman_dly_eating
+l91df:	lda pacman_new_dir
 		sta pacman_direction
 l91e3:	ldx player_number
 !ifdef 	P500{
@@ -2698,7 +2693,7 @@ l91f8:	dex
 		cpy #$02
 		beq l920a
 		sta attract_ATARI				; NOT USED in Commodore - prevents Atari screen saver
-		sta $68
+		sta pacman_new_dir
 		bit temp
 		beq l920a
 		sta pacman_direction
@@ -2716,16 +2711,16 @@ l9213:	cmp #$01
 l9222:	cmp #$08
 		beq l9285
 		jmp l9318
-l9229:	lda $63
+l9229:	lda pacman_adv_turning
 		bne l9252
 		dec pacman_vpos
 		dec pacman_vpos
-		lda $62
+		lda pacman_vmap_count
 		bne l923b
 		lda #$03
-		sta $62
+		sta pacman_vmap_count
 		bne l9252
-l923b:	dec $62
+l923b:	dec pacman_vmap_count
 		bne l9252
 		lda pacman_vpos
 		cmp pacman_vpos_save
@@ -2739,15 +2734,15 @@ l923b:	dec $62
 		sta pacman_screen_ptr+1
 l9252:	ldy #$06						; point to pac top
 		jmp l931d
-l9257:	lda $63
+l9257:	lda pacman_adv_turning
 		bne l9280
 		inc pacman_vpos
 		inc pacman_vpos
-		lda $62
+		lda pacman_vmap_count
 		cmp #$03
 		bne l927e
 		lda #$00
-		sta $62
+		sta pacman_vmap_count
 		lda pacman_vpos
 		cmp pacman_vpos_save
 		beq l9280
@@ -2759,10 +2754,10 @@ l9257:	lda $63
 		adc #$00
 		sta pacman_screen_ptr+1
 		bne l9280
-l927e:	inc $62
+l927e:	inc pacman_vmap_count
 l9280:	ldy #$08						; point to pac bottom
 		jmp l931d
-l9285:	lda $63
+l9285:	lda pacman_adv_turning
 		bne l92b5
 		lda pacman_hpos
 		cmp #$ca
@@ -2788,7 +2783,7 @@ l929b:	lda pacman_byte_ctr
 l92b3:	inc pacman_byte_ctr
 l92b5:	ldy #$02						; point to pac right
 		bne l931d
-l92b9:	lda $63
+l92b9:	lda pacman_adv_turning
 		bne l92f0
 		lda pacman_hpos
 		cmp #$2a
@@ -2839,17 +2834,17 @@ l9314:	lda #$0a
 l9318:	ldy #$00						; point to pac dot
 		tya
 		beq l9333
-l931d:	ldx $67
+l931d:	ldx pacman_sequence
 		bne l9325
-		inc $67
+		inc pacman_sequence
 		bne l9318
 l9325:	dex
 		lda PacmanIndex,x
 		cpx #$02
 		bne l9331
 		ldx #$ff
-		stx $67
-l9331:	inc $67
+		stx pacman_sequence
+l9331:	inc pacman_sequence
 l9333:	tax
 		lda PacmanDataPointers,y
 		sta pixel_get_ptr
@@ -2901,9 +2896,9 @@ l937c:	lda (pixel_get_ptr),y
 l9383:	rts
 ; -------------------------------------------------------------------------------------------------
 ; $9384 munchy subroutine eats dots
-l9384:	lda pacman_byte_ctr
+Munchy:	lda pacman_byte_ctr
 		bne l93e8
-		lda $62
+		lda pacman_vmap_count
 		bne l93e8
 		lda pacman_hpos
 		cmp pacman_hpos_save
@@ -2943,7 +2938,7 @@ l93b0:	sta player_score_text+4
 		jsr l946d
 		lda #$01
 		sta eatdot_sound_flag
-		sta $65
+		sta pacman_status
 		lda #$00
 		sta eatdot_sound_cnt
 		lda eatdot_sound_togg
@@ -3192,8 +3187,8 @@ l9554:	lda temp
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $9558
-l9558:	lda #$00
-		sta $a3
+vchase:	lda #$00
+		sta flight_sound_start
 		lda chase_sound_start
 		bne l956a
 		lda #$28
@@ -3277,17 +3272,17 @@ l95dc:	sty GameScreen+$2f4
 ; $95e0 speed sequencing for objects x reg = index value for object 
 ; x=0 to 3 for monsters 1 - 4, x=4 for pacman
 ; on exit: a reg = 0 indicates update time
-l95e0:	dec $71,x
+l95e0:	dec monster_speed_cnt,x
 		beq l95e7
 		lda #$ff
 		rts
 ; $95e7
-l95e7:	lda $6c,x
+l95e7:	lda monster_speed_sequ,x
 		cmp #$03
 		bne l95f1
 		lda #$ff
-		sta $6c,x
-l95f1:	inc $6c,x
+		sta monster_speed_sequ,x
+l95f1:	inc monster_speed_sequ,x
 		ldy player_number
 		lda $0000+maze_count1,y			; load maze in A
 		cmp #$06
@@ -3300,10 +3295,10 @@ l95f1:	inc $6c,x
 		bpl +							; skip always
 l9608:	lda DifficultyTable2,y
 +		clc
-		adc $6c,x
+		adc monster_speed_sequ,x
 		tay
 		lda Speed,y
-		sta $71,x
+		sta monster_speed_cnt,x
 		lda #$00
 		rts
 ; -------------------------------------------------------------------------------------------------
@@ -3311,9 +3306,9 @@ l9608:	lda DifficultyTable2,y
 l9617:	lda jiffy
 		and #$07
 		bne l9623
-		lda $69
+		lda chase_timer
 		beq l9623
-		dec $69
+		dec chase_timer
 l9623:	ldx player_number
 		lda dots_eaten_hi,x
 		beq l9632
@@ -3360,7 +3355,7 @@ l9674:	lda #$02
 		sta monster_status,x
 l9678:	dex
 		bpl l9666
-		stx $69
+		stx chase_timer
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $967e
@@ -3517,7 +3512,7 @@ l9788:	lda monster_vpos,x
 l9796:	and #$80
 		ora #$02
 		bpl l97a2
-		sta $69
+		sta chase_timer
 		ldy #$08
 		bne l97a4
 l97a2:	ldy #$04
@@ -3626,7 +3621,7 @@ l984f:	cmp #$01
 		beq l9877
 		cmp #$02
 		bne l9861
-		lda $69
+		lda chase_timer
 		bne l985e
 		jmp l9915
 l985e:	jmp l993f
@@ -3670,7 +3665,7 @@ l987f:	txa
 		cpx #$00
 		bne l98a1
 		lda #$50
-		sta $69
+		sta chase_timer
 		jmp l993b
 l98a1:	lda #$08
 		sta monster_status,x
@@ -3766,7 +3761,7 @@ l9950:	lda monster_direction,x
 monhnd:
 		cmp #$01
 		bne l9962
-		ldy $6a
+		ldy monster_still_flag
 		bne l995e
 		dec monster_vpos,x
 		dec monster_vpos,x
@@ -3774,7 +3769,7 @@ l995e:	lda #$00
 		beq l998f
 l9962:	cmp #$02
 		bne l9972
-		ldy $6a
+		ldy monster_still_flag
 		bne l996e
 		inc monster_vpos,x
 		inc monster_vpos,x
@@ -3782,14 +3777,14 @@ l996e:	lda #$0a
 		bne l998f
 l9972:	cmp #$04
 		bne l9980
-		ldy $6a
+		ldy monster_still_flag
 		bne l997c
 		dec monster_hpos,x
 l997c:	lda #$14
 		bne l998f
 l9980:	cmp #$08
 		bne l998e
-		ldy $6a
+		ldy monster_still_flag
 		bne l998a
 		inc monster_hpos,x
 l998a:	lda #$1e
@@ -3805,7 +3800,7 @@ l9995:	tay
 		asl
 		bmi l99a8
 		tya
-		ldy $6b
+		ldy monster_skirt_flag
 		beq l99a4
 		ldy #$aa
 		bne l99ac
@@ -4029,7 +4024,7 @@ l9aff:	cpx #$02
 l9b07:	lda #$02
 		sta monster_status,x
 		lda #$a0
-		sta $69
+		sta chase_timer
 l9b0f:	rts
 ; ***************************************** ZONE DATA2 ********************************************
 !zone data2
