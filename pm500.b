@@ -4,7 +4,7 @@
 ; Converted for P500 by Vossi 05/2020
 !cpu 6502
 ; switches
-P500 = 1		; P500 bank 0 file
+;P500 = 1		; P500 bank 0 file
 ;CRT = 1		; CRT header for VICE
 !ifdef 	P500{!to "pm500.prg", cbm
 } else{ !ifdef CRT {!to "pacman.crt", plain : *= $7fb0 : !source "crthead.b"
@@ -1953,38 +1953,39 @@ fl1stor:sta GameScreen+$04				; write to screen left side
 		sty GameScreen+$06
 flashxx:rts
 ; -------------------------------------------------------------------------------------------------
-; $8df3 init new game
+; $8df3 Set up monster and pacman start postions
 Setup:
-		jsr InitSpriteMemory			; clear sprite areas at $3000, $5300
+		jsr InitSpriteMemory			; clear sprite areas at $3000, sprite data $5300
 		ldx #$8a
-clrpgz:	sta $3b,x
+clrpgz:	sta $3b,x						; clear ZP $3c - $c5
 		dex
-		bne clrpgz						; clear ZP $3c - $c5
+		bne clrpgz
 		jsr SetColor					; sub: init color RAM and VIC Sprite colors
+; speed initialization
 		ldx player_number
 		lda maze_count1,x				; load player difficulty
 		cmp #$06
-		bcc +
-		lda #$06						; limit A to 6 and move it to Y
-+		tay
-		lda DifficultyTable1,y				; load from table as index
+		bcc lowinit
+		lda #$06						; max speed level 6
+lowinit	tay
+		lda PacmanSpeedTable,y			; load pacman speed index from table
 		tax
-		lda Speed,x						; copy data from RAM to ZP with index
-		sta pacman_speed_count
-		lda DifficultyTable2,y
+		lda Speed,x						; load speed from table
+		sta pacman_speed_count			; store it
+		lda MonsterSpeedTable,y			; load monster speed index from table
 		tay
-		ldx #$03
--		lda Speed,y
-		sta monster_speed_cnt,x
+		ldx #$03						; setup 4 monsters 
+spinilp:lda Speed,y						; load speed from table
+		sta monster_speed_cnt,x			; store it
 		dex
-		bpl -
+		bpl spinilp						; next monster
 		ldx #$13
--		lda SpriteInitData,x
+indatlp:lda SpriteInitData,x
 		sta pacman_screen_ptr,x
 		dex
-		bpl -
+		bpl indatlp
 		ldy #$00
-		jsr Init87_89
+		jsr SetMonsterTimer
 !ifdef 	P500{
 		ldy #VR_MOBMOB
 		lda (VIC),y						; VIC clear sprite-sprite collision
@@ -2005,21 +2006,21 @@ InitGameVariables:
 		sta maze_count1
 		sta maze_count2
 		ldx #$01
-		jsr inzersc						; zero score
+		jsr newbrd1						; branch to zero score
 newbrd:	jsr InitGameScreen				; sub: copy game screen to screen RAM
 		jsr UpdateExtraPacs				; sub: Update extra pacmans
 		ldx player_number
 		lda maze_count1,x
 		tay
-		bne +
+		bne newrek2
 		lda jiffy
-		bpl +
--		jsr Init87_89
-		jmp ++
-+		iny
-		bne -
-++		ldx player_number
-inzersc:lda #$0f						; zero score
+		bpl newrek2
+newrek1:jsr SetMonsterTimer
+		jmp newbrd0
+newrek2:iny
+		bne newrek1
+newbrd0:ldx player_number
+newbrd1:lda #$0f						; zero score
 		sta bigdot_status,x
 		lda #$00
 		sta fruit_counter,x
@@ -2028,16 +2029,16 @@ inzersc:lda #$0f						; zero score
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $8e72 copies data from table to $87-$89
-Init87_89:
+SetMonsterTimer:
 		cpy #$03
-		bcc +
+		bcc ldmstmr
 		ldy #$03
-+		ldx #$02
--		lda BlueStartValues,y
-		sta $87,x
+ldmstmr:ldx #$02
+ldmstlp:lda BlueStartValues,y
+		sta monster_timer+1,x
 		iny
 		dex
-		bpl -
+		bpl ldmstlp
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $8e84
@@ -3289,9 +3290,9 @@ l95f1:	inc monster_speed_sequ,x
 +		tay
 		cpx #$04
 		bne l9608
-		lda DifficultyTable1,y
+		lda PacmanSpeedTable,y
 		bpl +							; skip always
-l9608:	lda DifficultyTable2,y
+l9608:	lda MonsterSpeedTable,y
 +		clc
 		adc monster_speed_sequ,x
 		tay
