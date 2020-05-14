@@ -4,7 +4,7 @@
 ; Converted for P500 by Vossi 05/2020
 !cpu 6502
 ; switches
-;P500 = 1		; P500 bank 0 file
+P500 = 1		; P500 bank 0 file
 ;CRT = 1		; CRT header for VICE
 !ifdef 	P500{!to "pm500.prg", cbm
 } else{ !ifdef CRT {!to "pacman.crt", plain : *= $7fb0 : !source "crthead.b"
@@ -184,8 +184,8 @@ SR_RANDOM				= $1b
 !addr fruit_timer 		= $59 ; -$5a  fruit timer (10 secs)
 !addr fruit_display_flag= $5b	  	; fruit display flag
 !addr fruit_color		= $5c 		; fruit color
-!addr fruit_score_flag	= $5d	 	;fruit score flag - only stored, not used on Commodore 
-!addr fruit_score_timer = $5e 		;fruit score timer
+!addr fruit_score_flag	= $5d	 	; fruit score flag - only stored, not used on Commodore 
+!addr fruit_score_timer = $5e 		; fruit score timer
 !addr notes_counter		= $5f		; Counter for music
 ;!addr vpos_saver		= $60		; verical position saver - not used on Commodore
 !addr hpos_saver		= $61		; horizontal position saver
@@ -196,7 +196,7 @@ SR_RANDOM				= $1b
 !addr pacman_status		= $66
 !addr pacman_sequence	= $67
 !addr pacman_new_dir	= $68
-!addr chase_timer		= $69
+!addr chase_timer		= $69		; CHASE = standard chase mode
 !addr monster_still_flag= $6a
 !addr monster_skirt_flag= $6b
 !addr monster_speed_sequ= $6c ; -$70  Monster 1-4, Pacman speed sequence
@@ -211,38 +211,38 @@ SR_RANDOM				= $1b
 !addr monster_start_sequ= $8e ; -$91 Monster start sequence
 !addr monster_vdir		= $92 ; -$95 Monster vertical choice
 !addr monster_hdir		= $96 ; -$99 Monster horizontal choice
-!addr chase_sound_freq	= $9a ; CHASE = ?
-!addr chase_sound_dir	= $9b ; 1=inc, 2=dec
+!addr chase_sound_freq	= $9a 		; CHASE sound = standard siren sound
+!addr chase_sound_dir	= $9b 		; 1=inc, 2=dec
 !addr chase_sound_start	= $9c
-!addr flight_sound_freq	= $9d
+!addr flight_sound_freq	= $9d		; FLIGHT sound = special flight siren when monsters blue/white
 !addr flight_sound_dir	= $9e
 !addr flight_volume		= $9f
 !addr jiffy				= $a2		; Jiffy clock 20ms counter from raster interrupt = Vsync
 !addr flight_sound_start= $a3
 !addr freeze_flag		= $a4
-!addr gulp_count1		= $a5		; GULP = eat monster
-!addr gulp_count2		= $a6
+!addr gulp_sound_count1	= $a5		; GULP sound = when Eating monster
+!addr gulp_sound_count2	= $a6
 !addr gulped_last		= $a7		; last monster eaten
 !addr gulp_count		= $a8
 !addr fizzle_flag		= $a9		; 1=fizzle
-!addr fizzle_ptr		= $aa		; FIZZLE = ?
+!addr fizzle_ptr		= $aa		; FIZZLE = fold up sequence (pacman dies)
 !addr fizzle_timer		= $ab
-!addr fizzle_status		= $ac
+!addr fizzle_status		= $ac		; 0=no,1=wiggle,2=clr mon,init/3=inc/4=dec/5=fade sound,6 blank
 !addr fizzle_sequence_no= $ad
-!addr fizzle_freq_base	= $ae
+!addr fizzle_freq_base	= $ae		; FIZZLE sound = when pacman dies
 !addr fizzle_frequency	= $af
 !addr fizzle_counter	= $b0
-!addr tweet_sound_flag  = $b1		; TWEET = standard sirene
+!addr tweet_sound_flag  = $b1		; TWEET sound = Eyes on the way back
 !addr tweet_sound_freq	= $b2
-!addr eatdot_sound_flag = $b3		; EAT DOT
+!addr eatdot_sound_flag = $b3		; EATDOT sound = when eating dos ;)
 !addr eatdot_sound_cnt	= $b4
 !addr eatdot_sound_togg	= $b5 
-!addr gobble_direction	= $b6		; GOBBLE = ?
-!addr gobble_frequency	= $b7
+!addr gobble_Sound_dir	= $b6		; GOBBLE sound = when grab fruit
+!addr gobble_Sound_freq	= $b7
 !addr flash_xup_timer	= $b9		; flash counter 1up/2up 0=off / 1=on
 !addr flash_timer		= $ba		; flash timer blue/white monsters
 !addr flash_count		= $bb		; flash count blue/white monsters
-!addr flight_timer		= $bc		; FLIGHT = blue eatable
+!addr flight_timer		= $bc		; FLIGHT = monsters are blue and eatable
 !addr tunnel_bitmask	= $bd		; TUNNEL
 !addr tunnel_iterat_cnt	= $be
 !addr temp_collision	= $bf
@@ -250,7 +250,7 @@ SR_RANDOM				= $1b
 !addr pressed_key		= $c5		; Pressed key from interrupt - only Commodore
 ; ***************************************** VARIABLES *********************************************
 !addr sprite_x			= $02d0	; -$02d4 Sprite 0-4 x positions (VIC >>1 +$2c) ATARI: GTIA HPOSP0
-!addr sprite_pacman_x	= $02d5 ; -$02d7 Pacman X storage ?
+!addr pm_missile_x_ATARI= $02d5 ; -$02d7 Missiles 1-3 x ATARI: GTIA pacman is build wit 4 missiles
 !addr PacmanBuffer		= $5800 ; -$580f Pacman image buffer 16 bytes
 !addr MonsterBuffer		= $5810 ; -$581f Monster image buffer 16 bytes
 
@@ -1139,7 +1139,7 @@ vcontn:	jsr blink3
 vplayer:jsr eyeonly
 		lda freeze_flag
 		beq vfruit
-		jmp vgulpr
+		jmp GulpSound
 vfruit: jsr fruity
 		jsr dottest
 		lda rereck_flag
@@ -1203,7 +1203,7 @@ l88d0:	lda #$42
 		clc
 		ldy #$02
 -		adc #$02
-		sta sprite_pacman_x,y
+		sta pm_missile_x_ATARI,y		; ATARI pm build with 4 missiles - not Commodore
 		dey
 		bpl -
 		adc #$02
@@ -1269,7 +1269,7 @@ l8909:	sta score_ptr1
 		lda #$84
 		sta $a6
 		lda #$02
-		sta gulp_count1
+		sta gulp_sound_count1
 		lda gulp_count
 		bne l894d
 		lda #$02
@@ -1328,9 +1328,9 @@ l899c:	lda FruitScores,x
 		sta fruit_timer
 		sta fruit_timer+1
 		lda #$01
-		sta gobble_direction
+		sta gobble_Sound_dir
 		lda #$10
-		sta gobble_frequency
+		sta gobble_Sound_freq
 		ldx player_number
 		lda maze_count1,x
 		cmp #$0c
@@ -1352,8 +1352,8 @@ l89de:	rts
 l89df:	jsr flitec
 		lda freeze_flag
 		bne l89de
-		jsr veater
-		jsr l8c0d
+		jsr EatingDotSound
+		jsr GobbleSound
 		jsr skirts
 		lda pacman_adv_turning
 		beq l89f7
@@ -1651,10 +1651,11 @@ l8be6:	lda #$38
 l8c0a:	sta pacman_screen_ptr
 l8c0c:	rts
 ; -------------------------------------------------------------------------------------------------
-; $8c0d Pacman game subroutines
-l8c0d:	ldx gobble_direction
+; $8c0d Gobble sound (grabing fruit)
+GobbleSound:
+		ldx gobble_Sound_dir
 		beq l8c48
-		lda gobble_frequency
+		lda gobble_Sound_freq
 		ldy #$21
 		cpx #$07
 		bcs l8c28
@@ -1663,23 +1664,23 @@ l8c0d:	ldx gobble_direction
 		sec
 		sbc #$01
 		bne l8c40
-l8c22:	inc gobble_direction
+l8c22:	inc gobble_Sound_dir
 		ldy #$21
 		bne l8c40
 l8c28:	cpx #$09
 		bne l8c30
-		inc gobble_direction
+		inc gobble_Sound_dir
 		bne l8c32
 l8c30:	ldy #$21
 l8c32:	clc
 		cmp #$10
 		bne l8c3e
 		lda #$00
-		sta gobble_direction
+		sta gobble_Sound_dir
 		tay
 		beq l8c40						; voice 1 = off
 l8c3e:	adc #$01
-l8c40:	sta gobble_frequency
+l8c40:	sta gobble_Sound_freq
 !ifdef 	P500{
 		sty temp
 		ldy #SR_V1FREQ+1
@@ -1985,7 +1986,7 @@ indatlp:lda SpriteInitData,x
 		dex
 		bpl indatlp
 		ldy #$00
-		jsr SetMonsterTimer
+		jsr SetMonsterTimer				; init monster start timer
 !ifdef 	P500{
 		ldy #VR_MOBMOB
 		lda (VIC),y						; VIC clear sprite-sprite collision
@@ -2015,7 +2016,7 @@ newbrd:	jsr InitGameScreen				; sub: copy game screen to screen RAM
 		bne newrek2
 		lda jiffy
 		bpl newrek2
-newrek1:jsr SetMonsterTimer
+newrek1:jsr SetMonsterTimer				; init monster start timer
 		jmp newbrd0
 newrek2:iny
 		bne newrek1
@@ -2028,7 +2029,7 @@ newbrd1:lda #$0f						; zero score
 		sta dots_eaten_hi,x
 		rts
 ; -------------------------------------------------------------------------------------------------
-; $8e72 copies data from table to $87-$89
+; $8e72 init monster start timer
 SetMonsterTimer:
 		cpy #$03
 		bcc ldmstmr
@@ -2041,7 +2042,15 @@ ldmstlp:lda BlueStartValues,y
 		bpl ldmstlp
 		rts
 ; -------------------------------------------------------------------------------------------------
-; $8e84
+; $8e84 vfizzl is the fold-up sequence for the pacman
+; vfizst is the status:
+; 0 = no action
+; 1 = wiggle skirts
+; 2 = clear monsters & init sounds
+; 3 = sound freq increasing
+; 4 = sound freq decreasing
+; 5 = fade out sound
+; 6 = show blank screen
 vfizzl:	lda fizzle_status
 		cmp #$01
 		bne l8ea2
@@ -2055,7 +2064,6 @@ l8e93:	lda monster_direction,x
 		bpl l8e93
 		dec fizzle_sequence_no
 		rts
-; -------------------------------------------------------------------------------------------------
 ; $8e9e
 l8e9e:	inc fizzle_status
 		lda fizzle_status
@@ -2263,14 +2271,14 @@ flitec:
 		beq noflit
 		lda tweet_sound_flag
 		bne chkfltm
-		jsr vrverb
+		jsr vrverb						; sub: flight sound
 chkfltm:lda flight_timer
 		beq flashsq
 		dec flight_timer
 		jmp setflc
 noflit:	lda tweet_sound_flag
 		bne fizziex
-		jmp vchase
+		jmp ChaseSound					; chase sound (standard siren sound)
 flashsq:ldx player_number
 		lda maze_count1,x
 		tax
@@ -2349,7 +2357,7 @@ mskip:	dex
 		bpl mcolrlp
 		rts
 ; -------------------------------------------------------------------------------------------------
-; $901e
+; $901e Flight sound
 vrverb:	lda flight_sound_start
 		bne l9030
 		lda #$05
@@ -2401,8 +2409,9 @@ l906d:	sta $d40b						; SID voice 2 control = sawtooth, on
 }
 		rts
 ; -------------------------------------------------------------------------------------------------
-; $9071 Gulp = Eat monster
-vtweet:	lda tweet_sound_freq
+; $9071 Tweet sound = Eyes on the way back
+TweetSound:
+		lda tweet_sound_freq
 		bne l9079
 		lda #$97
 		bne l907f
@@ -2420,13 +2429,15 @@ l907f:	sec
 }
 		lda #$21
 		bne l906d
-;
-vgulpr:	dec gulp_count1
+; -------------------------------------------------------------------------------------------------
+; Gulp sound = Eat monster
+GulpSound:
+		dec gulp_sound_count1
 		beq distrt
 		sec
-		lda gulp_count2
+		lda gulp_sound_count2
 		sbc #$04
-		sta gulp_count2
+		sta gulp_sound_count2
 		cmp #$10
 		beq gulpoff
 !ifdef 	P500{
@@ -2441,11 +2452,11 @@ vgulpr:	dec gulp_count1
 		lda #$21
 		bne gbranch
 distrt:	lda #$02
-		sta gulp_count1
+		sta gulp_sound_count1
 		sec
-		lda gulp_count2
+		lda gulp_sound_count2
 		sbc #$03
-		sta gulp_count2
+		sta gulp_sound_count2
 !ifdef 	P500{
 		ldy #SR_V1FREQ+1
 		sta (SID),y						; SID voice 1 frequency hi
@@ -2488,8 +2499,9 @@ rsetplc:lda #$00
 		inc pacman_adv_turning
 		jmp Munchy
 ; -------------------------------------------------------------------------------------------------
-; $90e3 Eat dot sound
-veater:	lda eatdot_sound_flag
+; $90e3 Eating dot sound
+EatingDotSound:
+		lda eatdot_sound_flag
 		beq l910c
 		ldx eatdot_sound_cnt
 		cpx #$06
@@ -2878,11 +2890,11 @@ l934d:	lda (pixel_get_ptr),y
 		lda pacman_hpos
 		sta sprite_x+4
 		adc #$02
-		sta sprite_pacman_x+2
+		sta pm_missile_x_ATARI+2		; ATARI pm build with 4 missiles - not Commodore
 		adc #$02
-		sta sprite_pacman_x+1
+		sta pm_missile_x_ATARI+1
 		adc #$02
-		sta sprite_pacman_x
+		sta pm_missile_x_ATARI
 		ldy #$0f
 l937c:	lda (pixel_get_ptr),y
 		sta (pixel_put_ptr),y
@@ -3185,8 +3197,9 @@ l9554:	lda temp
 		plp
 		rts
 ; -------------------------------------------------------------------------------------------------
-; $9558
-vchase:	lda #$00
+; $9558 chase sound (standard siren sound)
+ChaseSound:
+		lda #$00
 		sta flight_sound_start
 		lda chase_sound_start
 		bne l956a
@@ -3219,7 +3232,7 @@ l958f:	sec
 		sbc chase_whine_delta
 l9594:	sta chase_sound_freq
 !ifdef 	P500{
-		ldy #SR_V2FREQ
+		ldy #SR_V2FREQ+1
 		sta (SID),y						; SID voice 2 frequency hi
 		lda #$11
 		ldy #SR_V2CTRL
@@ -3471,7 +3484,7 @@ nxteyd:	dex
 		beq l9752
 gtweet:	lda freeze_flag
 		bne l9752
-		jsr vtweet
+		jsr TweetSound
 l9752:	ldx #$03
 l9754:	lda monster_status,x
 		clc
