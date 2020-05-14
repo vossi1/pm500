@@ -63,6 +63,7 @@ YELLOW					= $07
 ORANGE					= $08
 BROWN					= $09
 LIGHTRED				= $0a
+LIGHTGREEN				= $0d
 LIGHTBLUE				= $0e
 GRAY3					= $0f
 MCM						= $08		; bit#3 for multicolor character
@@ -144,6 +145,9 @@ SR_RANDOM				= $1b
 !addr reset_flag		= $12		;
 !addr reset_timer		= $13		;
 !addr rereck_flag		= $14		;
+!addr rerack_sequence	= $15		; RERACK = Draw new dots after cleared the maze
+!addr rerack_timer		= $16
+!addr rerack_flash_count= $17
 !addr temp				= $18		; Temp byte
 !addr player_number		= $19		; Actual player 0=1, 1=2
 !addr extra_pacman1		= $1a		; Lives player 1 (starts with 3)
@@ -195,21 +199,20 @@ SR_RANDOM				= $1b
 !addr 
 !addr 
 !addr 
-!addr 
-!addr 
-!addr 
-!addr 
-!addr 
-
+!addr monster_patt_index= $76
+!addr monster_patt_count= $7a
+!addr monster_targ_hpos	= $7e ; -$81 Monster 1-4 target horizontal position 
+!addr monster_targ_vpos	= $82 ; -$85 Monster 1-4 target vertical position
+!addr monster_timer		= $86 ; -$89 Monster 1-4 timer
 !addr monster_status	= $8a ; -$8d Monster 1-4 Status - bit#7 = flight (Blue eatable)
-!addr 
-!addr 
-!addr 
-!addr 
-!addr 
-!addr 
-!addr 
-!addr 
+!addr monster_start_sequ= $8e ; -$91 Monster start sequence
+!addr monster_vdir		= $92 ; -$95 Monster vertical choice
+!addr monster_hdir		= $96 ; -$99 Monster horizontal choice
+!addr chase_sound_freq	= $9a ; CHASE = ?
+!addr chase_sound_dir	= $9b ; 1=inc, 2=dec
+!addr chase_sound_start	= $9c
+!addr flight_sound_freq	= $9d
+!addr flight_sound_dir	= $9e
 !addr 
 !addr 
 !addr 
@@ -222,32 +225,34 @@ SR_RANDOM				= $1b
 !addr 
 
 !addr freeze_flag		= $a4
-!addr 
-!addr 
-!addr 
-!addr 
-
+!addr gulp_count1		= $a5		; GULP = eat monster
+!addr gulp_count2		= $a6
+!addr gulped_last		= $a7		; last monster eaten
+!addr gulp_count		= $a8
+!addr fizzle_flag		= $a9		; 1=fizzle
+!addr fizzle_ptr		= $aa		; FIZZLE = ?
+!addr fizzle_timer		= $ab
 !addr fizzle_status		= $ac
 !addr fizzle_sequence_no= $ad
-!addr 
+!addr fizzle_freq_base	= $ae
+!addr fizzle_frequency	= $af
 !addr fizzle_counter	= $b0
-!addr tweet_sound_flag  = $b1
+!addr tweet_sound_flag  = $b1		; TWEET = standard sirene
 !addr tweet_sound_freq	= $b2
-
-!addr eatdot_sound_flag = $b3
+!addr eatdot_sound_flag = $b3		; EAT DOT
 !addr eatdot_sound_cnt	= $b4
-!addr eatdot_toggle		= $b5 
-!addr 
-!addr 
-!addr 
+!addr eatdot_sound_togg	= $b5 
+!addr gobble_direction	= $b6		; GOBBLE = ?
+!addr gobble_frequency	= $b7
 !addr flash_xup_timer	= $b9		; flash counter 1up/2up 0=off / 1=on
 !addr flash_timer		= $ba		; flash timer blue/white monsters
 !addr flash_count		= $bb		; flash count blue/white monsters
-!addr flight_timer		= $bc		; flight timer monsters
-!addr tunnel_bitmask	= $bd
+!addr flight_timer		= $bc		; FLIGHT = blue eatable
+!addr tunnel_bitmask	= $bd		; TUNNEL
 !addr tunnel_iterat_cnt	= $be
+!addr temp_collision	= $bf
 !addr spritedata_ptr	= $c0		; 16bit pointer for sprite data copy
-!addr pressed_key		= $c5		; Pressed key from interrupt
+!addr pressed_key		= $c5		; Pressed key from interrupt - only Commodore
 ; ***************************************** VARIABLES *********************************************
 !addr sprite_x			= $02d0	; -$02d4 Sprite 0-4 x positions (VIC >>1 +$2c)
 !addr PacmanBuffer		= $5800 ; -$580f Pacman image buffer 16 bytes
@@ -409,7 +414,7 @@ reinilp:sta game_over_flag,x			; clear game variables $0e-$2d
 		dex
 		bpl reinilp
 		txs								; init stack with $ff
-		jsr SoundOff					; SID sound off
+		jsr ClearAudio					; SID sound off
 !ifdef 	P500{
 		ldy #VR_EXTCOL
 		sta (VIC),y						; VIC exterior color = black
@@ -421,7 +426,7 @@ reinilp:sta game_over_flag,x			; clear game variables $0e-$2d
 		lda #RED
 		iny
 		sta (VIC),y						; VIC background color2 = red
-		ldy #$ff						; set Y = $ff because its set to this value after SoundOff
+		ldy #$ff						; set Y = $ff because its set to this value after ClearAudio
 } else{
 		sta $d020						; VIC exterior color = black
 		sta $d021						; VIC background color0 = black
@@ -693,17 +698,17 @@ InitOptions:
 !ifdef P500{
 		ldy #VR_MEMPT
 		sta (VIC),y						; set VIC memory pointers
-		jsr SoundOff					; returns with A=$00
+		jsr ClearAudio					; returns with A=$00
 		ldy #VR_MOBENA
 		sta (VIC),y						; VIC disable sprites
-		ldy #$ff						; set Y = $ff because its set to this value after SoundOff
+		ldy #$ff						; set Y = $ff because its set to this value after ClearAudio
 		rts
 } else{
 }
 		sta $d018						; set VIC memory pointers
 		lda #$c8
 		sta $d016						; set VIC Multicolor mode off, 40 Columns
-		jsr SoundOff					; returns with A=$00
+		jsr ClearAudio					; returns with A=$00
 		sta $d015						; VIC disable sprites
 		rts
 ; -------------------------------------------------------------------------------------------------
@@ -1035,7 +1040,7 @@ vbgame:	lda atract_timer_ATARI
 
 vbgame1:lda pause_flag
 		beq vbgame2						; skip if 0 = no pause
-		jmp SoundOff					; JUMP to Sound off in pause and return from game cycle!
+		jmp ClearAudio					; JUMP to Sound off in pause and return from game cycle!
 vbgame2:jsr FlashXUp					; sub: blink 1/2up of active player
 		lda restart_flag
 		beq tstgmov						; branch to check game over
@@ -1062,7 +1067,7 @@ vtunes:	inc intro_flag
 		lda #$00
 		sta attract_ATARI				; NOT USED in Commodore - prevents Atari screen saver
 		sta restart_flag
-		jmp Ready						; sub: print READY: and level fruits
+		jmp Ready1						; sub: print READY: and level fruits
 ; -------------------------------------------------------------------------------------------------
 ; $8801 calc new monster data pointer
 SetMonsterDataEnd:
@@ -1102,7 +1107,7 @@ vintro:	lda jiffy
 		inc notes_counter
 		cpx #$28
 		bne vsquit						; return if notes_counter not = $28
-		jmp ready2						; sub: Player dead: die-animation, decrease lives
+		jmp Ready2
 ; $8830
 vstart:	inc ready_flag
 vstart1:inc monster_status
@@ -1150,7 +1155,7 @@ vfruit: jsr fruity
 } else{
 		lda $d01e						; load VIC sprite-sprite collision reg
 }
-		sta $bf
+		sta temp_collision
 		and #$10
 		beq vplyud
 		ldx #$00						; start with sprite/monster 0
@@ -1159,7 +1164,7 @@ l888c:	lda monster_status,x
 		asl
 		bmi l88be
 		tya
-		bit $bf
+		bit temp_collision
 		beq l88be
 		lda pacman_hpos
 		cmp monster_hpos,x
@@ -1193,8 +1198,8 @@ l88c9:	lda monster_status,x
 		jmp l8968
 l88d0:	lda #$42
 		sta monster_status,x
-		stx $a7
-		inc $a8
+		stx gulped_last
+		inc gulp_count
 		sec
 		lda pacman_hpos
 		sbc #$04
@@ -1234,7 +1239,7 @@ l8909:	sta score_ptr1
 		adc $27
 		adc #$01
 		sta $29
-		lda $a8
+		lda gulp_count
 		asl
 		tay
 		lda BlueScorePointers,y
@@ -1268,8 +1273,8 @@ l8909:	sta score_ptr1
 		lda #$84
 		sta $a6
 		lda #$02
-		sta $a5
-		lda $a8
+		sta gulp_count1
+		lda gulp_count
 		bne l894d
 		lda #$02
 		bne l8963
@@ -1289,7 +1294,7 @@ l8963:	sta player_score_text+3
 l8968:	lda $66
 		ora #$80
 		sta $66
-		jsr SoundOff
+		jsr ClearAudio
 		lda #$01
 		sta $6a
 		sta fizzle_status
@@ -1327,9 +1332,9 @@ l899c:	lda FruitScores,x
 		sta fruit_timer
 		sta fruit_timer+1
 		lda #$01
-		sta $b6
+		sta gobble_direction
 		lda #$10
-		sta $b7
+		sta gobble_frequency
 		ldx player_number
 		lda maze_count1,x
 		cmp #$0c
@@ -1353,7 +1358,7 @@ l89df:	jsr l8f9b
 		bne l89de
 		jsr l90e3
 		jsr l8c0d
-		jsr l8c49
+		jsr skirts
 		lda $64
 		beq l89f7
 		lda #$00
@@ -1377,34 +1382,36 @@ l8a19:	jsr l9617
 		lda $64
 		bne l8a77
 		ldx #$03
+; $8a22 speed handler for monsters
+; entry: x reg = 0-3 for monsters 1-4
 l8a22:	lda monster_status,x
 		and #$7f
-		beq l8a74
+		beq nxmspd
 		lda jiffy
 		and #$07
 		bne l8a34
-		lda $86,x
+		lda monster_timer,x
 		beq l8a34
-		dec $86,x
+		dec monster_timer,x
 l8a34:	lda monster_status,x
 		and #$3f
-		beq l8a74
+		beq nxmspd
 		lda monster_status,x
 		asl
-		bmi l8a74
+		bmi nxmspd
 		lda monster_vpos,x
 		cmp #$74
-		bne l8a4f
+		bne spdblue
 		lda monster_hpos,x
 		cmp #$a7
-		bcs l8a53
+		bcs spdslow
 		cmp #$52
-		bcc l8a53
-l8a4f:	lda monster_status,x
+		bcc spdslow
+spdblue:lda monster_status,x
 		bpl l8a6a
-l8a53:	jsr l95e0
+spdslow:jsr l95e0
 		cmp #$00
-		bne l8a74
+		bne nxmspd
 		ldy monster_delay,x
 		cpy #$01
 		bne l8a64
@@ -1412,30 +1419,31 @@ l8a53:	jsr l95e0
 		beq l8a71
 l8a64:	lda #$01
 		sta monster_delay,x
-		bne l8a74
+		bne nxmspd
 l8a6a:	jsr l95e0
 		cmp #$00
-		bne l8a74
+		bne nxmspd
 l8a71:	jsr l9845
-l8a74:	dex
+nxmspd:	dex
 		bpl l8a22
 l8a77:	rts
 ; -------------------------------------------------------------------------------------------------
-; monster_status78
-vreset:	jsr l95aa
+; 
+vreset:	jsr blnkon
 		lda swap_player_flag
-		beq l8ae8
+		beq vreset1
 		ldx reset_timer
-		beq ChangePlayer
+		beq vswap1
 		dec reset_timer
 		rts
 ; -------------------------------------------------------------------------------------------------
-; $8a86 change player
-ChangePlayer:
+; $8a86 swap player
+vswap1:
 		cmp #$01
-		bne l8ab0
+		bne vswap2
+;
 		ldx #$00
-l8a8c:	lda Player1Save,x				; restore player  screen
+lodp1lp:lda Player1Save,x				; restore player  screen
 		sta Maze,x
 		lda Player1Save+$100,x
 		sta Maze+$100,x
@@ -1444,15 +1452,17 @@ l8a8c:	lda Player1Save,x				; restore player  screen
 		lda Player1Save+$300,x
 		sta Maze+$300,x
 		inx
-		bne l8a8c
+		bne lodp1lp
+;
 		jsr Flash2On
-		lda #$00						; change to player 1
+		lda #$00						; swap to player 1
 		sta player_number
-		beq l8ae3
-l8ab0:	cmp #$02
-		bne l8ada
+		beq vswapx
+vswap2:	cmp #$02
+		bne vswap3
+;
 		ldx #$00
-l8ab6:	lda Player2Save,x				; restore player 2 screen
+lodp2lp:lda Player2Save,x				; restore player 2 screen
 		sta Maze,x
 		lda Player2Save+$100,x
 		sta Maze+$100,x
@@ -1461,62 +1471,63 @@ l8ab6:	lda Player2Save,x				; restore player 2 screen
 		lda Player2Save+$300,x
 		sta Maze+$300,x
 		inx
-		bne l8ab6
+		bne lodp2lp
+;
 		jsr Flash1On
-		lda #$01						; change to player 2
+		lda #$01						; swap to player 2
 		sta player_number
-		bne l8ae3
-l8ada:	jsr l95aa
+		bne vswapx
+vswap3:	jsr blnkon
 		lda #$00
 		sta swap_player_flag
-		beq l8b2b
-l8ae3:	lda #$03
-l8ae5:	sta swap_player_flag
+		beq rset1pg
+vswapx:	lda #$03
+vswapx1:sta swap_player_flag
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $8ae8
-l8ae8:	lda players
-		beq l8b2b
+vreset1:lda players
+		beq rset1pg
 		lda player_number
-		bne l8b0d
+		bne rset2pg
 		lda extra_pacman2
-		beq l8b2b
+		beq rset1pg						; player 2 dead
 		lda extra_pacman1
-		bne l8b02
+		bne swap12						; go swap players
 		lda #$02
-		sta swap_player_flag
+		sta swap_player_flag			; show player 1 game over
 		lda #$30
 		sta reset_timer
-		bne l8b3a
-l8b02:	jsr SaveScreenPlayer1			; sub: init game screen player1 $4400
+		bne vgmend
+swap12:	jsr SaveScreenPlayer1			; sub: init game screen player1 $4400
 		lda #$30
 		sta reset_timer
 		lda #$02
-		bne l8ae5
-l8b0d:	lda extra_pacman1
-		beq l8b2b
+		bne vswapx1
+rset2pg:lda extra_pacman1
+		beq rset1pg						; player 1 dead
 		lda extra_pacman2
-		bne l8b1f
+		bne swap21						; go swap players
 		lda #$01
-		sta swap_player_flag
+		sta swap_player_flag			; show player 2 game over
 		lda #$30
 		sta reset_timer
-		bne l8b3a
-l8b1f:	jsr SaveScreenPlayer2			; sub: init game screen player2 $4800
+		bne vgmend
+swap21:	jsr SaveScreenPlayer2			; sub: init game screen player2 $4800
 		lda #$30
 		sta reset_timer
 		lda #$01
 		sta swap_player_flag
-l8b2a:	rts
+vggone:	rts
 ; -------------------------------------------------------------------------------------------------
 ; $8b2b
-l8b2b:	ldx player_number
+rset1pg:ldx player_number
 		lda extra_pacman1,x
-		beq l8b3a
+		beq vgmend						; game is over
 		jsr Setup						; sub: init new game
-		jsr Ready						; sub: print READY: and difficulty fruits
-		jmp ready2						; sub: Player dead: die-animation, decrease lives
-l8b3a:	lda #$2c
+		jsr Ready1						; sub: print READY: and difficulty fruits
+		jmp Ready2
+vgmend:	lda #$2c
 		ldx #$00
 l8b3e:	sta GameScreen+$23d,x
 		clc
@@ -1533,7 +1544,7 @@ l8b3e:	sta GameScreen+$23d,x
 		sta $d02b						; set VIC sprite 4 color = red (pacman)
 }
 		lda swap_player_flag
-		bne l8b2a
+		bne vggone
 		ldx #$2a						; score 1 screen position
 		jsr CheckHighscore
 		ldx #$47						; score 2 screen position
@@ -1545,7 +1556,7 @@ l8b3e:	sta GameScreen+$23d,x
 		lda #$e2
 		sta atract_timer_ATARI			; set attract timer start value - only ATARI
 		jsr Flash1On
-		jmp l95aa
+		jmp blnkon
 ; $8b71 check for new highsore
 CheckHighscore:
 		ldy #$00
@@ -1644,10 +1655,10 @@ l8be6:	lda #$38
 l8c0a:	sta pacman_screen_ptr
 l8c0c:	rts
 ; -------------------------------------------------------------------------------------------------
-; $8c0d
-l8c0d:	ldx $b6
+; $8c0d Pacman game subroutines
+l8c0d:	ldx gobble_direction
 		beq l8c48
-		lda $b7
+		lda gobble_frequency
 		ldy #$21
 		cpx #$07
 		bcs l8c28
@@ -1656,23 +1667,23 @@ l8c0d:	ldx $b6
 		sec
 		sbc #$01
 		bne l8c40
-l8c22:	inc $b6
+l8c22:	inc gobble_direction
 		ldy #$21
 		bne l8c40
 l8c28:	cpx #$09
 		bne l8c30
-		inc $b6
+		inc gobble_direction
 		bne l8c32
 l8c30:	ldy #$21
 l8c32:	clc
 		cmp #$10
 		bne l8c3e
 		lda #$00
-		sta $b6
+		sta gobble_direction
 		tay
 		beq l8c40						; voice 1 = off
 l8c3e:	adc #$01
-l8c40:	sta $b7
+l8c40:	sta gobble_frequency
 !ifdef 	P500{
 		sty temp
 		ldy #SR_V1FREQ+1
@@ -1687,7 +1698,7 @@ l8c40:	sta $b7
 l8c48:	rts
 ; -------------------------------------------------------------------------------------------------
 ; $8c49
-l8c49:	lda jiffy
+skirts:	lda jiffy
 		and #$0f
 		bne l8c5b
 		lda $6b
@@ -1698,26 +1709,25 @@ l8c49:	lda jiffy
 l8c59:	inc $6b
 l8c5b:	rts
 ; -------------------------------------------------------------------------------------------------
-; $8c5c
-rerack:	lda $15
-		bne l8c6d
-		jsr SoundOff
-		jsr _SpriteMovementAnimationLoop
+; $8c5c rerack will reset maze after a player has cleared all dots
+rerack:	lda rerack_sequence
+		bne testrrs
+		jsr ClearAudio
+		jsr Drawit
 		lda #$40
-l8c68:	sta $16
-l8c6a:	inc $15
+rerkxx1:sta rerack_timer
+rerkxx2:inc rerack_sequence
 		rts
-; -------------------------------------------------------------------------------------------------
 ; $l8c6
-l8c6d:	cmp #$01
-		bne l8c8f
-		lda $16
-		bne l8c8c
+testrrs:cmp #$01
+		bne testrr2
+		lda rerack_timer
+		bne drrwtm						; decrease rerack wait timer				
 		lda #$00
 		ldx #$03
-l8c79:	sta sprite_x,x
+tsrr1lp:sta sprite_x,x
 		dex
-		bpl l8c79
+		bpl tsrr1lp
 		lda #LIGHTBLUE
 !ifdef 	P500{
 		ldy #VR_BGRCOL+1
@@ -1726,27 +1736,26 @@ l8c79:	sta sprite_x,x
 		sta $d022						; set VIC backgroundcolor 1 = lightblue					
 }
 		lda #$07
-		sta $17
+		sta rerack_flash_count
 		lda #$10
-		bne l8c68
-l8c8c:	dec $16
+		bne rerkxx1
+drrwtm:	dec rerack_timer
 		rts
-; -------------------------------------------------------------------------------------------------
 ; $8c8f
-l8c8f:	cmp #$02
-		bne l8caf
-		lda $16
-		bne l8c8c
-		dec $17
-		beq l8c6a
-		lda $17
+testrr2:cmp #$02
+		bne testrr3
+		lda rerack_timer
+		bne drrwtm						; decrease rerack color timer
+		dec rerack_flash_count
+		beq rerkxx2
+		lda rerack_flash_count
 		clc
 		lsr
-		bcc l8ca5
-		lda #$0e
-		bne l8ca7
-l8ca5:	lda #WHITE
-l8ca7:
+		bcc altblue
+		lda #LIGHTBLUE
+		bne setrrc
+altblue:lda #WHITE
+setrrc:
 !ifdef 	P500{
 		ldy #VR_BGRCOL+1
 		sta (VIC),y						; set VIC backgroundcolor 1 = white					
@@ -1754,57 +1763,55 @@ l8ca7:
 		sta $d022						; set VIC backgroundcolor 1 = white
 }
 		lda #$10
-		sta $16
+		sta rerack_timer
 		rts
-; -------------------------------------------------------------------------------------------------
 ; $8caf
-l8caf:	cmp #$03
-		bne l8cb9
+testrr3:cmp #$03
+		bne testrr4
 		jsr Setup						; sub: init new game
-		inc $15
+		inc rerack_sequence
 		rts
-; -------------------------------------------------------------------------------------------------
 ; $8cb9
-l8cb9:	jsr l8e49
+testrr4:jsr newbrd
 		ldx player_number
 		inc extra_pacman1,x
 		inc maze_count1,x
-		jsr Ready						; sub: print READY: and difficulty fruits
-		jsr ready2						; sub: Player dead: die-animation, decrease lives
+		jsr Ready1						; sub: print READY: and difficulty fruits
+		jsr Ready2
 		lda #$00
 		sta rereck_flag
-		sta $15
+		sta rerack_sequence
 		lda #$02
 		sta reset_flag
 		lda #$40
 		sta reset_timer
 		rts
 ; -------------------------------------------------------------------------------------------------
-; $8cd7 print READY: and difficulty fruits
-Ready:	lda #$22						; first READY: char ( $22-$2b )
+; $8cd7 Get ready to play: Print READY: and difficulty fruits
+Ready1:	lda #$22						; first READY: char ( $22-$2b )
 		ldx #$00
-readycp:sta GameScreen+$23f,x			; screen position for READY:
+readylp:sta GameScreen+$23f,x			; screen position for READY:
 		clc
 		adc #$01
 		inx
 		cpx #$0a						; 10 chars
-		bne readycp
+		bne readylp
 		ldx player_number
 		lda maze_count1,x				; load player difficulty
 		cmp #$06
-		bcc l8cf6
+		bcc setred
 		cmp #$0a
-		bcs l8cf6
-		ldy #$0d
-		bne l8cf8
-l8cf6:	ldy #$0a
-l8cf8:	sty fruit_color			; ATARI - only stored, not used on Commodore
+		bcs setred
+		ldy #LIGHTGREEN
+		bne setfrc						; set up for green fruits
+setred:	ldy #LIGHTRED
+setfrc:	sty fruit_color					; ATARI - only stored, not used on Commodore
 		ldy #$00
 !ifdef 	P500{				; Y already $00
 		sty IndirectBank				; select bank 0 for pointer operations
 }
 		cmp #$06
-		bcs l8d25						; branch if A >= $06
+		bcs hfruits						; branch if A >= $06
 		sta temp
 		lda #$e2
 		sta pixel_put_ptr
@@ -1814,23 +1821,23 @@ l8cf8:	sty fruit_color			; ATARI - only stored, not used on Commodore
 !ifdef 	P500{				; X already $00
 		stx IndirectBank				; select bank 0 for pointer operations
 }
-l8d0c:	lda FruitChars,x				; load fruit char from table
+fruitlp:lda FruitChars,x				; load fruit char from table
 		sta (pixel_put_ptr),y			; store fruit code to screen
 		inc pixel_put_ptr				; screen pointer to second char
 		clc
 		adc #$01						; add 1 to char code for second fruit char
 		sta (pixel_put_ptr),y
 		cpx temp
-		beq l8d51
+		beq fsplit
 		inx
 		dec pixel_put_ptr					; next fruit position to the left
 		dec pixel_put_ptr
 		dec pixel_put_ptr
-		bne l8d0c
-l8d25:	cmp #$12
-		bcc l8d2b
+		bne fruitlp
+hfruits:cmp #$12
+		bcc hfruit1
 		lda #$12						; A = max $12
-l8d2b:	sec
+hfruit1:sec
 		sbc #$06						; substract $06 -> value 0 - $0c
 		sta temp
 		sec
@@ -1841,7 +1848,7 @@ l8d2b:	sec
 		sbc #$00
 		sta pixel_get_ptr+1
 		ldx #$00
-l8d3f:	lda (pixel_get_ptr),y
+hfruitl:	lda (pixel_get_ptr),y
 		sta GameScreen+$3d6,x
 		clc
 		adc #$01
@@ -1850,17 +1857,17 @@ l8d3f:	lda (pixel_get_ptr),y
 		inx
 		iny
 		cpy #$07
-		bne l8d3f
-l8d51:
+		bne hfruitl
+fsplit:
 !ifdef 	P500{
 		lda #SYSTEMBANK
 		sta IndirectBank				; switch back to bank 15
 }
 		rts
 ; -------------------------------------------------------------------------------------------------
-; $8d52 Player dead: die-animation, decrease lives
-ready2:
-		jsr _SpriteMovementAnimationLoop
+; $8d52
+Ready2:
+		jsr Drawit
 		ldx player_number
 		dec extra_pacman1,x				; decrease lives of actual player
 ; $8d59 update lives display -> draw mini-pacmans
@@ -1891,12 +1898,12 @@ clr1liv:stx GameScreen+$3c8
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $8d8d
-_SpriteMovementAnimationLoop:
+Drawit:
 		lda #$01
 		sta $6a
 		ldx #$03
 l8d93:	lda monster_direction,x
-		jsr _SpriteMovementAnimation
+		jsr monhnd
 		dex
 		bpl l8d93
 		lda #$00
@@ -2005,7 +2012,7 @@ InitGameVariables:
 		sta maze_count2
 		ldx #$01
 		jsr inzersc						; zero score
-l8e49:	jsr InitGameScreen				; sub: copy game screen to screen RAM
+newbrd:	jsr InitGameScreen				; sub: copy game screen to screen RAM
 		jsr UpdateLivesDisplay			; sub: update lives display -> draw mini-pacmans
 		ldx player_number
 		lda maze_count1,x
@@ -2045,10 +2052,10 @@ vfizzl:	lda fizzle_status
 		bne l8ea2
 		lda fizzle_sequence_no
 		beq l8e9e
-		jsr l8c49
+		jsr skirts
 		ldx #$03
 l8e93:	lda monster_direction,x
-		jsr _SpriteMovementAnimation
+		jsr monhnd
 		dex
 		bpl l8e93
 		dec fizzle_sequence_no
@@ -2065,14 +2072,14 @@ l8eaa:	sta sprite_x,x
 		dex
 		bpl l8eaa
 		lda #$25
-		sta $af
-		sta $ae
-		jsr SoundOff
+		sta fizzle_frequency
+		sta fizzle_freq_base
+		jsr ClearAudio
 		sta fizzle_counter
-		sta $aa
-		inc $a9
+		sta fizzle_ptr
+		inc fizzle_flag
 		lda #$07
-		sta $ab
+		sta fizzle_timer
 		lda #$03
 		sta fizzle_status
 		bne l8ed9
@@ -2088,17 +2095,17 @@ l8ed9:	lda #$21
 !ifdef 	P500{
 		ldy #SR_V1CTRL
 		sta (SID),y						; SID voice 1 control = sawtooth, on
-		lda $af
+		lda fizzle_frequency
 		ldy #SR_V1FREQ+1
 		sta (SID),y						; set SID voice 1 frequency hi
 } else{
 		sta $d404						; SID voice 1 control = sawtooth, on
-		lda $af
+		lda fizzle_frequency
 		sta $d401						; set SID voice 1 frequency hi
 }
 		sec
 		sbc #$02
-		sta $af
+		sta fizzle_frequency
 		inc fizzle_counter
 		lda fizzle_counter
 		cmp #$04
@@ -2108,26 +2115,26 @@ l8ef2:	lda #$21
 !ifdef 	P500{
 		ldy #SR_V1CTRL
 		sta (SID),y						; SID voice 1 control = sawtooth, on
-		lda $af
+		lda fizzle_frequency
 		ldy #SR_V1FREQ+1
 		sta (SID),y						; set SID voice 1 frequency hi
 } else{
 		sta $d404						; SID voice 1 control = sawtooth, on
-		lda $af
+		lda fizzle_frequency
 		sta $d401						; set SID voice 1 frequency hi
 }
 		clc
 		adc #$02
-		sta $af
+		sta fizzle_frequency
 		dec fizzle_counter
 		bne l8f33
-		lda $ae
+		lda fizzle_freq_base
 		cmp #$13
 		beq l8f31
 		sec
 		sbc #$02
-		sta $ae
-		sta $af
+		sta fizzle_freq_base
+		sta fizzle_frequency
 		lda #$03
 l8f14:	sta fizzle_status
 		rts
@@ -2137,20 +2144,20 @@ l8f17:	lda #$21
 !ifdef 	P500{
 		ldy #SR_V1CTRL
 		sta (SID),y						; SID voice 1 control = sawtooth, on
-		lda $ae
+		lda fizzle_freq_base
 		ldy #SR_V1FREQ+1
 		sta (SID),y						; set SID voice 1 frequency hi
 } else{
 		sta $d404						; SID voice 1 control = sawtooth, on
-		lda $ae
+		lda fizzle_freq_base
 		sta $d401						; set SID voice 1 frequency hi
 }
 		clc
 		adc #$02
-		sta $ae
+		sta fizzle_freq_base
 		cmp #$35
 		bne l8f33
-		jsr SoundOff
+		jsr ClearAudio
 		lda #$80
 		sta fizzle_counter
 l8f31:	inc fizzle_status
@@ -2168,23 +2175,23 @@ l8f3b:	dec fizzle_counter
 ; -------------------------------------------------------------------------------------------------
 ; $8f3e
 fizzie:	
-		lda $a9
+		lda fizzle_flag
 		beq l8f9a
 		lda pacman_vpos
 		sta pixel_put_ptr
 		lda #$53
 		sta pixel_put_ptr+1
-		lda $ab
+		lda fizzle_timer
 		beq l8f52
-		dec $ab
+		dec fizzle_timer
 		bpl l8f5e
-l8f52:	lda $aa
+l8f52:	lda fizzle_ptr
 		cmp #$0f
 		beq l8f8f
-		inc $aa
+		inc fizzle_ptr
 		lda #$05
-		sta $ab
-l8f5e:	lda $aa
+		sta fizzle_timer
+l8f5e:	lda fizzle_ptr
 		beq l8f73
 		cmp #$0f
 		beq l8f81
@@ -2251,7 +2258,7 @@ l8f8f:	ldy #$0f			; already bank 0 selected
 l8f93:	sta (pixel_put_ptr),y
 		dey
 		bpl l8f93
-		sta $a9
+		sta fizzle_flag
 !ifdef 	P500{
 		lda #SYSTEMBANK
 		sta IndirectBank				; switch back to bank 15
@@ -2355,14 +2362,14 @@ l901e:	lda $a3
 		lda #$05
 		sta $9f
 		lda #$02
-		sta $9e
+		sta flight_sound_dir
 		inc $a3
 		lda #$0e
-		sta $9d
-l9030:	lda $9e
+		sta flight_sound_freq
+l9030:	lda flight_sound_dir
 		cmp #$01
 		bne l9055
-		lda $9d
+		lda flight_sound_freq
 		cmp #$0e
 		bne l904e
 		lda $9f
@@ -2372,22 +2379,22 @@ l9030:	lda $9e
 		sta $9f
 l9046:	dec $9f
 		lda #$02
-		sta $9e
+		sta flight_sound_dir
 		bne l9061
 l904e:	sec
-		lda $9d
+		lda flight_sound_freq
 		sbc #$03
 		bne l9066
-l9055:	lda $9d
+l9055:	lda flight_sound_freq
 		cmp #$20
 		bne l9061
 		lda #$01
-		sta $9e
+		sta flight_sound_dir
 		bne l904e
 l9061:	clc
-		lda $9d
+		lda flight_sound_freq
 		adc #$03
-l9066:	sta $9d
+l9066:	sta flight_sound_freq
 !ifdef 	P500{
 		ldy #SR_V2FREQ+1
 		sta (SID),y						; SID voice 2 frequency hi
@@ -2402,7 +2409,7 @@ l906d:	sta $d40b						; SID voice 2 control = sawtooth, on
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $9071
-l9071:	lda tweet_sound_freq
+vtweet:	lda tweet_sound_freq
 		bne l9079
 		lda #$97
 		bne l907f
@@ -2420,12 +2427,12 @@ l907f:	sec
 }
 		lda #$21
 		bne l906d
-vgulpr:	dec $a5
+vgulpr:	dec gulp_count1
 		beq l90a4
 		sec
-		lda $a6
+		lda gulp_count2
 		sbc #$04
-		sta $a6
+		sta gulp_count2
 		cmp #$10
 		beq l90bc
 !ifdef 	P500{
@@ -2440,11 +2447,11 @@ vgulpr:	dec $a5
 		lda #$21
 		bne l90b7
 l90a4:	lda #$02
-		sta $a5
+		sta gulp_count1
 		sec
-		lda $a6
+		lda gulp_count2
 		sbc #$03
-		sta $a6
+		sta gulp_count2
 !ifdef 	P500{
 		ldy #SR_V1FREQ+1
 		sta (SID),y						; SID voice 1 frequency hi
@@ -2460,10 +2467,10 @@ l90b7:	ldy #SR_V2CTRL
 l90b7:	sta $d40b						; SID voice 2 control = sawtooth, on
 }
 		bne l9109
-l90bc:	jsr SoundOff
+l90bc:	jsr ClearAudio
 		sta freeze_flag
 		sta $63
-		sty $a7
+		sty gulped_last
 		lda #$0f
 		sta $02c7
 !ifdef 	P500{
@@ -2497,7 +2504,7 @@ l90e3:	lda eatdot_sound_flag
 		sta eatdot_sound_flag
 		sta eatdot_sound_cnt
 		beq l9109
-l90f5:	lda eatdot_toggle
+l90f5:	lda eatdot_sound_togg
 		bne l90ff
 		lda EatingDotsSoundData1,x
 		jmp l9102
@@ -2517,7 +2524,7 @@ l9109:	sta $d404						; SID voice 1 control = sawtooth, on
 l910c:	rts
 ; -------------------------------------------------------------------------------------------------
 ; $910d Stop SID sound
-SoundOff:
+ClearAudio:
 !ifdef 	P500{
 		lda #$88
 		ldy #SR_MODVOL
@@ -2939,12 +2946,12 @@ l93b0:	sta player_score_text+4
 		sta $65
 		lda #$00
 		sta eatdot_sound_cnt
-		lda eatdot_toggle
+		lda eatdot_sound_togg
 		bne l93c7
 		lda #$01
 		bne l93c9
 l93c7:	lda #$00
-l93c9:	sta eatdot_toggle
+l93c9:	sta eatdot_sound_togg
 		lda #$00
 		tay
 !ifdef 	P500{				; Y already $00
@@ -3013,7 +3020,7 @@ l9428:	eor #$0f
 		lda #$01						; set up for blue monsters
 		sta flash_count
 		lda #$ff
-		sta $a8
+		sta gulp_count
 		ldx player_number
 		lda maze_count1,x
 		tax
@@ -3187,36 +3194,36 @@ l9554:	lda temp
 ; $9558
 l9558:	lda #$00
 		sta $a3
-		lda $9c
+		lda chase_sound_start
 		bne l956a
 		lda #$28
-		sta $9a
+		sta chase_sound_freq
 		lda #$01
-		sta $9c
-		sta $9b
-l956a:	lda $9b
+		sta chase_sound_start
+		sta chase_sound_dir
+l956a:	lda chase_sound_dir
 		cmp #$01
 		bne l9583
-		lda $9a
+		lda chase_sound_freq
 		cmp #$40
 		bcc l957c
 		lda #$02
-		sta $9b
+		sta chase_sound_dir
 		bne l958f
 l957c:	lda chase_whine_delta
 		clc
-		adc $9a
+		adc chase_sound_freq
 		bne l9594
-l9583:	lda $9a
+l9583:	lda chase_sound_freq
 		cmp #$28
 		bcs l958f
 		lda #$01
-		sta $9b
+		sta chase_sound_dir
 		bne l957c
 l958f:	sec
-		lda $9a
+		lda chase_sound_freq
 		sbc chase_whine_delta
-l9594:	sta $9a
+l9594:	sta chase_sound_freq
 !ifdef 	P500{
 		ldy #SR_V2FREQ
 		sta (SID),y						; SID voice 2 frequency hi
@@ -3233,13 +3240,13 @@ l9594:	sta $9a
 ; $959f
 blink3:	lda jiffy
 		and #$0f
-		beq l95aa
+		beq blnkon
 		cmp #$08
 		beq l95d1
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $95aa
-l95aa:	ldy #$02
+blnkon:	ldy #$02
 		ldx player_number
 		lda bigdot_status,x
 		sta temp
@@ -3424,53 +3431,53 @@ l96ed:	rts
 eyeonly:	lda #$00
 		sta tweet_sound_flag
 		ldx #$03
-l96f4:	lda monster_status,x
+eyeonlp:	lda monster_status,x
 		cmp #$44
-		beq l973e
+		beq nxteyd
 		asl
-		bpl l973e
-		cpx $a7
-		beq l973e
+		bpl nxteyd
+		cpx gulped_last
+		beq nxteyd
 		inc tweet_sound_flag
 		lda monster_hpos,x
 		tay
 		lda monster_vpos,x
 		cpy #$7c
-		bne l9728
+		bne tsteyev
 		cmp #$64
-		bne l9728
+		bne tsteyev
 		lda monster_direction,x
 		cmp #$01
-		bne l971e
+		bne eyehome
 		lda #$04
 		sta monster_direction,x
 		lda monster_vpos,x
-		bne l9728
-l971e:	lda #$44
+		bne tsteyev
+eyehome:lda #$44
 		sta monster_status,x
 		lda #$ff
-		sta $8e,x
-		bne l973e
-l9728:	jsr MazeHandler
-		bcc l9739
+		sta monster_start_sequ,x
+		bne nxteyd
+tsteyev:jsr MazeHandler
+		bcc sameyd
 		clc
 		lda #$7c
-		sta $7e,x
+		sta monster_targ_hpos,x
 		lda #$64
-		sta $82,x
-		jsr l99e9
-l9739:	lda monster_direction,x
-		jsr _SpriteMovementAnimation
-l973e:	dex
-		bpl l96f4
+		sta monster_targ_vpos,x
+		jsr mdirct
+sameyd:	lda monster_direction,x
+		jsr monhnd
+nxteyd:	dex
+		bpl eyeonlp
 		lda tweet_sound_flag
-		bne l974b
+		bne gtweet
 		lda #$00
 		sta tweet_sound_freq
 		beq l9752
-l974b:	lda freeze_flag
+gtweet:	lda freeze_flag
 		bne l9752
-		jsr l9071
+		jsr vtweet
 l9752:	ldx #$03
 l9754:	lda monster_status,x
 		clc
@@ -3521,7 +3528,7 @@ l97a4:	sty monster_direction,x
 ; $97a9
 l97a9:	lda #$01
 l97ab:	sta monster_direction,x
-		jmp _SpriteMovementAnimation
+		jmp monhnd
 l97b0:	lda monster_status,x
 		and #$0f
 		sta monster_status,x
@@ -3571,9 +3578,9 @@ l97f5:	ldx #$01
 l97f7:	lda monster_status,x
 		and #$7f
 		bne l9820
-		lda $86,x
+		lda monster_timer,x
 		beq l9809
-		dec $86,x
+		dec monster_timer,x
 		jsr l9826
 		jmp l9820
 l9809:	cpx #$03
@@ -3605,7 +3612,7 @@ l9836:	lda monster_vpos,x
 		lda #$01
 l983e:	sta monster_direction,x
 l9840:	lda monster_direction,x
-		jmp _SpriteMovementAnimation
+		jmp monhnd
 l9845:	lda monster_status,x
 		bpl l984f
 		lsr
@@ -3638,7 +3645,7 @@ l9876:	rts
 l9877:	jsr MazeHandler
 		bcc l987f
 		clc
-		inc $8e,x
+		inc monster_start_sequ,x
 l987f:	txa
 		asl
 		tay
@@ -3647,7 +3654,7 @@ l987f:	txa
 		iny
 		lda MonsterStartPointer,y
 		sta pixel_get_ptr+1
-		lda $8e,x
+		lda monster_start_sequ,x
 		tay
 !ifdef 	P500{
 		lda #GAMEBANK
@@ -3668,7 +3675,7 @@ l987f:	txa
 l98a1:	lda #$08
 		sta monster_status,x
 		lda #$00
-		sta $7a,x
+		sta monster_patt_count,x
 !ifdef 	P500{
 		ldy #SR_RANDOM
 		lda (SID),y						; load random value SID register $1b
@@ -3676,50 +3683,50 @@ l98a1:	lda #$08
 		lda $d41b						; load random value SID register $1b
 }
 		and #$0f						; calc random value from $0-$f
-		sta $76,x
+		sta monster_patt_index,x
 		asl
 		tay
 		lda PatternStartHV,y
-		sta $7e,x
+		sta monster_targ_hpos,x
 		iny
 		lda PatternStartHV,y
-		sta $82,x
+		sta monster_targ_vpos,x
 		lda #$96
-		sta $86,x
+		sta monster_timer,x
 		bne l98c8
 l98c3:	sta monster_direction,x
-		jmp _SpriteMovementAnimation
-l98c8:	lda $86,x
+		jmp monhnd
+l98c8:	lda monster_timer,x
 		bne l98cf
 		jmp l9915
 l98cf:	jsr MazeHandler
 		bcs l98d7
 l98d4:	jmp l9950
 l98d7:	clc
-		jsr l99e9
-		lda $96,x
+		jsr mdirct
+		lda monster_hdir,x
 		bne l98d4
-		lda $92,x
+		lda monster_vdir,x
 		bne l98d4
 		lda #$10
 		sta monster_status,x
 		clc
 		bcc l98f6
-l98ea:	lda $86,x
+l98ea:	lda monster_timer,x
 		beq l9915
 		jsr MazeHandler
 		bcc l98f6
 		clc
-		inc $7a,x
-l98f6:	lda $76,x
+		inc monster_patt_count,x
+l98f6:	lda monster_patt_index,x
 		tay
 		lda PatternIndex,y
-		adc $7a,x
+		adc monster_patt_count,x
 		tay
 		lda Pattern,y
 		bne l9910
-		sta $7a,x
-		lda $76,x
+		sta monster_patt_count,x
+		lda monster_patt_index,x
 		tay
 		lda PatternIndex,y
 		tay
@@ -3732,31 +3739,31 @@ l9915:	lda #$20
 		asl
 		tay
 		lda HomePositionHV,y
-		sta $7e,x
+		sta monster_targ_hpos,x
 		iny
 		lda HomePositionHV,y
-		sta $82,x
+		sta monster_targ_vpos,x
 		jsr MazeHandler
 		bcc l9950
 		clc
-		jsr l99e9
-		lda $96,x
+		jsr mdirct
+		lda monster_hdir,x
 		bne l9950
-		lda $92,x
+		lda monster_vdir,x
 		bne l9950
 		jmp l98a1
 l993b:	lda #$02
 		sta monster_status,x
 l993f:	lda pacman_hpos
-		sta $7e,x
+		sta monster_targ_hpos,x
 		lda pacman_vpos
-		sta $82,x
+		sta monster_targ_vpos,x
 		jsr MazeHandler
 		bcc l9950
 		clc
-		jsr l99e9
+		jsr mdirct
 l9950:	lda monster_direction,x
-_SpriteMovementAnimation:
+monhnd:
 		cmp #$01
 		bne l9962
 		ldy $6a
@@ -3848,8 +3855,8 @@ l99e1:	lda (pixel_get_ptr),y
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $99e9
-l99e9:	lda monster_vpos,x
-		cmp $82,x
+mdirct:	lda monster_vpos,x
+		cmp monster_targ_vpos,x
 		beq l9a01
 		bcc l99f9
 		lda monster_status,x
@@ -3861,9 +3868,9 @@ l99f9:	lda monster_status,x
 l99fd:	lda #$02
 		bne l9a03
 l9a01:	lda #$00
-l9a03:	sta $92,x
+l9a03:	sta monster_vdir,x
 		lda monster_hpos,x
-		cmp $7e,x
+		cmp monster_targ_hpos,x
 		beq l9a1d
 		bcs l9a15
 		lda monster_status,x
@@ -3875,12 +3882,12 @@ l9a15:	lda monster_status,x
 l9a19:	lda #$04
 		bne l9a1f
 l9a1d:	lda #$00
-l9a1f:	sta $96,x
-		lda $92,x
+l9a1f:	sta monster_hdir,x
+		lda monster_vdir,x
 		beq l9a3e
 		bit temp
 		beq l9a3e
-		lda $96,x
+		lda monster_hdir,x
 		beq l9a36
 		bit temp
 		beq l9a36
@@ -3891,11 +3898,11 @@ l9a1f:	sta $96,x
 		lda $d41b						; load random value SID register $1b
 }
 		bmi l9a3a
-l9a36:	lda $92,x
+l9a36:	lda monster_vdir,x
 		bne l9a64
-l9a3a:	lda $96,x
+l9a3a:	lda monster_hdir,x
 		bne l9a64
-l9a3e:	lda $96,x
+l9a3e:	lda monster_hdir,x
 		bit temp
 		bne l9a3a
 !ifdef 	P500{

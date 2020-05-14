@@ -41,9 +41,9 @@ swappf ds 1 ;swap player flag			11
 resetf ds 1 ;reset flag					12
 resett ds 1 ;reset timer				13
 rrflag ds 1 ;rerack flag				14
-rrsequ ds 1 ;rerack sequence #
-rrtimr ds 1 ;rerack timer
-rrflct ds 1 ;rerack flash count
+rrsequ ds 1 ;rerack sequence #			15
+rrtimr ds 1 ;rerack timer				16
+rrflct ds 1 ;rerack flash count			17
 temloc ds 1 ;temporary storage			18
 plynum ds 1 ;player # 0=1 1=2			19
 xpacp1 ds 1 ;extra pacman player 1		1A
@@ -124,35 +124,35 @@ pmstat ds 1 ;pacman status				66
 pmsequ ds 1 ;pacman sequence (mouth)
 pmndir ds 1 ;pacman new direction
 chaset ds 1 ;chase timer
-mstill ds 1 ;monsters still flag
-mskirt ds 1 ;monster skirt flag
-m1spsq ds 1 ;monster 1 speed sequence
+mstill ds 1 ;monsters still flag	
+mskirt ds 1 ;monster skirt flag			
+m1spsq ds 1 ;monster 1 speed sequence	
 m2spsq ds 1 ;monster 2 speed sequence
 m3spsq ds 1 ;monster 3 speed sequence
 m4spsq ds 1 ;monster 4 speed sequence
-pmspsq ds 1 ;pacman speed sequence
-m1spct ds 1 ;monster 1 speed count
+pmspsq ds 1 ;pacman speed sequence		
+m1spct ds 1 ;monster 1 speed count	
 m2spct ds 1 ;monster 2 speed count
 m3spct ds 1 ;monster 3 speed count
 m4spct ds 1 ;monster 4 speed count
-pmspct ds 1 ;pacman  speed count
-m1pidx ds 1 ;monster 1 pattern index
+pmspct ds 1 ;pacman  speed count		
+m1pidx ds 1 ;monster 1 pattern index	76
 m2pidx ds 1 ;monster 2 pattern index
 m3pidx ds 1 ;monster 3 pattern index
 m4pidx ds 1 ;monster 4 pattern index
-m1pcnt ds 1 ;monster 1 pattern count
+m1pcnt ds 1 ;monster 1 pattern count	7a
 m2pcnt ds 1 ;monster 2 pattern count
 m3pcnt ds 1 ;monster 3 pattern count
 m4pcnt ds 1 ;monster 4 pattern count
-m1thps ds 1 ;monster 1 target hpos
+m1thps ds 1 ;monster 1 target hpos		7e
 m2thps ds 1 ;monster 2 target hpos
 m3thps ds 1 ;monster 3 target hpos
 m4thps ds 1 ;monster 4 target hpos
-m1tvps ds 1 ;monster 1 target vpos
+m1tvps ds 1 ;monster 1 target vpos		82
 m2tvps ds 1 ;monster 2 target vpos
 m3tvps ds 1 ;monster 3 target vpos
 m4tvps ds 1 ;monster 4 target vpos
-m1timr ds 1 ;monster 1 timer
+m1timr ds 1 ;monster 1 timer			86
 m2timr ds 1 ;monster 2 timer
 m3timr ds 1 ;monster 3 timer
 m4timr ds 1 ;monster 4 timer
@@ -175,22 +175,22 @@ m4hdir ds 1 ;monster 4 horz choice
 vchasf ds 1 ;chase freq					9a
 vchasd ds 1 ;direction 1=inc 2=dec		9b
 vchass ds 1 ;chase sound start			9c
-vflitf ds 1 ;flight freq
-vflitd ds 1 ;direction same
+vflitf ds 1 ;flight freq				9d
+vflitd ds 1 ;direction same				9e
 vflitv ds 1 ;flight volume			a2 = cbm jiffy
 vflits ds 1 ;flight sound start
 vfreez ds 1 ;freeze flag				a4
-vglpc1 ds 1 ;gulp count1
-vglpc2 ds 1 ;gulp count2
+vglpc1 ds 1 ;gulp count1				a5
+vglpc2 ds 1 ;gulp count2				a6
 gulped ds 1 ;last monster eaten			a7
-glpcnt ds 1 ;gulp count
+glpcnt ds 1 ;gulp count					a8
 fizzle ds 1 ;fizzle flag 1=fizl			a9
 fizptr ds 1 ;fizzle addr pointer		aa
 fiztim ds 1 ;fizzle timer				ab
 vfizst ds 1 ;fizzle status				ac
 vfizsq ds 1 ;fizzle sequence #			ad
-vfizbs ds 1 ;fizzle freq base
-vfizfq ds 1 ;fizzle current freq
+vfizbs ds 1 ;fizzle freq base			ae
+vfizfq ds 1 ;fizzle current freq		af
 vfizct ds 1 ;fizzle counter				b0
 tweetr ds 1 ;tweet sound flag			b1
 tweetf ds 1 ;tweet sound freq			b2	
@@ -199,13 +199,13 @@ eaterc ds 1 ;eat dot sound count		b4
 eatert ds 1 ;eat dot toggle				b5
 gobbld ds 1 ;gobble dirctn (fruits)		b6	
 gobblf ds 1 ;gobble frequency			b7
-blinkt ds 1 ;blink timer				b8
+blinkt ds 1 ;blink timer
 flshup ds 1 ;flash 1up 2up timer		b9
 flasht ds 1 ;flash timer				ba
 flashc ds 1 ;flash count				bb
 flitmr ds 1 ;flight timer				bc
-tunmsk ds 1 ;tunnel bit mask
-tuncnt ds 1 ;tunnel iteration count
+tunmsk ds 1 ;tunnel bit mask			bd
+tuncnt ds 1 ;tunnel iteration count		be
 ;
  eject
 ;
