@@ -4,7 +4,7 @@
 ; Converted for P500 by Vossi 05/2020
 !cpu 6502
 ; switches
-P500 = 1		; P500 bank 0 file
+;P500 = 1		; P500 bank 0 file
 ;CRT = 1		; CRT header for VICE
 !ifdef 	P500{!to "pm500.prg", cbm
 } else{ !ifdef CRT {!to "pacman.crt", plain : *= $7fb0 : !source "crthead.b"
