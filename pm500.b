@@ -1208,12 +1208,12 @@ l88d0:	lda #$42
 		adc #$02
 		sta sprite_x,x
 		lda #WHITE
-		sta $02c7
 !ifdef 	P500{
 		stx temp
 		ldy temp
 		sta (VIC27),y					; set VIC sprite color = white (monster)
 } else{
+		sta $02c7						; ATARI color3 - not used on Commodore
 		sta $d027,x						; set VIC sprite color = white (monster)
 }
 		lda pacman_vpos
@@ -1531,11 +1531,11 @@ l8b3e:	sta GameScreen+$23d,x
 		cpx #$0e
 		bne l8b3e
 		lda #RED
-		sta $02c7
 !ifdef 	P500{
 		ldy #VR_MOBCOL+4
 		sta (VIC),y						; set VIC sprite 4 color = red (pacman)
 } else{
+		sta $02c7						; ATARI color3 - not used on Commodore
 		sta $d02b						; set VIC sprite 4 color = red (pacman)
 }
 		lda swap_player_flag
@@ -1825,7 +1825,7 @@ fruitlp:lda FruitChars,x				; load fruit char from table
 		cpx temp
 		beq fsplit
 		inx
-		dec pixel_put_ptr					; next fruit position to the left
+		dec pixel_put_ptr				; next fruit position to the left
 		dec pixel_put_ptr
 		dec pixel_put_ptr
 		bne fruitlp
@@ -1865,31 +1865,29 @@ Ready2:
 		jsr Drawit
 		ldx player_number
 		dec extra_pacman1,x				; decrease lives of actual player
-; $8d59 update lives display -> draw mini-pacmans
-UpdateLivesDisplay:
+; $8d59 Update extra pacmans
+UpdateExtraPacs:
 		ldx player_number
 		lda extra_pacman1,x
 		ldx #$00						; char $00 = <space>
 		ldy #$1b						; Char $1b = mini pacman	
 		cmp #$03
-		bne lives2						; branch if not 3 lives
+		bne twopac						; branch if not 3 lives
 		sty GameScreen+$3c8				; write mini-pacmans
-wr2live:sty GameScreen+$3c6
-wr1live:sty GameScreen+$3c4
+udxpac2:sty GameScreen+$3c6
+udxpac1:sty GameScreen+$3c4
 		rts
-; -------------------------------------------------------------------------------------------------
-; $8d6f
-lives2:	cmp #$02
-		bne lives1						; branch if not 2 lives
-		jsr clr1liv						; clear 3. mini-pacman
-		jmp wr2live						; write 2 mini-pacmans
-lives1:	cmp #$01						; branch if not 1 live = dead
-		bne clr3liv						; dead -> clear all mini-pacmans
-		jsr clr2liv						; clear 2.+3. mini-pacman
-		jmp wr1live						; write 1 mini-pacman
-clr3liv:stx GameScreen+$3c4
-clr2liv:stx GameScreen+$3c6
-clr1liv:stx GameScreen+$3c8
+twopac:	cmp #$02
+		bne onepac						; branch if not 2 lives
+		jsr udnpac2						; clear 3. mini-pacman
+		jmp udxpac2						; write 2 mini-pacmans
+onepac:	cmp #$01						; branch if not 1 live = dead
+		bne nopacs						; dead -> clear all mini-pacmans
+		jsr udnpac1						; clear 2.+3. mini-pacman
+		jmp udxpac1						; write 1 mini-pacman
+nopacs:	stx GameScreen+$3c4
+udnpac1:stx GameScreen+$3c6
+udnpac2:stx GameScreen+$3c8
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $8d8d
@@ -1897,18 +1895,18 @@ Drawit:
 		lda #$01
 		sta monster_still_flag
 		ldx #$03
-l8d93:	lda monster_direction,x
+greadl:	lda monster_direction,x
 		jsr monhnd
 		dex
-		bpl l8d93
+		bpl greadl
 		lda #$00
 		sta monster_still_flag
-		jmp l9318
+		jmp pacstp
 ready3:	ldx #$0d
 		lda #$00
-l8da6:	sta GameScreen+$23d,x
+redy3lp:sta GameScreen+$23d,x
 		dex
-		bpl l8da6
+		bpl redy3lp
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $8dad blink 1/2up of active player
@@ -2008,14 +2006,7 @@ InitGameVariables:
 		ldx #$01
 		jsr inzersc						; zero score
 newbrd:	jsr InitGameScreen				; sub: copy game screen to screen RAM
-		jsr UpdateLivesDisplay			; sub: update lives display -> draw mini-pacmans
-		ldx player_number
-		lda maze_count1,x
-		tay
-		bne +
-		lda jiffy
-		bpl +
--		jsr Init87_89
+		jsr UpdateExtraPacs				; sub: Update extra pacmans
 		jmp ++
 +		iny
 		bne -
@@ -2422,7 +2413,7 @@ l907f:	sec
 		bne l906d
 ;
 vgulpr:	dec gulp_count1
-		beq l90a4
+		beq distrt
 		sec
 		lda gulp_count2
 		sbc #$04
@@ -2439,8 +2430,8 @@ vgulpr:	dec gulp_count1
 		sta $d408						; SID voice 2 frequency hi
 }
 		lda #$21
-		bne l90b7
-l90a4:	lda #$02
+		bne gbranch
+distrt:	lda #$02
 		sta gulp_count1
 		sec
 		lda gulp_count2
@@ -2451,16 +2442,16 @@ l90a4:	lda #$02
 		sta (SID),y						; SID voice 1 frequency hi
 		ldy #SR_V2FREQ+1
 		sta (SID),y						; SID voice 2 frequency hi
-		lda #$21
-l90b7:	ldy #SR_V2CTRL
+gbranch:lda #$21
+		ldy #SR_V2CTRL
 		sta (SID),y						; SID voice 2 control = sawtooth, on
 } else{
 		sta $d401						; SID voice 1 frequency hi
 		sta $d408						; SID voice 2 frequency hi
-		lda #$21
-l90b7:	sta $d40b						; SID voice 2 control = sawtooth, on
+gbranch:lda #$21
+		sta $d40b						; SID voice 2 control = sawtooth, on
 }
-		bne l9109
+		bne veatrs
 gulpoff:jsr ClearAudio
 		sta freeze_flag
 		sta pacman_adv_turning
@@ -2468,14 +2459,14 @@ gulpoff:jsr ClearAudio
 		lda #$0f
 		sta $02c7
 !ifdef 	P500{
-		ldy #$03						; 3-0 monsters
-rsetpcl:	lda (VIC27),y				; load VIC sprites color 3-0 (monsters)
+rsetpcl:ldy #$03						; 3-0 monsters
+		lda (VIC27),y				; load VIC sprites color 3-0 (monsters)
 		cmp #$f1
 		beq rsetplc
 		dey
 } else{
-		ldx #$03						; 3-0 monsters
-rsetpcl:	lda $d027,x					; load VIC sprites color 3-0 (monsters)
+rsetpcl:ldx #$03						; 3-0 monsters
+		lda $d027,x					; load VIC sprites color 3-0 (monsters)
 		cmp #$f1
 		beq rsetplc
 		dex
@@ -2498,7 +2489,7 @@ veater:	lda eatdot_sound_flag
 		lda #$00
 		sta eatdot_sound_flag
 		sta eatdot_sound_cnt
-		beq l9109
+		beq veatrs
 l90f5:	lda eatdot_sound_togg
 		bne l90ff
 		lda EatingDotsSoundData1,x
@@ -2509,12 +2500,12 @@ l9102:	inc eatdot_sound_cnt
 		ldy #SR_V1FREQ+1
 		sta (SID),y						; SID voice 1 frequency hi
 		lda #$21
-l9109:	ldy #SR_V1CTRL
+veatrs:	ldy #SR_V1CTRL
 		sta (SID),y						; SID voice 1 control = sawtooth, on
 } else{
 		sta $d401						; SID voice 1 frequency hi
 		lda #$21
-l9109:	sta $d404						; SID voice 1 control = sawtooth, on
+veatrs:	sta $d404						; SID voice 1 control = sawtooth, on
 }
 l910c:	rts
 ; -------------------------------------------------------------------------------------------------
@@ -2710,7 +2701,7 @@ l9213:	cmp #$01
 		jmp l92b9
 l9222:	cmp #$08
 		beq l9285
-		jmp l9318
+		jmp pacstp
 l9229:	lda pacman_adv_turning
 		bne l9252
 		dec pacman_vpos
@@ -2827,17 +2818,17 @@ l9306:	cmp #$04
 		ldy #$04						; left
 		bne l9314
 l930e:	cmp #$08
-		bne l9318
+		bne pacstp
 		ldy #$02						; right
 l9314:	lda #$0a
 		bne l9333
-l9318:	ldy #$00						; point to pac dot
+pacstp:	ldy #$00						; point to pac dot
 		tya
 		beq l9333
 l931d:	ldx pacman_sequence
 		bne l9325
 		inc pacman_sequence
-		bne l9318
+		bne pacstp
 l9325:	dex
 		lda PacmanIndex,x
 		cpx #$02
@@ -3100,7 +3091,7 @@ l94d0:	lda GameScreen+$48
 		beq nobonus
 l94d7:	inc bonus_pacman,x
 		inc extra_pacman1,x
-		jmp UpdateLivesDisplay			; sub: update lives display -> draw mini-pacmans
+		jmp UpdateExtraPacs			; sub: Update extra pacmans
 ; -------------------------------------------------------------------------------------------------
 ; $94de Maze handler subroutine
 ; entry: 	a reg value equals vpos
