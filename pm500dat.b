@@ -218,10 +218,10 @@ UserFontTiles:
 		!byte $df, $81, $70, $9f, $87, $07, $bc
 ; -------------------------------------------------------------------------------------------------
 ; $9e05
-PacmanSpeedTable:
+PacmanSpeedIndex:
 		!byte $08, $08, $08, $0c, $10, $14, $14
 ; $9e0c
-MonsterSpeedTable:
+MonsterSpeedIndex:
 		!byte $00, $04, $08, $08, $0c, $10, $10
 ; $9e13 unused
 Text_HighScore

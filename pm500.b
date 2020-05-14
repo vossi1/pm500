@@ -1968,11 +1968,11 @@ clrpgz:	sta $3b,x						; clear ZP $3c - $c5
 		bcc lowinit
 		lda #$06						; max speed level 6
 lowinit	tay
-		lda PacmanSpeedTable,y			; load pacman speed index from table
+		lda PacmanSpeedIndex,y			; load pacman speed index from table
 		tax
 		lda Speed,x						; load speed from table
 		sta pacman_speed_count			; store it
-		lda MonsterSpeedTable,y			; load monster speed index from table
+		lda MonsterSpeedIndex,y			; load monster speed index from table
 		tay
 		ldx #$03						; setup 4 monsters 
 spinilp:lda Speed,y						; load speed from table
@@ -3290,9 +3290,9 @@ l95f1:	inc monster_speed_sequ,x
 +		tay
 		cpx #$04
 		bne l9608
-		lda PacmanSpeedTable,y
+		lda PacmanSpeedIndex,y
 		bpl +							; skip always
-l9608:	lda MonsterSpeedTable,y
+l9608:	lda MonsterSpeedIndex,y
 +		clc
 		adc monster_speed_sequ,x
 		tay
