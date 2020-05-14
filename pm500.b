@@ -1349,7 +1349,7 @@ l89da:	lda fizzle_status
 l89de:	rts
 ; -------------------------------------------------------------------------------------------------
 ; $89df
-l89df:	jsr flitec
+l89df:	jsr FlightCheck						; Check for flight mode
 		lda freeze_flag
 		bne l89de
 		jsr EatingDotSound
@@ -2263,15 +2263,15 @@ l8f93:	sta (pixel_put_ptr),y
 		lda #SYSTEMBANK
 		sta IndirectBank				; switch back to bank 15
 }
-fizziex:	rts
+fizziex:rts
 ; -------------------------------------------------------------------------------------------------
-; $8f9b
-flitec:
+; $8f9b Check for flight mode
+FlightCheck:
 		lda flash_count
 		beq noflit
 		lda tweet_sound_flag
 		bne chkfltm
-		jsr vrverb						; sub: flight sound
+		jsr FlightSound					; sub: flight sound
 chkfltm:lda flight_timer
 		beq flashsq
 		dec flight_timer
@@ -2289,10 +2289,10 @@ flashsq:ldx player_number
 !ifdef 	P500{
 		ldy #VR_MOBCOL+3
 l8fc4:	lda monster_status,x
-		bpl l8fce
+		bpl +
 		lda SpriteColors,x
 		sta (VIC),y						; set VIC sprite color from table
-		dey
++		dey
 } else{
 l8fc4:	lda monster_status,x
 		bpl l8fce
@@ -2358,7 +2358,8 @@ mskip:	dex
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $901e Flight sound
-vrverb:	lda flight_sound_start
+FlightSound:
+		lda flight_sound_start
 		bne l9030
 		lda #$05
 		sta flight_volume
