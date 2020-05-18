@@ -2096,7 +2096,7 @@ monclr:	sta sprite_x,x
 fizchk:	cmp #$03
 		beq vfizup
 		cmp #$04
-		beq vfizup
+		beq vfizdwn
 		cmp #$05
 		beq vfizfz
 		cmp #$06
@@ -2121,7 +2121,7 @@ vfizup:	lda #$21
 		cmp #$04
 		bne vbfizx
 		beq svfizs
-vfizup:	lda #$21
+vfizdwn:lda #$21
 !ifdef 	P500{
 		ldy #SR_V1CTRL
 		sta (SID),y						; SID voice 1 control = sawtooth, on
