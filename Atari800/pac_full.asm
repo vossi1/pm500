@@ -34,11 +34,11 @@ atclok ds 1 ;attract countdown clock
 attimr ds 1 ;attract mode timer			0C
 atsequ ds 1 ;attract mode sequence #
 ;
-gmovrf ds 1 ;game over flag				0E
-readyf ds 1 ;ready flag					0F
-introf ds 1 ;intro flag					10
+gmovrf ds 1 ;game over flag			0E
+readyf ds 1 ;ready flag				0F
+introf ds 1 ;intro flag				10
 swappf ds 1 ;swap player flag			11
-resetf ds 1 ;reset flag					12
+resetf ds 1 ;reset flag				12
 resett ds 1 ;reset timer				13
 rrflag ds 1 ;rerack flag				14
 rrsequ ds 1 ;rerack sequence #			15

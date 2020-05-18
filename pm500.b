@@ -460,8 +460,8 @@ pacgmlp:cmp jiffy
 		sta $d015						; VIC enable spritess 0-4
 		sta $d01d						; VIC x-expand sprites 0-4
 }
-		jsr Setup						; sub: init new game
-		jsr InitGameVariables			; sub: Init game variables: lives, level, score...
+		jsr Setup						; sub: Set up monster and pacman, start postions, speeds
+		jsr NewGame						; sub: init maze, xpacs, difficulty, score
 		lda players
 		beq p1scini						; skip if 1 player
 		jsr Set2Player					; sub: print 1Up, 2Up, print zero scores
@@ -605,7 +605,7 @@ setrast:ldy #VR_RASTER
 		ldy #VR_IRQ
 		sta (VIC),y						; clear VIC raster interrupt
 		dec bounce_timer_ATARI							;
-		jsr UpdateScreen				; sub: Update screen: Startup, Options, Game
+		jsr CheckMode					; sub: Check mode and do Startup, Options, Game
 
 		lda freeze_flag
 		bne ichkkey						; skip if freeze_flag is not 0
@@ -666,7 +666,7 @@ endirq: pla
 		lda #$81
 		sta $d019						; clear VIC raster interrupt
 		dec bounce_timer_ATARI							;
-		jsr UpdateScreen				; sub: Update screen: Startup, Options, Game
+		jsr CheckMode					; Check mode and do Startup, Options, Game
 		lda freeze_flag
 		bne ichkkey						; skip if freeze_flag is not 0
 		jsr Tunnel						; Tunnel logic
@@ -789,11 +789,11 @@ LoadHiNibbleGetPtr:
 		rts
 }
 ; -------------------------------------------------------------------------------------------------
-; $864f Update screen: Startup, Options, Game
-UpdateScreen:
+; $864f Check mode and do Startup, Options, Game
+CheckMode:
 		ldy mode
 		bne tstmode
-		jmp GameCycle					; mode = 0 game in progress
+		jmp Game						; mode = 0 game runs - set sprites and all other things
 tstmode:cpy #$01
 		bne mode2						; mode > 1 options delay $ff jiffys
 ; mode = 1: build title screen
@@ -888,8 +888,8 @@ txt4lp:	lda Text_PlayGame,x
 		bpl txt4lp
 		rts
 ; -------------------------------------------------------------------------------------------------
-; $8715 main game cycle 
-GameCycle:	
+; $8715 main game sub set sprites and does all other things
+Game:	
 !ifdef 	P500{
 ; set sprite positions
 		ldx #$04						; start with sprite 4
@@ -958,7 +958,7 @@ sdpcopy:sta SpriteDataPtr,x
 		lda #GAMEBANK
 		sta IndirectBank				; select bank 0 for $cx access
 }
-spmcopy:lda (spritedata_ptr),y		; copy pacman sprite data
+spmcopy:lda (spritedata_ptr),y			; copy pacman sprite data
 		sta SpriteData+$100,x
 		dex
 		dex
@@ -967,9 +967,9 @@ spmcopy:lda (spritedata_ptr),y		; copy pacman sprite data
 		cpy #$02						; reach last byte
 		bne spmcopy
 		lda monster_vpos+0
-		jsr SetMonsterDataEnd				; sub: Calc pointer, set last row, last byte of monster
+		jsr SetMonsterDataEnd			; sub: Calc pointer, set last row, last byte of monster
 ; $876a copy sprite data of 4 monsters
-sm0copy:lda (spritedata_ptr),y		; copy monster 0 sprite data
+sm0copy:lda (spritedata_ptr),y			; copy monster 0 sprite data
 		sta SpriteData,x
 		dex
 		dex
@@ -978,8 +978,8 @@ sm0copy:lda (spritedata_ptr),y		; copy monster 0 sprite data
 		cpy #$01						; reach last byte
 		bne sm0copy
 		lda monster_vpos+1
-		jsr SetMonsterDataEnd				; sub: Calc pointer, set last row, last byte of monster
-sm1copy:lda (spritedata_ptr),y		; copy monster 1 sprite data
+		jsr SetMonsterDataEnd			; sub: Calc pointer, set last row, last byte of monster
+sm1copy:lda (spritedata_ptr),y			; copy monster 1 sprite data
 		sta SpriteData+$40,x
 		dex
 		dex
@@ -988,8 +988,8 @@ sm1copy:lda (spritedata_ptr),y		; copy monster 1 sprite data
 		cpy #$01						; reach last byte
 		bne sm1copy
 		lda monster_vpos+2
-		jsr SetMonsterDataEnd				; sub: Calc pointer, set last row, last byte of monster
-sm2copy:lda (spritedata_ptr),y		; copy monster 2 sprite data
+		jsr SetMonsterDataEnd			; sub: Calc pointer, set last row, last byte of monster
+sm2copy:lda (spritedata_ptr),y			; copy monster 2 sprite data
 		sta SpriteData+$80,x
 		dex
 		dex
@@ -999,7 +999,7 @@ sm2copy:lda (spritedata_ptr),y		; copy monster 2 sprite data
 		bne sm2copy
 		lda monster_vpos+3
 		jsr SetMonsterDataEnd			; sub: Calc pointer, set last row, last byte of monster
-sm3copy:lda (spritedata_ptr),y		; copy monster 3 sprite data
+sm3copy:lda (spritedata_ptr),y			; copy monster 3 sprite data
 		sta SpriteData+$c0,x
 		dex
 		dex
@@ -1055,7 +1055,7 @@ testrrk:lda rereck_flag
 testvrd:lda ready_flag
 		bne vready
 		lda intro_flag
-		bne vintro
+		bne vintro						; sub: play intro sound
 vsquit:	rts
 ; -------------------------------------------------------------------------------------------------
 ; $87f6
@@ -1075,7 +1075,7 @@ SetPacmanDataEnd:
 		ldx #$22						; last data byte monsters/pacman row 11 byte 2
 		rts
 ; -------------------------------------------------------------------------------------------------
-; $880a
+; $880a play intro sound
 vintro:	lda jiffy
 		and #$03
 		bne vsquit						; frequency change every 4 jiffy
@@ -1143,7 +1143,7 @@ vplayer:jsr eyeonly
 vfruit: jsr fruity
 		jsr dottest
 		lda rereck_flag
-		bne vplyud
+		bne collcx1
 ; collision check
 !ifdef 	P500{
 		ldy #VR_MOBMOB
@@ -1153,46 +1153,46 @@ vfruit: jsr fruity
 }
 		sta temp_collision
 		and #$10
-		beq vplyud
+		beq collcx1
 		ldx #$00						; start with sprite/monster 0
 		ldy #$01
-l888c:	lda monster_status,x
+colllp:	lda monster_status,x
 		asl
-		bmi l88be
+		bmi nxcoll
 		tya
 		bit temp_collision
-		beq l88be
+		beq nxcoll
 		lda pacman_hpos
 		cmp monster_hpos,x
-		bcs l88a4
+		bcs sbcmxv
 		sec
 		lda monster_hpos,x
 		sbc pacman_hpos
-		jmp l88a6
-l88a4:	sbc monster_hpos,x
-l88a6:	cmp #$04
-		bcs l88be
+		jmp colnsbc
+sbcmxv:	sbc monster_hpos,x
+colnsbc:cmp #$04
+		bcs nxcoll
 		lda pacman_vpos
 		cmp monster_vpos,x
-		bcs l88b8
+		bcs pmblmx
 		sec
 		lda monster_vpos,x
 		sbc pacman_vpos
-		jmp l88ba
-l88b8:	sbc monster_vpos,x
-l88ba:	cmp #$05
-		bcc l88c9
-l88be:	tya
+		jmp testmxc
+pmblmx:	sbc monster_vpos,x
+testmxc:cmp #$05
+		bcc strcoll
+nxcoll:	tya
 		asl
 		tay
 		inx
 		cpx #$04						; check if last monster
-		bne l888c						; next monster
-vplyud:	jmp l897b
-l88c9:	lda monster_status,x
-		bmi l88d0
-		jmp l8968
-l88d0:	lda #$42
+		bne colllp						; next monster
+collcx1:jmp colckx
+strcoll:lda monster_status,x
+		bmi zapgst
+		jmp pacdead
+zapgst:	lda #$42
 		sta monster_status,x
 		stx gulped_last
 		inc gulp_count
@@ -1202,10 +1202,10 @@ l88d0:	lda #$42
 		sta sprite_x+4
 		clc
 		ldy #$02
--		adc #$02
+reposlp:adc #$02
 		sta pm_missile_x_ATARI,y		; ATARI pm build with 4 missiles - not Commodore
 		dey
-		bpl -
+		bpl reposlp
 		adc #$02
 		sta sprite_x,x
 		lda #WHITE
@@ -1219,14 +1219,14 @@ l88d0:	lda #$42
 }
 		lda pacman_vpos
 		cmp monster_vpos,x
-		beq l8909
-		bcc l8904
+		beq nooffs
+		bcc offdown
 		lda #$fe
-		bmi l8906
-l8904:	lda #$02
-l8906:	clc
+		bmi stroff
+offdown:lda #$02
+stroff:	clc
 		adc pacman_vpos
-l8909:	sta score_ptr1
+nooffs:	sta score_ptr1
 		sta score_ptr2
 		lda #$53
 		sta $27
@@ -1271,23 +1271,23 @@ l8909:	sta score_ptr1
 		lda #$02
 		sta gulp_sound_count1
 		lda gulp_count
-		bne l894d
+		bne chkgps1
 		lda #$02
-		bne l8963
-l894d:	cmp #$01
-		bne l8955
+		bne updgpsc
+chkgps1:cmp #$01
+		bne chkgps2
 		lda #$04
-		bne l8963
-l8955:	cmp #$02
-		bne l895d
+		bne updgpsc
+chkgps2:cmp #$02
+		bne chkgps3
 		lda #$08
-		bne l8963
-l895d:	lda #$01
+		bne updgpsc
+chkgps3:lda #$01
 		sta player_score_text+2
 		lda #$06
-l8963:	sta player_score_text+3
-		jmp l946d
-l8968:	lda pacman_status
+updgpsc:sta player_score_text+3
+		jmp pscore
+pacdead:lda pacman_status
 		ora #$80
 		sta pacman_status
 		jsr ClearAudio
@@ -1296,14 +1296,14 @@ l8968:	lda pacman_status
 		sta fizzle_status
 		lda #$60
 		sta fizzle_sequence_no
-l897b:	lda fruit_display_flag
-		beq l89da
+colckx:	lda fruit_display_flag
+		beq clrhit
 		lda pacman_hpos
 		cmp #$7c
-		bne l89da
+		bne clrhit
 		lda pacman_vpos
 		cmp #$84
-		bne l89da
+		bne clrhit
 		ldx player_number
 		lda maze_count1,x				; load maze number
 		cmp #$0c
@@ -1313,12 +1313,12 @@ lowfsi:	tax
 		lda FruitScoresIndex,x			; load index from table
 		tax
 		ldy #$00
-l899c:	lda FruitScores,x
+frtsclp:lda FruitScores,x
 		sta GameScreen+$241,y			; fruit middle of screen
 		inx
 		iny
 		cpy #$05
-		bne l899c
+		bne frtsclp
 		lda #$01
 		sta fruit_score_flag
 		lda #$40
@@ -1334,36 +1334,37 @@ l899c:	lda FruitScores,x
 		ldx player_number
 		lda maze_count1,x
 		cmp #$0c
-		bcc l89ca
+		bcc lowfrsc
 		lda #$0c
-l89ca:	asl
+lowfrsc:asl
 		tax
 		lda FruitScoreTable,x
 		sta player_score_text+2
 		inx
 		lda FruitScoreTable,x
 		sta player_score_text+3
-		jsr l946d
-l89da:	lda fizzle_status
-		beq l89df
-l89de:	rts
+		jsr pscore
+clrhit:	lda fizzle_status
+		beq vplyud
+vgone2:	rts
 ; -------------------------------------------------------------------------------------------------
 ; $89df
-l89df:	jsr FlightCheck						; Check for flight mode
+vplyud:	jsr FlightCheck						; Check for flight mode
 		lda freeze_flag
-		bne l89de
+		bne vgone2
 		jsr EatingDotSound
 		jsr GobbleSound
 		jsr skirts
+; speed of pacman
 		lda pacman_adv_turning
-		beq l89f7
+		beq pacreg
 		lda #$00
-		beq l8a00
-l89f7:	lda pacman_dly_eating
-		bne l8a00
+		beq spdpac1
+pacreg:	lda pacman_dly_eating
+		bne spdpac1
 		ldx #$04
-		jsr l95e0
-l8a00:	sta pacman_motion_cnt
+		jsr spdseq
+spdpac1:sta pacman_motion_cnt
 		lda #$00
 		sta pacman_adv_turning
 		jsr pmstik
@@ -1372,24 +1373,24 @@ l8a00:	sta pacman_motion_cnt
 		jsr Munchy
 		lda jiffy
 		and #$03
-		bne l8a19
-		jsr l97f5
-l8a19:	jsr l9617
+		bne udmons
+		jsr startmn
+udmons:	jsr chasseq
 		lda pacman_adv_turning
-		bne l8a77
+		bne vsubsx
 		ldx #$03
 ; $8a22 speed handler for monsters
 ; entry: x reg = 0-3 for monsters 1-4
-l8a22:	lda monster_status,x
+spdmon:	lda monster_status,x
 		and #$7f
 		beq nxmspd
 		lda jiffy
 		and #$07
-		bne l8a34
+		bne spdmok1
 		lda monster_timer,x
-		beq l8a34
+		beq spdmok1
 		dec monster_timer,x
-l8a34:	lda monster_status,x
+spdmok1:lda monster_status,x
 		and #$3f
 		beq nxmspd
 		lda monster_status,x
@@ -1404,25 +1405,25 @@ l8a34:	lda monster_status,x
 		cmp #$52
 		bcc spdslow
 spdblue:lda monster_status,x
-		bpl l8a6a
-spdslow:jsr l95e0
+		bpl spedreg
+spdslow:jsr spdseq
 		cmp #$00
 		bne nxmspd
 		ldy monster_delay,x
 		cpy #$01
-		bne l8a64
+		bne mondla
 		sta monster_delay,x
-		beq l8a71
-l8a64:	lda #$01
+		beq spedupd
+mondla:	lda #$01
 		sta monster_delay,x
 		bne nxmspd
-l8a6a:	jsr l95e0
+spedreg:jsr spdseq
 		cmp #$00
 		bne nxmspd
-l8a71:	jsr l9845
+spedupd:jsr monster
 nxmspd:	dex
-		bpl l8a22
-l8a77:	rts
+		bpl spdmon
+vsubsx:	rts
 ; -------------------------------------------------------------------------------------------------
 ; 
 vreset:	jsr blnkon
@@ -1520,7 +1521,7 @@ vggone:	rts
 rset1pg:ldx player_number
 		lda extra_pacman1,x
 		beq vgmend						; game is over
-		jsr Setup						; sub: init new game
+		jsr Setup						; sub: Set up monster and pacman, start postions, speeds
 		jsr Ready1						; sub: print READY: and difficulty fruits
 		jmp Ready2
 vgmend:	lda #$2c
@@ -1765,7 +1766,7 @@ setrrc:
 ; $8caf
 testrr3:cmp #$03
 		bne testrr4
-		jsr Setup						; sub: init new game
+		jsr Setup						; sub: Set up monster and pacman, start postions, speeds
 		inc rerack_sequence
 		rts
 ; $8cb9
@@ -1954,7 +1955,7 @@ fl1stor:sta GameScreen+$04				; write to screen left side
 		sty GameScreen+$06
 flashxx:rts
 ; -------------------------------------------------------------------------------------------------
-; $8df3 Set up monster and pacman start postions
+; $8df3 Set up monster and pacman, start postions, speeds
 Setup:
 		jsr InitSpriteMemory			; clear sprite areas at $3000, sprite data $5300
 		ldx #$8a
@@ -1998,18 +1999,18 @@ indatlp:lda SpriteInitData,x
 }
 		rts
 ; -------------------------------------------------------------------------------------------------
-; $8e38 Init game variables: lives, level, score...
-InitGameVariables:
+; $8e38 Init maze, xpacs, difficulty, score
+NewGame:
 		lda #LIVES						; start with 3 lives
-		sta extra_pacman1
+		sta extra_pacman1				; do at game start
 		sta extra_pacman2
 		lda difficulty
 		sta maze_count1
 		sta maze_count2
 		ldx #$01
 		jsr newbrd1						; branch to zero score
-newbrd:	jsr InitGameScreen				; sub: copy game screen to screen RAM
-		jsr UpdateExtraPacs				; sub: Update extra pacmans
+newbrd:	jsr InitGameScreen				; do at screen start
+		jsr UpdateExtraPacs				; sub: Update extra pacmans / lives
 		ldx player_number
 		lda maze_count1,x
 		tay
@@ -2616,8 +2617,8 @@ collp3:	lda SpriteColors,x
 ; $9163 copy game screen to screen RAM
 InitGameScreen:
 		ldx #$00
-inigslp:lda MazeData,x					; load decompressed Screen Data
-		sta Maze,x					; copy to game screen from line2
+inigslp:lda MazeData,x					; load decompressed maze data
+		sta Maze,x						; copy to game screen from line2
 		lda MazeData+$100,x
 		sta Maze+$100,x
 		lda MazeData+$200,x
@@ -2631,8 +2632,8 @@ inigslp:lda MazeData,x					; load decompressed Screen Data
 ; $9181 save game screen player 1 to $4400
 SaveScreenPlayer1:
 		ldx #$00
-savp1lp:lda Maze,x
-		sta Player1Save,x
+savp1lp:lda Maze,x						; load from screen memory
+		sta Player1Save,x				; save to player 1 backup memory
 		lda Maze+$100,x
 		sta Player1Save+$100,x
 		lda Maze+$200,x
@@ -2646,8 +2647,8 @@ savp1lp:lda Maze,x
 ; $919f save game screen player 2 to $4800
 SaveScreenPlayer2:
 		ldx #$00
-savp2lp:lda Maze,x
-		sta Player2Save,x
+savp2lp:lda Maze,x						; load from screen memory
+		sta Player2Save,x				; save to player 2 backup memory
 		lda Maze+$100,x
 		sta Player2Save+$100,x
 		lda Maze+$200,x
@@ -2947,7 +2948,7 @@ l9398:	lda pacman_vpos
 ; -------------------------------------------------------------------------------------------------
 ; $93b0
 l93b0:	sta player_score_text+4
-		jsr l946d
+		jsr pscore
 		lda #$01
 		sta eatdot_sound_flag
 		sta pacman_dly_eating
@@ -3023,7 +3024,7 @@ l9428:	eor #$0f
 		sta bigdot_status,x
 		lda #$05
 		sta player_score_text+4
-		jsr l946d
+		jsr pscore
 		lda #$01						; set up for blue monsters
 		sta flash_count
 		lda #$ff
@@ -3055,7 +3056,7 @@ l9467:	dex
 		jmp l93d0
 ; -------------------------------------------------------------------------------------------------
 ; $946d pscore will add any points scored to the players' score		
-l946d:	lda #$00
+pscore:	lda #$00
 		sta score_carry_bit
 		sed								; set decimal mode
 		lda player_number
@@ -3285,7 +3286,7 @@ l95dc:	sty GameScreen+$2f4
 ; $95e0 speed sequencing for objects x reg = index value for object 
 ; x=0 to 3 for monsters 1 - 4, x=4 for pacman
 ; on exit: a reg = 0 indicates update time
-l95e0:	dec monster_speed_cnt,x
+spdseq:	dec monster_speed_cnt,x
 		beq l95e7
 		lda #$ff
 		rts
@@ -3316,7 +3317,7 @@ l9608:	lda MonsterSpeedIndex,y
 		rts
 ; -------------------------------------------------------------------------------------------------
 ; $9617 chase sequencing
-l9617:	lda jiffy
+chasseq:	lda jiffy
 		and #$07
 		bne l9623
 		lda chase_timer
@@ -3582,7 +3583,7 @@ l97ed:	lda monster_hpos,x
 		cmp #$88
 		bne l97c3
 		beq l97b0
-l97f5:	ldx #$01
+startmn:	ldx #$01
 l97f7:	lda monster_status,x
 		and #$7f
 		bne l9820
@@ -3621,7 +3622,7 @@ l9836:	lda monster_vpos,x
 l983e:	sta monster_direction,x
 l9840:	lda monster_direction,x
 		jmp monhnd
-l9845:	lda monster_status,x
+monster:	lda monster_status,x
 		bpl l984f
 		lsr
 		lsr
