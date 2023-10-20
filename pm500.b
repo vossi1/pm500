@@ -295,40 +295,40 @@ Cold:	sei
 Start:
 !ifdef 	P500{ 
 	lda #SYSTEMBANK
-	sta IndirectBank				; select bank 15
+	sta IndirectBank		; select bank 15
 	jsr InitP500
 	lda #GAMEBANK
-	sta IndirectBank				; select bank 0 for data copy and init
+	sta IndirectBank		; select bank 0 for data copy and init
 } else{
 *= $8394
-	jsr ioinit 						; IRQ init
-	jsr ramtas 						; RAM init
-	jsr restor 						; hardware I/O vector init
-	jsr cint   						; video init
+	jsr ioinit 			; IRQ init
+	jsr ramtas 			; RAM init
+	jsr restor 			; hardware I/O vector init
+	jsr cint   			; video init
 }
 Warm:	lda #$00
 	ldx #$c2
-clearzp:sta $02,x						; clear zero page $03 - $c4
-	sta GameScreen-1,x				; clear top of game screen $0400 - $04c1
+clearzp:sta $02,x			; clear zero page $03 - $c4
+	sta GameScreen-1,x		; clear top of game screen $0400 - $04c1
 	dex
-	bne clearzp						; next byte
-	inc mode						; increase mode to 1 to start in options mode
-	ldx jiffy						; load jiffy = $00 (cleared at ZP clear loop)
+	bne clearzp			; next byte
+	inc mode			; increase mode to 1 to start in options mode
+	ldx jiffy			; load jiffy = $00 (cleared at ZP clear loop)
 	dex
-	stx delay_options				; remember jiffy-1 for 255 x 20ms = 5s options delay
+	stx delay_options		; remember jiffy-1 for 255 x 20ms = 5s options delay
 !ifdef 	P500{
 ; P500 Copy chars $00-$3f of the first (graphic) fontset to $80 of tboth custom fonts
-	lda #SYSTEMBANK					; select bank 15 to get font from char ROM
+	lda #SYSTEMBANK			; select bank 15 to get font from char ROM
 	sta IndirectBank
-fontcpy:lda (CharROM1),y				; load from character ROM - Y already $00	
-	sta GameChar+$400,y				; store to game fontset from char $80
-	sta OptionsChar+$400,y			; store to options fontset from char $80
+fontcpy:lda (CharROM1),y		; load from character ROM - Y already $00	
+	sta GameChar+$400,y		; store to game fontset from char $80
+	sta OptionsChar+$400,y		; store to options fontset from char $80
 	lda (CharROM0),y
 	sta GameChar+$500,y
 	sta OptionsChar+$500,y
 	dey
 	bne fontcpy
-	sty IndirectBank				; select bank 0 - Y already $00
+	sty IndirectBank		; select bank 0 - Y already $00
 ; Copy User chars
 uchrcpy:lda UserFontGame,y	
 	sta GameChar,y
@@ -342,36 +342,36 @@ uchrcpy:lda UserFontGame,y
 	sta OptionsChar,y
 	dey
 	bne uchrcpy
-; P500 SID init							; x already $ff
+; P500 SID init				; x already $ff
 	lda #SYSTEMBANK
 	sta IndirectBank	; select bank 15 - from here as STANDARD!
 	lda #$ff
 	ldy #SR_V3FREQ
-	sta (SID),y						; SID voice 3 frequency lo to $ff 
+	sta (SID),y			; SID voice 3 frequency lo to $ff 
 	iny
-	sta (SID),y						; SID voice 3 frequency hi to $ff 
+	sta (SID),y			; SID voice 3 frequency hi to $ff 
 	ldy #SR_V3CTRL
 	lda #$80
-	sta (SID),y						; SID voice 3 to $80 = noise for random generation
+	sta (SID),y			; SID voice 3 to $80 = noise for random generation
 	lda #$f0
 	ldy #SR_V1SR
-	sta (SID),y						; SID voice 1 SR to $f0
+	sta (SID),y			; SID voice 1 SR to $f0
 	ldy #SR_V2SR
-	sta (SID),y						; SID voice 2 SR To $f0
+	sta (SID),y			; SID voice 2 SR To $f0
 } else{
 ; C64 decompress, decode and data copy routines 
 !source "c64decod.b"
-; $848a SID init						; x already $ff
-	stx $d40e						; SID voice 3 frequency lo to $ff 
-	stx $d40f						; SID voice 3 frequency hi to $ff 
+; $848a SID init			; x already $ff
+	stx $d40e			; SID voice 3 frequency lo to $ff 
+	stx $d40f			; SID voice 3 frequency hi to $ff 
 	lda #$80
-	sta $d412						; SID voice 3 to $80 = noise for random generation
+	sta $d412			; SID voice 3 to $80 = noise for random generation
 	lda #$f0
-	sta $d406						; SID voice 1 SR to $f0
-	sta $d40d						; SID voice 2 SR To $f0
+	sta $d406			; SID voice 1 SR to $f0
+	sta $d40d			; SID voice 2 SR To $f0
 }
 ; $849d Copy fruit chars from game font to options font
-	ldx #$a1						; copy $a1 bytes
+	ldx #$a1			; copy $a1 bytes
 fchrcpy:lda GameChar+$1cf,x
 	sta OptionsChar+$1cf,x
 	dex
@@ -380,152 +380,152 @@ fchrcpy:lda GameChar+$1cf,x
 ; P500 Hardware interrupt vector setup, enable VIC raster IRQ
 	lda #$01
 	ldy #VR_EIRQ
-	sta (VIC),y						; VIC enable raster interrupt
+	sta (VIC),y			; VIC enable raster interrupt
 	lda #$1b
 	ldy #VR_MODEY
-	sta (VIC),y						; VIC RC8 = 0, DEN, 40 columns, Y = 3
+	sta (VIC),y			; VIC RC8 = 0, DEN, 40 columns, Y = 3
 	lda #RASTERLINE2
 	ldy #VR_RASTER
-	sta (VIC),y						; VIC raster reg = $032 (start visible screen)
+	sta (VIC),y			; VIC raster reg = $032 (start visible screen)
 } else{
 ; $84a8 C64 Kernal interrupt vector setup
-	sei								; disable interrrupts
+	sei				; disable interrrupts
 	lda #<Interrupt
 	sta $0314
 	lda #>Interrupt
-	sta $0315						; set IRQ vector to $8583
+	sta $0315			; set IRQ vector to $8583
 	lda #$01
-	sta $d01a						; VIC enable raster interrupt
+	sta $d01a			; VIC enable raster interrupt
 	lda #$1b
-	sta $d011						; VIC RC8 = 0, DEN, 40 columns, Y = 3
+	sta $d011			; VIC RC8 = 0, DEN, 40 columns, Y = 3
 	lda #$32
-	sta $d012						; VIC raster reg = $032 (start visible screen)
+	sta $d012			; VIC raster reg = $032 (start visible screen)
 }
-	cli								; enable interrupts
+	cli				; enable interrupts
 ; -------------------------------------------------------------------------------------------------
 ; $84c3 New game vector	
 reinit:	lda #$00
 	ldx #$1f
-reinilp:sta game_over_flag,x			; clear game variables $0e-$2d
+reinilp:sta game_over_flag,x		; clear game variables $0e-$2d
 	dex
 	bpl reinilp
-	txs								; init stack with $ff
-	jsr ClearAudio					; SID sound off
+	txs				; init stack with $ff
+	jsr ClearAudio			; SID sound off
 !ifdef 	P500{
 	ldy #VR_EXTCOL
-	sta (VIC),y						; VIC exterior color = black
+	sta (VIC),y			; VIC exterior color = black
 	iny
-	sta (VIC),y						; VIC background color0 = black
+	sta (VIC),y			; VIC background color0 = black
 	lda #LIGHTBLUE
 	iny
-	sta (VIC),y						; VIC background color1 = lightblue
+	sta (VIC),y			; VIC background color1 = lightblue
 	lda #RED
 	iny
-	sta (VIC),y						; VIC background color2 = red
-	ldy #$ff						; set Y = $ff because its set to this value after ClearAudio
+	sta (VIC),y			; VIC background color2 = red
+	ldy #$ff			; set Y = $ff because its set to this value after ClearAudio
 } else{
-	sta $d020						; VIC exterior color = black
-	sta $d021						; VIC background color0 = black
+	sta $d020			; VIC exterior color = black
+	sta $d021			; VIC background color0 = black
 	lda #LIGHTBLUE
-	sta $d022						; VIC background color1 = lightblue
+	sta $d022			; VIC background color1 = lightblue
 }
 ; now initialize player screens
-	jsr SetColor					; sub: init color RAM and VIC Sprite colors
-	jsr InitGameScreen				; sub: copy game screen to screen RAM
-	jsr SaveScreenPlayer1			; sub: init game screen player1 $4400
-	jsr SaveScreenPlayer2			; sub: init game screen player2 $4800
-	lda mode						; mode at startup = 1
-	bne loop						; branch if not game mode 0
+	jsr SetColor			; sub: init color RAM and VIC Sprite colors
+	jsr InitGameScreen		; sub: copy game screen to screen RAM
+	jsr SaveScreenPlayer1		; sub: init game screen player1 $4400
+	jsr SaveScreenPlayer2		; sub: init game screen player2 $4800
+	lda mode			; mode at startup = 1
+	bne loop			; branch if not game mode 0
 	lda jiffy
 pacgmlp:cmp jiffy
-	beq pacgmlp						; wait one jiffy = interrupt cycle
+	beq pacgmlp			; wait one jiffy = interrupt cycle
 !ifdef 	P500{
-	lda #$18						; VM13-10=$1 screen at $0400, CB13,12,11,x=1000 char at $2000
+	lda #$18			; VM13-10=$1 screen at $0400, CB13,12,11,x=1000 char at $2000
 	ldy #VR_MEMPT
-	sta (VIC),y						; set VIC memory pointers
+	sta (VIC),y			; set VIC memory pointers
 	lda #$d8
 	ldy #VR_MCMCSX
-	sta (VIC),y						; VIC multicolormode MCM=1, 40 columns
+	sta (VIC),y			; VIC multicolormode MCM=1, 40 columns
 	lda #$1f
 	ldy #VR_MOBENA
-	sta (VIC),y						; VIC enable spritess 0-4
+	sta (VIC),y			; VIC enable spritess 0-4
 	ldy #VR_MOBXPA
-	sta (VIC),y						; VIC x-expand sprites 0-4
+	sta (VIC),y			; VIC x-expand sprites 0-4
 } else{
-	lda #$18						; VM13-10=$1 screen at $0400, CB13,12,11,x=1000 char at $2000
-	sta $d018						; set VIC memory pointers
+	lda #$18			; VM13-10=$1 screen at $0400, CB13,12,11,x=1000 char at $2000
+	sta $d018			; set VIC memory pointers
 	lda #$d8
-	sta $d016						; VIC multicolormode MCM=1, 40 columns
+	sta $d016			; VIC multicolormode MCM=1, 40 columns
 	lda #$1f
-	sta $d015						; VIC enable spritess 0-4
-	sta $d01d						; VIC x-expand sprites 0-4
+	sta $d015			; VIC enable spritess 0-4
+	sta $d01d			; VIC x-expand sprites 0-4
 }
-	jsr Setup						; sub: Set up monster and pacman, start postions, speeds
-	jsr NewGame						; sub: init maze, xpacs, difficulty, score
+	jsr Setup			; sub: Set up monster and pacman, start postions, speeds
+	jsr NewGame			; sub: init maze, xpacs, difficulty, score
 	lda players
-	beq p1scini						; skip if 1 player
-	jsr Set2Player					; sub: print 1Up, 2Up, print zero scores
-	jmp godoit						; skip if 2 player
+	beq p1scini			; skip if 1 player
+	jsr Set2Player			; sub: print 1Up, 2Up, print zero scores
+	jmp godoit			; skip if 2 player
 ;	
-p1scini:jsr Set1Player					; sub: print 1Up, print zero score
+p1scini:jsr Set1Player			; sub: print 1Up, print zero score
 godoit: lda #$02
-	sta restart_flag				; restart = 2 after init
+	sta restart_flag		; restart = 2 after init
 loop:	lda mode
-	bne goloop						; branch if not game mode
+	bne goloop			; branch if not game mode
 	lda game_over_flag
-	beq chkfkey						; game runs - check only f-keys
+	beq chkfkey			; game runs - check only f-keys
 	lda atract_timer_ATARI
 	bne goloop
 	lda #$04
-	bne SetMode						; set ATARI attract mode mode = 4 - NOT on Commodore
+	bne SetMode			; set ATARI attract mode mode = 4 - NOT on Commodore
 !ifdef 	P500{
 goloop:	ldy #$00
-	lda (CIA),y						; load CIA Port A
-	ora #$3f						; ignore bit#0-5
-	cmp #$ff						; check if bit#6 and 7 = 1 -> no joystick button pressed
+	lda (CIA),y			; load CIA Port A
+	ora #$3f			; ignore bit#0-5
+	cmp #$ff			; check if bit#6 and 7 = 1 -> no joystick button pressed
 	bne cstart
 chkfkey:lda pressed_key
 	cmp #$07
-	beq loop						; no key pressed
+	beq loop			; no key pressed
 debounc:cmp pressed_key
-	beq debounc						; debounce key
+	beq debounc			; debounce key
 	cmp #$03
-	beq cstart						; F1 -> start new game
+	beq cstart			; F1 -> start new game
 	ldx mode
 	cpx #$03
-	bcc SetModeOptions				; set mode to 3 = options (at startup its 1)
+	bcc SetModeOptions		; set mode to 3 = options (at startup its 1)
 	cmp #$06
-	beq IncreaseDifficulty			; F5 -> increase difficulty
+	beq IncreaseDifficulty		; F5 -> increase difficulty
 	cmp #$05
-	beq TogglePlayers				; F3 -> toggle players
+	beq TogglePlayers		; F3 -> toggle players
 	bne loop
 } else{
 goloop:	lda #$10
-	bit $dc00						; check CIA1 Porta column 4 = Joy 2 button
+	bit $dc00			; check CIA1 Porta column 4 = Joy 2 button
 	beq cstart
 chkfkey:lda pressed_key
 	cmp #$ff
-	beq loop						; no key pressed
+	beq loop			; no key pressed
 debounc:cmp pressed_key
-	beq debounc						; debounce key
+	beq debounc			; debounce key
 	cmp #$ef
-	beq cstart						; F1, Joy1Button -> start new game
+	beq cstart			; F1, Joy1Button -> start new game
 	ldx mode
 	cpx #$03
-	bcc SetModeOptions				; set mode to 3 = options (at startup its 1)
+	bcc SetModeOptions		; set mode to 3 = options (at startup its 1)
 	cmp #$bf
-	beq IncreaseDifficulty			; F5 -> increase difficulty
+	beq IncreaseDifficulty		; F5 -> increase difficulty
 	cmp #$df
-	beq TogglePlayers				; F3 -> toggle players
+	beq TogglePlayers		; F3 -> toggle players
 	bne loop
 }
 ; start new game
-cstart:	lda #$00						; start new game
+cstart:	lda #$00			; start new game
 	sta game_over_flag
-	sta mode						; mode = 0 game mode
+	sta mode			; mode = 0 game mode
 	lda #$01
-	sta restart_flag				; restart = 1 for new game
-	jmp reinit						; start the new game in next main loop
+	sta restart_flag		; restart = 1 for new game
+	jmp reinit			; start the new game in next main loop
 ; -------------------------------------------------------------------------------------------------
 ; $855c toogle players
 TogglePlayers:
@@ -543,17 +543,17 @@ SetMode:
 IncreaseDifficulty:
 	lda difficulty
 	cmp #$02
-	bcs incdif2						; branch if difficulty >= 2
+	bcs incdif2			; branch if difficulty >= 2
 	inc difficulty
-	bne SetModeOptions				; return in options mode
+	bne SetModeOptions		; return in options mode
 incdif2:cmp #$0c
-	beq resdiff						; branch if mode = $c
+	beq resdiff			; branch if mode = $c
 	inc difficulty
-	inc difficulty					; from difficulty 2 add 2 for each step
-	bne SetModeOptions				; return in options mode
+	inc difficulty			; from difficulty 2 add 2 for each step
+	bne SetModeOptions		; return in options mode
 resdiff:lda #$00
-	sta difficulty					; after $c reset difficulty to 0
-	beq SetModeOptions				; return in options mode
+	sta difficulty			; after $c reset difficulty to 0
+	beq SetModeOptions		; return in options mode
 ; -------------------------------------------------------------------------------------------------
 Interrupt: ; game interrupt routine every 20ms = 1 jiffy
 !ifdef 	P500{
@@ -563,92 +563,92 @@ Interrupt: ; game interrupt routine every 20ms = 1 jiffy
 	pha
 	tya
 	pha
-	lda IndirectBank				; load actibe indirct bank
-	pha								; remember on stack
+	lda IndirectBank		; load actibe indirct bank
+	pha				; remember on stack
 	lda #SYSTEMBANK
-	sta IndirectBank				; select bank 15
+	sta IndirectBank		; select bank 15
 
 	ldy #VR_IRQ
-	lda (VIC),y						; load VIC interrupt reg and mask bit 1
+	lda (VIC),y			; load VIC interrupt reg and mask bit 1
 	and #$01
-	beq jendirq						; skip if source is not raster interrupt
+	beq jendirq			; skip if source is not raster interrupt
 	ldy #VR_RASTER
-	lda (VIC),y						; set VIC raster reg again
+	lda (VIC),y			; set VIC raster reg again
 	cmp #RASTERLINE1
-	beq rline1						; branch if rasterline 1
+	beq rline1			; branch if rasterline 1
 	lda mode
-	beq setrl1						; branch if gaem mode = 0
+	beq setrl1			; branch if gaem mode = 0
 ; rasterline 2: disable multicolor - only if no game runs
 	lda #$c8
 	ldy #VR_MCMCSX
-	sta (VIC),y						; VIC multicolormode MCM=0, 40 columns
+	sta (VIC),y			; VIC multicolormode MCM=0, 40 columns
 	lda #RASTERLINE1
 	ldy #VR_RASTER
-	sta (VIC),y						; set VIC raster reg again
+	sta (VIC),y			; set VIC raster reg again
 	lda #$81
 	ldy #VR_IRQ
-	sta (VIC),y						; clear VIC raster interrupt
-jendirq:jmp endirq						; leave interrupt routine
+	sta (VIC),y			; clear VIC raster interrupt
+jendirq:jmp endirq			; leave interrupt routine
 ; rasterline 1: always enable multicolor, inc jiffy, update screen/game cycle, check keys
-rline1: inc jiffy						; increase jiffy
+rline1: inc jiffy			; increase jiffy
 	lda #$d8
 	ldy #VR_MCMCSX
-	sta (VIC),y						; VIC multicolormode MCM=1, 40 columns
+	sta (VIC),y			; VIC multicolormode MCM=1, 40 columns
 	lda mode
-	beq setrl1						; branch if game mode = 0
-	lda #RASTERLINE2				; set rasterline 2 if mode > 0 options, startup
+	beq setrl1			; branch if game mode = 0
+	lda #RASTERLINE2		; set rasterline 2 if mode > 0 options, startup
 	bne setrast
-setrl1:	lda #RASTERLINE1				; set rasterline 1 again in game mode
+setrl1:	lda #RASTERLINE1		; set rasterline 1 again in game mode
 setrast:ldy #VR_RASTER
-	sta (VIC),y						; clear VIC raster reg again
+	sta (VIC),y			; clear VIC raster reg again
 	lda #$81
 	ldy #VR_IRQ
-	sta (VIC),y						; clear VIC raster interrupt
+	sta (VIC),y			; clear VIC raster interrupt
 	dec bounce_timer_ATARI							;
-	jsr CheckMode					; sub: Check mode and do Startup, Options, Game
+	jsr CheckMode			; sub: Check mode and do Startup, Options, Game
 
 	lda freeze_flag
-	bne ichkkey						; skip if freeze_flag is not 0
-	jsr Tunnel						; Tunnel logic
+	bne ichkkey			; skip if freeze_flag is not 0
+	jsr Tunnel			; Tunnel logic
 
 ichkkey:ldy #$00
-	sty pressed_key					; clear key variable
+	sty pressed_key			; clear key variable
 	lda #$fe
 	iny
-	sta (TPI2),y					; set TPI2 port B keyboard out 0 for F1 column
+	sta (TPI2),y			; set TPI2 port B keyboard out 0 for F1 column
 	iny
-if1deb:	lda (TPI2),y					; load TPI2 port C
+if1deb:	lda (TPI2),y			; load TPI2 port C
 	sta temp
 	lda (TPI2),y
 	cmp temp
-	bne if1deb						; debounce
-	lsr								; shift bit#0 in carry
-	rol pressed_key					; shift bit in key variable
+	bne if1deb			; debounce
+	lsr				; shift bit#0 in carry
+	rol pressed_key			; shift bit in key variable
 	lda #$fb
 	dey
-	sta (TPI2),y					; set TPI2 port B keyboard out 2 for F3 column
+	sta (TPI2),y			; set TPI2 port B keyboard out 2 for F3 column
 	iny
-if3deb:	lda (TPI2),y					; load TPI2 port C
+if3deb:	lda (TPI2),y			; load TPI2 port C
 	sta temp
 	lda (TPI2),y
 	cmp temp
-	bne if3deb						; debounce
-	lsr								; shift bit#0 in carry
-	rol pressed_key					; shift bit in key variable
+	bne if3deb			; debounce
+	lsr				; shift bit#0 in carry
+	rol pressed_key			; shift bit in key variable
 	lda #$ef
 	dey
-	sta (TPI2),y					; set TPI2 port B keyboard out 4 for F5 column
+	sta (TPI2),y			; set TPI2 port B keyboard out 4 for F5 column
 	iny
-if5deb:	lda (TPI2),y					; load TPI2 port C
+if5deb:	lda (TPI2),y			; load TPI2 port C
 	sta temp
 	lda (TPI2),y
 	cmp temp
-	bne if5deb						; debounce
-	lsr								; shift bit#0 in carry
-	rol pressed_key					; shift bit in key variable
+	bne if5deb			; debounce
+	lsr				; shift bit#0 in carry
+	rol pressed_key			; shift bit in key variable
 
 endirq: pla
-	sta IndirectBank				; restore indirect bank before interrupt
+	sta IndirectBank		; restore indirect bank before interrupt
 	pla
 	tay
 	pla
@@ -657,69 +657,69 @@ endirq: pla
 	rti
 } else{	
 ; $8583 C64 interrupt routine
-	lda $d019						; load VIC interrupt reg and mask bit 1
+	lda $d019			; load VIC interrupt reg and mask bit 1
 	and #$01
-	beq endirq						; skip if source is not raster interrupt
-	inc jiffy						; increase jiffy
+	beq endirq			; skip if source is not raster interrupt
+	inc jiffy			; increase jiffy
 	lda #$32
-	sta $d012						; set VIC raster reg again to $32 (start)
+	sta $d012			; set VIC raster reg again to $32 (start)
 	lda #$81
-	sta $d019						; clear VIC raster interrupt
-	dec bounce_timer_ATARI							;
-	jsr CheckMode					; Check mode and do Startup, Options, Game
+	sta $d019			; clear VIC raster interrupt
+	dec bounce_timer_ATARI		;
+	jsr CheckMode			; Check mode and do Startup, Options, Game
 	lda freeze_flag
-	bne ichkkey						; skip if freeze_flag is not 0
-	jsr Tunnel						; Tunnel logic
+	bne ichkkey			; skip if freeze_flag is not 0
+	jsr Tunnel			; Tunnel logic
 ichkkey:ldx #$ff
-	stx $dc02						; set CIA1 port A for output
+	stx $dc02			; set CIA1 port A for output
 	dex
-	stx $dc00						; store $fe to Port A = select keyboard column 0
-idebkey:lda $dc01						; load CIA1 port B = keyboard row
+	stx $dc00			; store $fe to Port A = select keyboard column 0
+idebkey:lda $dc01			; load CIA1 port B = keyboard row
 	cmp $dc01
-	bne idebkey						; debounce key
-	sta pressed_key					; store pressed key $ef=F1,JoyButton1 / $df=F3 / $bf=F5
+	bne idebkey			; debounce key
+	sta pressed_key			; store pressed key $ef=F1,JoyButton1 / $df=F3 / $bf=F5
 	ldx #$00
-	stx $dc02						; reset CIA1 port B to input
-endirq: jmp $ea7e						; jump to kernal interrupt
+	stx $dc02			; reset CIA1 port B to input
+endirq: jmp $ea7e			; jump to kernal interrupt
 }
 ; -------------------------------------------------------------------------------------------------
 ; $85bd Init options - set VIC, sound off, clears sprite x
 InitOptions:
 	lda #$00
 	ldx #$07
--	sta sprite_x,x					; clear sprite x variables
+-	sta sprite_x,x			; clear sprite x variables
 	dex
 	bpl -
-	lda #$3a						; VM13-10=$3 screen $0c00, CB13,12,11,x=1010 char $2800						; VIC memory pointers
+	lda #$3a			; VM13-10=$3 screen $0c00, CB13,12,11,x=1010 char $2800						; VIC memory pointers
 !ifdef P500{
 	ldy #VR_MEMPT
-	sta (VIC),y						; set VIC memory pointers
-	jsr ClearAudio					; returns with A=$00
+	sta (VIC),y			; set VIC memory pointers
+	jsr ClearAudio			; returns with A=$00
 	ldy #VR_MOBENA
-	sta (VIC),y						; VIC disable sprites
-	ldy #$ff						; set Y = $ff because its set to this value after ClearAudio
+	sta (VIC),y			; VIC disable sprites
+	ldy #$ff			; set Y = $ff because its set to this value after ClearAudio
 	rts
 } else{
 }
-	sta $d018						; set VIC memory pointers
+	sta $d018			; set VIC memory pointers
 	lda #$c8
-	sta $d016						; set VIC Multicolor mode off, 40 Columns
-	jsr ClearAudio					; returns with A=$00
-	sta $d015						; VIC disable sprites
+	sta $d016			; set VIC Multicolor mode off, 40 Columns
+	jsr ClearAudio			; returns with A=$00
+	sta $d015			; VIC disable sprites
 	rts
 ; -------------------------------------------------------------------------------------------------
 ; $85d8 print 1Up, print zero score
 Set1Player:
-	ldx #$05						; 6 chars
-	lda #$80						; <space> code
-clrsclp:sta GameScreen+$20,x			; clear score position 1
-	sta GameScreen+$47,x 			; clear score position 2
+	ldx #$05			; 6 chars
+	lda #$80			; <space> code
+clrsclp:sta GameScreen+$20,x		; clear score position 1
+	sta GameScreen+$47,x 		; clear score position 2
 	dex
 	bpl clrsclp
 setxpl:	jsr Flash1On
-	ldx #$05						; 6 chars
-	lda #$90						; code 0
-zero1lp:sta GameScreen+$2a,x			; write player 1 score 000000
+	ldx #$05			; 6 chars
+	lda #$90			; code 0
+zero1lp:sta GameScreen+$2a,x		; write player 1 score 000000
 	dex
 	bpl zero1lp
 	rts
@@ -728,7 +728,7 @@ Set2Player:
 	jsr Flash2On
 	ldx #$05
 	lda #$90
-zero2lp:sta GameScreen+$47,x			; write player 2 score 000000
+zero2lp:sta GameScreen+$47,x		; write player 2 score 000000
 	dex
 	bpl zero2lp
 	bmi setxpl
@@ -738,32 +738,32 @@ zero2lp:sta GameScreen+$47,x			; write player 2 score 000000
 ; $8602 copy and uncompress user char
 UncompressChar:	
 	ldy #$00
-	lda (pixel_get_ptr),y			; load byte
+	lda (pixel_get_ptr),y		; load byte
 	and #$c0
-	bne fontb67						; branch if bit 6 or 7 = 1
-	lda (pixel_get_ptr),y			; load byte again
-	tax								; move to X as index
-	lda UserFontTiles,x				; load part 0-$3f from table
-	jsr StoreIncPutPtr				; store in user font
+	bne fontb67			; branch if bit 6 or 7 = 1
+	lda (pixel_get_ptr),y		; load byte again
+	tax				; move to X as index
+	lda UserFontTiles,x		; load part 0-$3f from table
+	jsr StoreIncPutPtr		; store in user font
 fontlp:	jsr IncGetPtr
-	jmp UncompressChar				; next byte
-fontb67:lsr								; shift bit#6+7 to 1+0
+	jmp UncompressChar		; next byte
+fontb67:lsr				; shift bit#6+7 to 1+0
 	lsr
 	lsr
 	lsr
 	lsr
 	lsr
-	sta temp						; store in temp as repeat counter
-	lda (pixel_get_ptr),y			; load byte again
-	cmp #$ff						; check if end of table
-	beq fontret						; branch to rts
+	sta temp			; store in temp as repeat counter
+	lda (pixel_get_ptr),y		; load byte again
+	cmp #$ff			; check if end of table
+	beq fontret			; branch to rts
 	and #$3f
 	tax
-	lda UserFontTiles,x				; load part 0-$3f from table
-fontrpt:jsr StoreIncPutPtr				; store in user font
+	lda UserFontTiles,x		; load part 0-$3f from table
+fontrpt:jsr StoreIncPutPtr		; store in user font
 	dec temp
-	bpl fontrpt						; repeat number of temp counter 
-	bmi fontlp						; next byte
+	bpl fontrpt			; repeat number of temp counter 
+	bmi fontlp			; next byte
 ; $8636 Load+increase pointer 1
 LoadIncGetPtr:
 	lda (pixel_get_ptr),y
@@ -793,29 +793,29 @@ LoadHiNibbleGetPtr:
 CheckMode:
 	ldy mode
 	bne tstmode
-	jmp Game						; mode = 0 game runs - set sprites and all other things
+	jmp Game			; mode = 0 game runs - set sprites and all other things
 tstmode:cpy #$01
-	bne mode2						; mode > 1 options delay $ff jiffys
+	bne mode2			; mode > 1 options delay $ff jiffys
 ; mode = 1: build title screen
-	jsr InitOptions					; sub: Init options - set VIC, sound off, clears sprite x
+	jsr InitOptions			; sub: Init options - set VIC, sound off, clears sprite x
 	ldx #$00
 	txa
 	sta $02c5
 	lda #$80
-clropt:	sta OptionsScreen,x				; clear options screen
+clropt:	sta OptionsScreen,x		; clear options screen
 	sta OptionsScreen+$100,x
 	sta OptionsScreen+$200,x
 	sta OptionsScreen+$300,x
-	sta GameScreen+$350,x			; clear lower part game screen
+	sta GameScreen+$350,x		; clear lower part game screen
 	dex
 	bne clropt
 	ldx #$0d
-atarilp:lda Text_Atari1983,x			; write "Atari 1983" to screen
+atarilp:lda Text_Atari1983,x		; write "Atari 1983" to screen
 	sta OptionsScreen+$267,x
 	dex
 	bpl atarilp
-	inx								; X = $00
-logolp:	txa								; write PACMAN logo to screen
+	inx				; X = $00
+logolp:	txa				; write PACMAN logo to screen
 	clc
 	adc #$01
 	sta OptionsScreen+$5f+OFFLOGO,x	; first line char 1 - 12
@@ -825,33 +825,33 @@ logolp:	txa								; write PACMAN logo to screen
 	inx
 	cpx #$0c
 	bne logolp
-mode1i:	inc mode						; increase mode
+mode1i:	inc mode			; increase mode
 mode1x:	rts
 ; -------------------------------------------------------------------------------------------------
 ; $8698 mode = 2: time out title screen: about 5 seconds
 mode2:	cpy #$02
 	bne mode3
 	lda delay_options
-	cmp jiffy						; wait for $ff jiffys from startup
+	cmp jiffy			; wait for $ff jiffys from startup
 	bne mode1x
-	beq mode1i						; increase to next mode = 3 Options
+	beq mode1i			; increase to next mode = 3 Options
 ; -------------------------------------------------------------------------------------------------
 ; $86a4 mode = 3: build option screen
 mode3:	ldx players
-	inx								; add 1 to get 1/2
+	inx				; add 1 to get 1/2
 	txa
 	ora #$90
 	sta OptionsScreen+$d7-OFFTEXT	; add $90 for char and print 1/2 players to screen
 	lda players
-	bne opt2pl						; skip if 2 players
+	bne opt2pl			; skip if 2 players
 	cpy #$03
-	bne same1p						; skip if not mode 3 (ATARI attract mode 4)
-	jsr Set1Player					; sub: print 1Up, print zero score on game screen
+	bne same1p			; skip if not mode 3 (ATARI attract mode 4)
+	jsr Set1Player			; sub: print 1Up, print zero score on game screen
 same1p:	lda #$92
-	bne opttext						; skip 2 player init
+	bne opttext			; skip 2 player init
 opt2pl:	cpy #$03
-	bne same2p						; skip if not mode 3
-	jsr Set2Player					; sub: print 1Up, 2Up, print zero scores on game screen
+	bne same2p			; skip if not mode 3
+	jsr Set2Player			; sub: print 1Up, 2Up, print zero scores on game screen
 same2p:	lda #$91
 opttext:sta OptionsScreen+$14f-OFFTEXT	; write 2/1 player for F3 to screen
 	ldx #$0a
@@ -860,9 +860,9 @@ txt1lp:	lda Text_PlayerGame,x
 	sta OptionsScreen+$d9-OFFTEXT,x
 	dex
 	bpl txt1lp
-	jsr InitOptions					; sub: Init options - set VIC, sound off, clears sprite x
+	jsr InitOptions			; sub: Init options - set VIC, sound off, clears sprite x
 	ldx #$0b
-txt2lp:	lda Text_PressF3To,x			; write F-key messages to screen 
+txt2lp:	lda Text_PressF3To,x		; write F-key messages to screen 
 	sta OptionsScreen+$127-OFFTEXT,x
 	lda Text_PressF5To,x
 	sta OptionsScreen+$240,x
@@ -872,18 +872,18 @@ txt2lp:	lda Text_PressF3To,x			; write F-key messages to screen
 	bpl txt2lp
 	ldx difficulty
 	lda DifficultyFruitsOptions,x
-	sta OptionsScreen+$1cc				; write two chars for the difficulty fruit
+	sta OptionsScreen+$1cc		; write two chars for the difficulty fruit
 	clc
 	adc #$01
 	sta OptionsScreen+$1cd
 	ldx #$10
 txt3lp:	lda Text_ChangeDifficulty,x
-	sta OptionsScreen+$265,x			; write "change difficulty"
+	sta OptionsScreen+$265,x	; write "change difficulty"
 	dex
 	bpl txt3lp
 	ldx #$08
 txt4lp:	lda Text_PlayGame,x
-	sta OptionsScreen+$309,x			; write "play game"
+	sta OptionsScreen+$309,x	; write "play game"
 	dex
 	bpl txt4lp
 	rts
@@ -892,134 +892,134 @@ txt4lp:	lda Text_PlayGame,x
 Game:	
 !ifdef 	P500{
 ; set sprite positions
-	ldx #$04						; start with sprite 4
-	ldy #$08						; x-position reg of sprite 4
-spposlp:lda sprite_x,x					; load x
+	ldx #$04			; start with sprite 4
+	ldy #$08			; x-position reg of sprite 4
+spposlp:lda sprite_x,x			; load x
 	sec
-	sbc #$2c						; calc sprite x postion
+	sbc #$2c			; calc sprite x postion
 	asl
-	sta (VIC),y						; set VIC sprite x
-	sty temp						; remember Y
+	sta (VIC),y			; set VIC sprite x
+	sty temp			; remember Y
 	ldy #$10
-	lda (VIC),y						; load sprite x MSB register from VIC
-	bcc spnomsb						; skip if x-value <= $ff
-	ora SpriteSetMSBMask,x			; set bit with bit-set-table
-	bne spnoclr						; skip nextx instruction
-spnomsb:and SpriteClearMSBMask,x		; clear bit with bit-clear-table
-spnoclr:sta (VIC),y						; store new X-MSB-byte to VIC
-	ldy temp						; restore Y
-	lda monster_vpos,x				; load y
+	lda (VIC),y			; load sprite x MSB register from VIC
+	bcc spnomsb			; skip if x-value <= $ff
+	ora SpriteSetMSBMask,x		; set bit with bit-set-table
+	bne spnoclr			; skip nextx instruction
+spnomsb:and SpriteClearMSBMask,x	; clear bit with bit-clear-table
+spnoclr:sta (VIC),y			; store new X-MSB-byte to VIC
+	ldy temp			; restore Y
+	lda monster_vpos,x		; load y
 	clc
-	adc #$1b						; calc sprite y postion
-	sta (VIC01),y					; set VIC sprite y
+	adc #$1b			; calc sprite y postion
+	sta (VIC01),y			; set VIC sprite y
 	dey
 	dey
 	dex
-	bpl spposlp						; next sprite
+	bpl spposlp			; next sprite
 } else{
 ; $8715 set sprite positions
-	ldx #$04						; start with sprite 4
-	ldy #$08						; x-position reg of sprite 4
-spposlp:lda sprite_x,x					; load x
+	ldx #$04			; start with sprite 4
+	ldy #$08			; x-position reg of sprite 4
+spposlp:lda sprite_x,x			; load x
 	sec
-	sbc #$2c						; calc sprite x postion
+	sbc #$2c			; calc sprite x postion
 	asl
-	sta $d000,y						; set VIC sprite x
-	lda $d010						; load sprite x MSB register from VIC
-	bcc spnomsb						; skip if x-value <= $ff
-	ora SpriteSetMSBMask,x			; set bit with bit-set-table
-	bne spnoclr						; skip nextx instruction
-spnomsb:and SpriteClearMSBMask,x		; clear bit with bit-clear-table
-spnoclr:sta $d010						; store new X-MSB-byte to VIC
-	lda monster_vpos,x				; load y
+	sta $d000,y			; set VIC sprite x
+	lda $d010			; load sprite x MSB register from VIC
+	bcc spnomsb			; skip if x-value <= $ff
+	ora SpriteSetMSBMask,x		; set bit with bit-set-table
+	bne spnoclr			; skip nextx instruction
+spnomsb:and SpriteClearMSBMask,x	; clear bit with bit-clear-table
+spnoclr:sta $d010			; store new X-MSB-byte to VIC
+	lda monster_vpos,x		; load y
 	clc
-	adc #$1b						; calc sprite y postion
-	sta $d001,y						; set VIC sprite y
+	adc #$1b			; calc sprite y postion
+	sta $d001,y			; set VIC sprite y
 	dey
 	dey
 	dex
-	bpl spposlp						; next sprite
+	bpl spposlp			; next sprite
 }
 ; $8740 copy sprite data pointer for all 5 sprites
 	ldx #$04
-	lda #(SpriteData/$40)+4			; VIC Sprite Data at $c0-$c4
+	lda #(SpriteData/$40)+4		; VIC Sprite Data at $c0-$c4
 sdpcopy:sta SpriteDataPtr,x
 	sec
 	sbc #$01
 	dex
 	bpl sdpcopy
 ; $874d copy pacman sprite data		
-	lda monster_vpos+4				; set data pointer to pacman
+	lda monster_vpos+4		; set data pointer to pacman
 	sta spritedata_ptr
 	lda #$53
 	sta spritedata_ptr+1
-	jsr SetPacmanDataEnd			; sub: Set last row, last byte of pacman
+	jsr SetPacmanDataEnd		; sub: Set last row, last byte of pacman
 !ifdef 	P500{
 	lda #GAMEBANK
-	sta IndirectBank				; select bank 0 for $cx access
+	sta IndirectBank		; select bank 0 for $cx access
 }
-spmcopy:lda (spritedata_ptr),y			; copy pacman sprite data
+spmcopy:lda (spritedata_ptr),y		; copy pacman sprite data
 	sta SpriteData+$100,x
 	dex
 	dex
 	dex
 	dey
-	cpy #$02						; reach last byte
+	cpy #$02			; reach last byte
 	bne spmcopy
 	lda monster_vpos+0
-	jsr SetMonsterDataEnd			; sub: Calc pointer, set last row, last byte of monster
+	jsr SetMonsterDataEnd		; sub: Calc pointer, set last row, last byte of monster
 ; $876a copy sprite data of 4 monsters
-sm0copy:lda (spritedata_ptr),y			; copy monster 0 sprite data
+sm0copy:lda (spritedata_ptr),y		; copy monster 0 sprite data
 	sta SpriteData,x
 	dex
 	dex
 	dex
 	dey
-	cpy #$01						; reach last byte
+	cpy #$01			; reach last byte
 	bne sm0copy
 	lda monster_vpos+1
-	jsr SetMonsterDataEnd			; sub: Calc pointer, set last row, last byte of monster
-sm1copy:lda (spritedata_ptr),y			; copy monster 1 sprite data
+	jsr SetMonsterDataEnd		; sub: Calc pointer, set last row, last byte of monster
+sm1copy:lda (spritedata_ptr),y		; copy monster 1 sprite data
 	sta SpriteData+$40,x
 	dex
 	dex
 	dex
 	dey
-	cpy #$01						; reach last byte
+	cpy #$01			; reach last byte
 	bne sm1copy
 	lda monster_vpos+2
-	jsr SetMonsterDataEnd			; sub: Calc pointer, set last row, last byte of monster
-sm2copy:lda (spritedata_ptr),y			; copy monster 2 sprite data
+	jsr SetMonsterDataEnd		; sub: Calc pointer, set last row, last byte of monster
+sm2copy:lda (spritedata_ptr),y		; copy monster 2 sprite data
 	sta SpriteData+$80,x
 	dex
 	dex
 	dex
 	dey
-	cpy #$01						; reach last byte
+	cpy #$01			; reach last byte
 	bne sm2copy
 	lda monster_vpos+3
-	jsr SetMonsterDataEnd			; sub: Calc pointer, set last row, last byte of monster
-sm3copy:lda (spritedata_ptr),y			; copy monster 3 sprite data
+	jsr SetMonsterDataEnd		; sub: Calc pointer, set last row, last byte of monster
+sm3copy:lda (spritedata_ptr),y		; copy monster 3 sprite data
 	sta SpriteData+$c0,x
 	dex
 	dex
 	dex
 	dey
-	cpy #$01						; reach last byte
+	cpy #$01			; reach last byte
 	bne sm3copy
 !ifdef 	P500{
 	lda #SYSTEMBANK
-	sta IndirectBank				; restore to bank 15
+	sta IndirectBank		; restore to bank 15
 }
 ; $87ad check joystick button -> toggle pause game
 	lda jiffy
 	and #$0f
-	bne vbgame1						; only every 16 cycles
+	bne vbgame1			; only every 16 cycles
 !ifdef 	P500{
 	ldy #$00						
-	lda (CIA),y						; load CIA Port A - joystick button = pause
-	ora #$3f						; ignore bit#0-5
-	cmp #$ff						; check if bit#6 and 7 = 1 -> no joystick button pressed
+	lda (CIA),y			; load CIA Port A - joystick button = pause
+	ora #$3f			; ignore bit#0-5
+	cmp #$ff			; check if bit#6 and 7 = 1 -> no joystick button pressed
 	beq vbgame
 } else{
 	lda $dc00
@@ -1027,43 +1027,43 @@ sm3copy:lda (spritedata_ptr),y			; copy monster 3 sprite data
 	bne vbgame
 }
 	lda pause_flag
-	eor #$80						; toggle pause -> $80 = pause
+	eor #$80			; toggle pause -> $80 = pause
 	sta pause_flag
 
 vbgame:	lda atract_timer_ATARI
 	beq vbgame1
-	dec atract_timer_ATARI			; decrease attract timer - only for ATARI
+	dec atract_timer_ATARI		; decrease attract timer - only for ATARI
 
 vbgame1:lda pause_flag
-	beq vbgame2						; skip if 0 = no pause
-	jmp ClearAudio					; JUMP to Sound off in pause and return from game cycle!
-vbgame2:jsr FlashXUp					; sub: blink 1/2up of active player
+	beq vbgame2			; skip if 0 = no pause
+	jmp ClearAudio			; JUMP to Sound off in pause and return from game cycle!
+vbgame2:jsr FlashXUp			; sub: blink 1/2up of active player
 	lda restart_flag
-	beq tstgmov						; branch to check game over
+	beq tstgmov			; branch to check game over
 	cmp #$02
-	beq vtunes						; branch if 2 to get ready
-tstgmov:lda game_over_flag				; check game over
+	beq vtunes			; branch if 2 to get ready
+tstgmov:lda game_over_flag		; check game over
 	beq testrrk						
 	lda players
-	beq vfls1on						; skip if 1 player
-	jsr Flash2On					; Flash 2Up
-vfls1on:jmp Flash1On					; Flash 1Up
+	beq vfls1on			; skip if 1 player
+	jsr Flash2On			; Flash 2Up
+vfls1on:jmp Flash1On			; Flash 1Up
 ; $87e6 Test flags
 testrrk:lda rereck_flag
 	beq testvrd
-	jmp Rerack						; Rerack will reset maze after cleared all dots
+	jmp Rerack			; Rerack will reset maze after cleared all dots
 testvrd:lda ready_flag
 	bne vready
 	lda intro_flag
-	bne vintro						; sub: play intro sound
+	bne vintro			; sub: play intro sound
 vsquit:	rts
 ; -------------------------------------------------------------------------------------------------
 ; $87f6
 vtunes:	inc intro_flag
 	lda #$00
-	sta attract_ATARI				; NOT USED in Commodore - prevents Atari screen saver
+	sta attract_ATARI		; NOT USED in Commodore - prevents Atari screen saver
 	sta restart_flag
-	jmp Ready1						; sub: Get ready to play: Print READY: + difficulty fruits
+	jmp Ready1			; sub: Get ready to play: Print READY: + difficulty fruits
 ; -------------------------------------------------------------------------------------------------
 ; $8801 calc new monster data pointer
 SetMonsterDataEnd:
@@ -1071,43 +1071,43 @@ SetMonsterDataEnd:
 	inc spritedata_ptr+1
 ; $8805 Set last row, last byte of pacman
 SetPacmanDataEnd:
-	ldy #$0c						; last sprite line monsters/pacman
-	ldx #$22						; last data byte monsters/pacman row 11 byte 2
+	ldy #$0c			; last sprite line monsters/pacman
+	ldx #$22			; last data byte monsters/pacman row 11 byte 2
 	rts
 ; -------------------------------------------------------------------------------------------------
 ; $880a play intro sound
 vintro:	lda jiffy
 	and #$03
-	bne vsquit						; frequency change every 4 jiffy
+	bne vsquit			; frequency change every 4 jiffy
 ; Play music
 	ldx notes_counter
 	cpx #$40
-	beq vstart						; skip if end of frequency table
+	beq vstart			; skip if end of frequency table
 	lda NotesHi,x
 !ifdef 	P500{
 	ldy #SR_V1FREQ+1
-	sta (SID),y						; SID voice 1 frequency hi
+	sta (SID),y			; SID voice 1 frequency hi
 	dey
 	lda NotesLo,x
-	sta (SID),y						; SID voice 1 frequency lo
+	sta (SID),y			; SID voice 1 frequency lo
 	lda #$21
 	ldy #SR_V1CTRL
-	sta (SID),y						; SID voice 1 control
+	sta (SID),y			; SID voice 1 control
 } else{
-	sta $d401						; SID voice 1 frequency hi
+	sta $d401			; SID voice 1 frequency hi
 	lda NotesLo,x
-	sta $d400						; SID voice 1 frequency lo
+	sta $d400			; SID voice 1 frequency lo
 	lda #$21
-	sta $d404						; SID voice 1 control
+	sta $d404			; SID voice 1 control
 }
 	inc notes_counter
 	cpx #$28
-	bne vsquit						; return if notes_counter not = $28
-	jmp Ready2						; sub: decrease extra player
+	bne vsquit			; return if notes_counter not = $28
+	jmp Ready2			; sub: decrease extra player
 ; $8830
 vstart:	inc ready_flag
 vstart1:inc monster_status
-	jsr Ready3						; sub: Clear READY: text
+	jsr Ready3			; sub: Clear READY: text
 ; $ 8837
 vready:	lda reset_flag
 	beq vcontn
@@ -1134,7 +1134,7 @@ vstart2:lda #$00
 vcontn:	jsr BlinkR
 	lda fizzle_status
 	beq vplayer
-	jsr Fizzle						; sub: Fold-up sequence for pacman
+	jsr Fizzle			; sub: Fold-up sequence for pacman
 	jmp Fizzie
 vplayer:jsr eyeonly
 	lda freeze_flag
@@ -1147,14 +1147,14 @@ vfruit: jsr Fruity
 ; collision check
 !ifdef 	P500{
 	ldy #VR_MOBMOB
-	lda (VIC),y						; load VIC sprite-sprite collision reg
+	lda (VIC),y			; load VIC sprite-sprite collision reg
 } else{
-	lda $d01e						; load VIC sprite-sprite collision reg
+	lda $d01e			; load VIC sprite-sprite collision reg
 }
 	sta temp_collision
 	and #$10
 	beq collcx1
-	ldx #$00						; start with sprite/monster 0
+	ldx #$00			; start with sprite/monster 0
 	ldy #$01
 colllp:	lda monster_status,x
 	asl
@@ -1186,8 +1186,8 @@ nxcoll:	tya
 	asl
 	tay
 	inx
-	cpx #$04						; check if last monster
-	bne colllp						; next monster
+	cpx #$04			; check if last monster
+	bne colllp			; next monster
 collcx1:jmp colckx
 storcol:lda monster_status,x
 	bmi zapgst
@@ -1203,7 +1203,7 @@ zapgst:	lda #$42
 	clc
 	ldy #$02
 reposlp:adc #$02
-	sta pm_missile_x_ATARI,y		; ATARI pm build with 4 missiles - not Commodore
+	sta pm_missile_x_ATARI,y	; ATARI pm build with 4 missiles - not Commodore
 	dey
 	bpl reposlp
 	adc #$02
@@ -1212,10 +1212,10 @@ reposlp:adc #$02
 !ifdef 	P500{
 	stx temp
 	ldy temp
-	sta (VIC27),y					; set VIC sprite color = white (monster)
+	sta (VIC27),y			; set VIC sprite color = white (monster)
 } else{
-	sta $02c7						; ATARI color3 - not used on Commodore
-	sta $d027,x						; set VIC sprite color = white (monster)
+	sta $02c7			; ATARI color3 - not used on Commodore
+	sta $d027,x			; set VIC sprite color = white (monster)
 }
 	lda pacman_vpos
 	cmp monster_vpos,x
@@ -1245,7 +1245,7 @@ nooffs:	sta score_ptr1
 	sta pixel_get_ptr+1
 !ifdef 	P500{
 	lda #GAMEBANK
-	sta IndirectBank				; select bank 0 for pointer operations
+	sta IndirectBank		; select bank 0 for pointer operations
 }
 	ldy #$0f
 -	lda (pixel_get_ptr),y
@@ -1256,14 +1256,14 @@ nooffs:	sta score_ptr1
 	bpl -
 !ifdef 	P500{
 	lda #SYSTEMBANK
-	sta IndirectBank				; switch back to bank 15
+	sta IndirectBank		; switch back to bank 15
 }
 	lda #$00
 !ifdef 	P500{
 	ldy #SR_V2CTRL
-	sta (SID),y						; SID voice 2 control = off
+	sta (SID),y			; SID voice 2 control = off
 } else{
-	sta $d40b						; SID voice 2 control = off
+	sta $d40b			; SID voice 2 control = off
 }
 	inc freeze_flag
 	lda #$84
@@ -1286,7 +1286,7 @@ chkgps3:lda #$01
 	sta player_score_text+2
 	lda #$06
 updgpsc:sta player_score_text+3
-	jmp PlayerScore					; sub: Add any points scored to the players' score
+	jmp PlayerScore			; sub: Add any points scored to the players' score
 pacdead:lda pacman_status
 	ora #$80
 	sta pacman_status
@@ -1305,16 +1305,16 @@ colckx:	lda fruit_display_flag
 	cmp #$84
 	bne clrhit
 	ldx player_number
-	lda maze_count1,x				; load maze number
+	lda maze_count1,x		; load maze number
 	cmp #$0c
 	bcc lowfsi
-	lda #$0c						; limit to $0c
+	lda #$0c			; limit to $0c
 lowfsi:	tax
-	lda FruitScoresIndex,x			; load index from table
+	lda FruitScoresIndex,x		; load index from table
 	tax
 	ldy #$00
 frtsclp:lda FruitScores,x
-	sta GameScreen+$241,y			; fruit middle of screen
+	sta GameScreen+$241,y		; fruit middle of screen
 	inx
 	iny
 	cpy #$05
@@ -1343,18 +1343,18 @@ lowfrsc:asl
 	inx
 	lda FruitScoreTable,x
 	sta player_score_text+3
-	jsr PlayerScore					; sub: Add any points scored to the players' score
+	jsr PlayerScore			; sub: Add any points scored to the players' score
 clrhit:	lda fizzle_status
 	beq vplyud
 vgone2:	rts
 ; -------------------------------------------------------------------------------------------------
 ; $89df
-vplyud:	jsr FlightCheck					; Check for flight mode
+vplyud:	jsr FlightCheck			; Check for flight mode
 	lda freeze_flag
 	bne vgone2
 	jsr EatingDotSound
 	jsr GobbleSound
-	jsr Skirts						; Wigglw monster skirts
+	jsr Skirts			; Wigglw monster skirts
 ; speed of pacman
 	lda pacman_adv_turning
 	beq pacreg
@@ -1367,10 +1367,10 @@ pacreg:	lda pacman_dly_eating
 spdpac1:sta pacman_motion_cnt
 	lda #$00
 	sta pacman_adv_turning
-	jsr PackmanJoystick				; sub: Test Joystick and move pacman, open/close mouth
+	jsr PackmanJoystick		; sub: Test Joystick and move pacman, open/close mouth
 	lda #$00
 	sta pacman_dly_eating
-	jsr Munchy						; sub: munchy subroutine eats dots
+	jsr Munchy			; sub: munchy subroutine eats dots
 	lda jiffy
 	and #$03
 	bne udmons
@@ -1440,7 +1440,7 @@ vswap1:
 	bne vswap2
 ;
 	ldx #$00
-lodp1lp:lda Player1Save,x				; restore player  screen
+lodp1lp:lda Player1Save,x		; restore player  screen
 	sta Maze,x
 	lda Player1Save+$100,x
 	sta Maze+$100,x
@@ -1452,14 +1452,14 @@ lodp1lp:lda Player1Save,x				; restore player  screen
 	bne lodp1lp
 ;
 	jsr Flash2On
-	lda #$00						; swap to player 1
+	lda #$00			; swap to player 1
 	sta player_number
 	beq vswapx
 vswap2:	cmp #$02
 	bne vswap3
 ;
 	ldx #$00
-lodp2lp:lda Player2Save,x				; restore player 2 screen
+lodp2lp:lda Player2Save,x		; restore player 2 screen
 	sta Maze,x
 	lda Player2Save+$100,x
 	sta Maze+$100,x
@@ -1471,7 +1471,7 @@ lodp2lp:lda Player2Save,x				; restore player 2 screen
 	bne lodp2lp
 ;
 	jsr Flash1On
-	lda #$01						; swap to player 2
+	lda #$01			; swap to player 2
 	sta player_number
 	bne vswapx
 vswap3:	jsr blnkon
@@ -1488,29 +1488,29 @@ vreset1:lda players
 	lda player_number
 	bne rset2pg
 	lda extra_pacman2
-	beq rset1pg						; player 2 dead
+	beq rset1pg			; player 2 dead
 	lda extra_pacman1
-	bne swap12						; go swap players
+	bne swap12			; go swap players
 	lda #$02
-	sta swap_player_flag			; show player 1 game over
+	sta swap_player_flag		; show player 1 game over
 	lda #$30
 	sta reset_timer
 	bne vgmend
-swap12:	jsr SaveScreenPlayer1			; sub: init game screen player1 $4400
+swap12:	jsr SaveScreenPlayer1		; sub: init game screen player1 $4400
 	lda #$30
 	sta reset_timer
 	lda #$02
 	bne vswapx1
 rset2pg:lda extra_pacman1
-	beq rset1pg						; player 1 dead
+	beq rset1pg			; player 1 dead
 	lda extra_pacman2
-	bne swap21						; go swap players
+	bne swap21			; go swap players
 	lda #$01
-	sta swap_player_flag			; show player 2 game over
+	sta swap_player_flag		; show player 2 game over
 	lda #$30
 	sta reset_timer
 	bne vgmend
-swap21:	jsr SaveScreenPlayer2			; sub: init game screen player2 $4800
+swap21:	jsr SaveScreenPlayer2		; sub: init game screen player2 $4800
 	lda #$30
 	sta reset_timer
 	lda #$01
@@ -1520,10 +1520,10 @@ vggone:	rts
 ; $8b2b
 rset1pg:ldx player_number
 	lda extra_pacman1,x
-	beq vgmend						; game is over
-	jsr Setup						; sub: Set up monster and pacman, start postions, speeds
-	jsr Ready1						; sub: Get ready to play: Print READY: + difficulty fruits
-	jmp Ready2						; sub: decrease extra player
+	beq vgmend			; game is over
+	jsr Setup			; sub: Set up monster and pacman, start postions, speeds
+	jsr Ready1			; sub: Get ready to play: Print READY: + difficulty fruits
+	jmp Ready2			; sub: decrease extra player
 vgmend:	lda #$2c
 	ldx #$00
 gamovlp:sta GameScreen+$23d,x
@@ -1535,33 +1535,33 @@ gamovlp:sta GameScreen+$23d,x
 	lda #RED
 !ifdef 	P500{
 	ldy #VR_MOBCOL+4
-	sta (VIC),y						; set VIC sprite 4 color = red (pacman)
+	sta (VIC),y			; set VIC sprite 4 color = red (pacman)
 } else{
-	sta $02c7						; ATARI color3 - not used on Commodore
-	sta $d02b						; set VIC sprite 4 color = red (pacman)
+	sta $02c7			; ATARI color3 - not used on Commodore
+	sta $d02b			; set VIC sprite 4 color = red (pacman)
 }
 	lda swap_player_flag
 	bne vggone
-	ldx #$2a						; score 1 screen position
+	ldx #$2a			; score 1 screen position
 	jsr CheckHighscore
-	ldx #$47						; score 2 screen position
+	ldx #$47			; score 2 screen position
 	jsr CheckHighscore
 	lda #$00
 	sta reset_flag
 	lda #$01
 	sta game_over_flag
 	lda #$e2
-	sta atract_timer_ATARI			; set attract timer start value - only ATARI
+	sta atract_timer_ATARI		; set attract timer start value - only ATARI
 	jsr Flash1On
 	jmp blnkon
 ; $8b71 check for new highsore
 CheckHighscore:
 	ldy #$00
 chkhilp:lda GameScreen,x
-	cmp GameScreen+$39,y			; compare last player score with highscore on screen
-	beq chkinxt						; didit equal, next digit
-	bcc chkhigx						; digit lower = no highscore -> return
-	bcs storehi						; new highscore
+	cmp GameScreen+$39,y		; compare last player score with highscore on screen
+	beq chkinxt			; didit equal, next digit
+	bcc chkhigx			; digit lower = no highscore -> return
+	bcs storehi			; new highscore
 chkinxt:inx
 	iny
 	cpy #$06
@@ -1574,7 +1574,7 @@ storehi:lda GameScreen,x
 	inx
 	iny
 	cpy #$06
-	bne storehi						; copy 6 digits
+	bne storehi			; copy 6 digits
 !ifdef 	P500{
 	ldx #$09
 txthigh:lda Text_HighScore,x
@@ -1679,19 +1679,19 @@ decgobb:clc
 	lda #$00
 	sta gobble_Sound_dir
 	tay
-	beq storgob						; voice 1 = off
+	beq storgob			; voice 1 = off
 gobbdec:adc #$01
 storgob:sta gobble_Sound_freq
 !ifdef 	P500{
 	sty temp
 	ldy #SR_V1FREQ+1
-	sta (SID),y						; set SID voice 1 frequency hi
+	sta (SID),y			; set SID voice 1 frequency hi
 	lda temp
 	ldy #SR_V1CTRL
-	sta (SID),y						; SID voice 1 control
+	sta (SID),y			; SID voice 1 control
 } else{
-	sta $d401						; set SID voice 1 frequency hi
-	sty $d404						; SID voice 1 control
+	sta $d401			; set SID voice 1 frequency hi
+	sty $d404			; SID voice 1 control
 }
 gobblex:rts
 ; -------------------------------------------------------------------------------------------------
@@ -1722,7 +1722,7 @@ rerkxx2:inc rerack_sequence
 testrrs:cmp #$01
 	bne testrr2
 	lda rerack_timer
-	bne drrwtm						; decrease rerack wait timer				
+	bne drrwtm			; decrease rerack wait timer				
 	lda #$00
 	ldx #$03
 tsrr1lp:sta sprite_x,x
@@ -1731,9 +1731,9 @@ tsrr1lp:sta sprite_x,x
 	lda #LIGHTBLUE
 !ifdef 	P500{
 	ldy #VR_BGRCOL+1
-	sta (VIC),y						; set VIC backgroundcolor 1 = lightblue					
+	sta (VIC),y			; set VIC backgroundcolor 1 = lightblue					
 } else{
-	sta $d022						; set VIC backgroundcolor 1 = lightblue					
+	sta $d022			; set VIC backgroundcolor 1 = lightblue					
 }
 	lda #$07
 	sta rerack_flash_count
@@ -1745,7 +1745,7 @@ drrwtm:	dec rerack_timer
 testrr2:cmp #$02
 	bne testrr3
 	lda rerack_timer
-	bne drrwtm						; decrease rerack color timer
+	bne drrwtm			; decrease rerack color timer
 	dec rerack_flash_count
 	beq rerkxx2
 	lda rerack_flash_count
@@ -1758,9 +1758,9 @@ altblue:lda #WHITE
 setrrc:
 !ifdef 	P500{
 	ldy #VR_BGRCOL+1
-	sta (VIC),y						; set VIC backgroundcolor 1 = white					
+	sta (VIC),y			; set VIC backgroundcolor 1 = white					
 } else{
-	sta $d022						; set VIC backgroundcolor 1 = white
+	sta $d022			; set VIC backgroundcolor 1 = white
 }
 	lda #$10
 	sta rerack_timer
@@ -1768,7 +1768,7 @@ setrrc:
 ; $8caf
 testrr3:cmp #$03
 	bne testrr4
-	jsr Setup						; sub: Set up monster and pacman, start postions, speeds
+	jsr Setup			; sub: Set up monster and pacman, start postions, speeds
 	inc rerack_sequence
 	rts
 ; $8cb9
@@ -1776,8 +1776,8 @@ testrr4:jsr newbrd
 	ldx player_number
 	inc extra_pacman1,x
 	inc maze_count1,x
-	jsr Ready1						; sub: Get ready to play: Print READY: + difficulty fruits
-	jsr Ready2						; sub: decrease extra player
+	jsr Ready1			; sub: Get ready to play: Print READY: + difficulty fruits
+	jsr Ready2			; sub: decrease extra player
 	lda #$00
 	sta rereck_flag
 	sta rerack_sequence
@@ -1789,63 +1789,63 @@ testrr4:jsr newbrd
 ; -------------------------------------------------------------------------------------------------
 ; $8cd7 Get ready to play: Print READY: and difficulty fruits
 Ready1:	
-	lda #$22						; first READY: char ( $22-$2b )
+	lda #$22			; first READY: char ( $22-$2b )
 	ldx #$00
-readylp:sta GameScreen+$23f,x			; screen position for READY:
+readylp:sta GameScreen+$23f,x		; screen position for READY:
 	clc
 	adc #$01
 	inx
-	cpx #$0a						; 10 chars
+	cpx #$0a			; 10 chars
 	bne readylp
 	ldx player_number
-	lda maze_count1,x				; load player difficulty
+	lda maze_count1,x		; load player difficulty
 	cmp #$06
 	bcc setred
 	cmp #$0a
 	bcs setred
 	ldy #LIGHTGREEN
-	bne setfrc						; set up for green fruits
+	bne setfrc			; set up for green fruits
 setred:	ldy #LIGHTRED
-setfrc:	sty fruit_color					; ATARI - only stored, not used on Commodore
+setfrc:	sty fruit_color			; ATARI - only stored, not used on Commodore
 	ldy #$00
 !ifdef 	P500{				; Y already $00
-	sty IndirectBank				; select bank 0 for pointer operations
+	sty IndirectBank		; select bank 0 for pointer operations
 }
 	cmp #$06
-	bcs hfruits						; branch if A >= $06
+	bcs hfruits			; branch if A >= $06
 	sta temp
 	lda #$e2
 	sta pixel_put_ptr
-	lda #$07						; pixel_put_ptr = fruit screen position $07e2
+	lda #$07			; pixel_put_ptr = fruit screen position $07e2
 	sta pixel_put_ptr+1
 	ldx #$00
 !ifdef 	P500{				; X already $00
-	stx IndirectBank				; select bank 0 for pointer operations
+	stx IndirectBank		; select bank 0 for pointer operations
 }
-fruitlp:lda FruitChars,x				; load fruit char from table
-	sta (pixel_put_ptr),y			; store fruit code to screen
-	inc pixel_put_ptr				; screen pointer to second char
+fruitlp:lda FruitChars,x		; load fruit char from table
+	sta (pixel_put_ptr),y		; store fruit code to screen
+	inc pixel_put_ptr		; screen pointer to second char
 	clc
-	adc #$01						; add 1 to char code for second fruit char
+	adc #$01			; add 1 to char code for second fruit char
 	sta (pixel_put_ptr),y
 	cpx temp
 	beq fsplit
 	inx
-	dec pixel_put_ptr				; next fruit position to the left
+	dec pixel_put_ptr		; next fruit position to the left
 	dec pixel_put_ptr
 	dec pixel_put_ptr
 	bne fruitlp
 hfruits:cmp #$12
 	bcc hfruit1
-	lda #$12						; A = max $12
+	lda #$12			; A = max $12
 hfruit1:sec
-	sbc #$06						; substract $06 -> value 0 - $0c
+	sbc #$06			; substract $06 -> value 0 - $0c
 	sta temp
 	sec
-	lda #<(HighFruitChars)			; = $8a
+	lda #<(HighFruitChars)		; = $8a
 	sbc temp
 	sta pixel_get_ptr
-	lda #>(HighFruitChars)			; pointer to end of table = $9d8a (min -$0c)
+	lda #>(HighFruitChars)		; pointer to end of table = $9d8a (min -$0c)
 	sbc #$00
 	sta pixel_get_ptr+1
 	ldx #$00
@@ -1862,7 +1862,7 @@ hfruitl:	lda (pixel_get_ptr),y
 fsplit:
 !ifdef 	P500{
 	lda #SYSTEMBANK
-	sta IndirectBank				; switch back to bank 15
+	sta IndirectBank		; switch back to bank 15
 }
 	rts
 ; -------------------------------------------------------------------------------------------------
@@ -1870,27 +1870,27 @@ fsplit:
 Ready2:
 	jsr Drawit
 	ldx player_number
-	dec extra_pacman1,x				; decrease lives of actual player
+	dec extra_pacman1,x		; decrease lives of actual player
 ; $8d59 Update extra pacmans
 UpdateExtraPacs:
 	ldx player_number
 	lda extra_pacman1,x
-	ldx #$00						; char $00 = <space>
-	ldy #$1b						; Char $1b = mini pacman	
+	ldx #$00			; char $00 = <space>
+	ldy #$1b			; Char $1b = mini pacman	
 	cmp #$03
-	bne twopac						; branch if not 3 lives
-	sty GameScreen+$3c8				; write mini-pacmans
+	bne twopac			; branch if not 3 lives
+	sty GameScreen+$3c8		; write mini-pacmans
 udxpac2:sty GameScreen+$3c6
 udxpac1:sty GameScreen+$3c4
 	rts
 twopac:	cmp #$02
-	bne onepac						; branch if not 2 lives
-	jsr udnpac2						; clear 3. mini-pacman
-	jmp udxpac2						; write 2 mini-pacmans
-onepac:	cmp #$01						; branch if not 1 live = dead
-	bne nopacs						; dead -> clear all mini-pacmans
-	jsr udnpac1						; clear 2.+3. mini-pacman
-	jmp udxpac1						; write 1 mini-pacman
+	bne onepac			; branch if not 2 lives
+	jsr udnpac2			; clear 3. mini-pacman
+	jmp udxpac2			; write 2 mini-pacmans
+onepac:	cmp #$01			; branch if not 1 live = dead
+	bne nopacs			; dead -> clear all mini-pacmans
+	jsr udnpac1			; clear 2.+3. mini-pacman
+	jmp udxpac1			; write 1 mini-pacman
 nopacs:	stx GameScreen+$3c4
 udnpac1:stx GameScreen+$3c6
 udnpac2:stx GameScreen+$3c8
@@ -1902,7 +1902,7 @@ Drawit:
 	sta monster_still_flag
 	ldx #$03
 greadl:	lda monster_direction,x
-	jsr MonsterDisplayHandler		; sub: Monster display handler
+	jsr MonsterDisplayHandler	; sub: Monster display handler
 	dex
 	bpl greadl
 	lda #$00
@@ -1922,113 +1922,113 @@ redy3lp:sta GameScreen+$23d,x
 FlashXUp:
 	lda jiffy
 	and #$0f
-	bne flashxx						; blink only every 16. jiffy cycle
+	bne flashxx			; blink only every 16. jiffy cycle
 	lda flash_xup_timer
-	bne flshres						; branch if blink = 1 -> set to 0
-	inc flash_xup_timer					; increase blink
-	bne flasher						; branch always
+	bne flshres			; branch if blink = 1 -> set to 0
+	inc flash_xup_timer		; increase blink
+	bne flasher			; branch always
 flshres:lda #$00
-	sta flash_xup_timer					; set flash counter to 0
+	sta flash_xup_timer		; set flash counter to 0
 flasher	lda player_number
-	beq flspl1						; branch to 1 player
+	beq flspl1			; branch to 1 player
 	lda flash_xup_timer
-	bne Flash2On					; if blink counter > 0 write 2UP
-	tax								; code 0 = <space>
+	bne Flash2On			; if blink counter > 0 write 2UP
+	tax				; code 0 = <space>
 	tay
 	beq fl2stor
 ; $8dcb write 2UP
 Flash2On:
-	lda #$92						; code 2, U, P
+	lda #$92			; code 2, U, P
 	ldx #$b5
 	ldy #$b0
-fl2stor:sta GameScreen+$21				; write to screen right side
+fl2stor:sta GameScreen+$21		; write to screen right side
 	stx GameScreen+$22
 	sty GameScreen+$23
 	rts
 ; $8ddb
 flspl1:	lda flash_xup_timer
-	bne Flash1On					; if flash_xup_timer > 0 write 1UP
-	tax								; code 0 = <space>
+	bne Flash1On			; if flash_xup_timer > 0 write 1UP
+	tax				; code 0 = <space>
 	tay
-	beq fl1stor						; clear 1UP on screen
+	beq fl1stor			; clear 1UP on screen
 ; $8de3 write 1UP
 Flash1On:
-	lda #$91						; code 1, U, P
+	lda #$91			; code 1, U, P
 	ldx #$b5
 	ldy #$b0
-fl1stor:sta GameScreen+$04				; write to screen left side
+fl1stor:sta GameScreen+$04		; write to screen left side
 	stx GameScreen+$05
 	sty GameScreen+$06
 flashxx:rts
 ; -------------------------------------------------------------------------------------------------
 ; $8df3 Set up monster and pacman, start postions, speeds
 Setup:
-	jsr InitSpriteMemory			; clear sprite areas at $3000, sprite data $5300
+	jsr InitSpriteMemory		; clear sprite areas at $3000, sprite data $5300
 	ldx #$8a
-clrpgz:	sta $3b,x						; clear ZP $3c - $c5
+clrpgz:	sta $3b,x			; clear ZP $3c - $c5
 	dex
 	bne clrpgz
-	jsr SetColor					; sub: init color RAM and VIC Sprite colors
+	jsr SetColor			; sub: init color RAM and VIC Sprite colors
 ; speed initialization
 	ldx player_number
-	lda maze_count1,x				; load player difficulty
+	lda maze_count1,x		; load player difficulty
 	cmp #$06
 	bcc lowinit
-	lda #$06						; max speed level 6
+	lda #$06			; max speed level 6
 lowinit	tay
-	lda PacmanSpeedIndex,y			; load pacman speed index from table
+	lda PacmanSpeedIndex,y		; load pacman speed index from table
 	tax
-	lda Speed,x						; load speed from table
-	sta pacman_speed_count			; store it
-	lda MonsterSpeedIndex,y			; load monster speed index from table
+	lda Speed,x			; load speed from table
+	sta pacman_speed_count		; store it
+	lda MonsterSpeedIndex,y		; load monster speed index from table
 	tay
-	ldx #$03						; setup 4 monsters 
-spinilp:lda Speed,y						; load speed from table
-	sta monster_speed_cnt,x			; store it
+	ldx #$03			; setup 4 monsters 
+spinilp:lda Speed,y			; load speed from table
+	sta monster_speed_cnt,x		; store it
 	dex
-	bpl spinilp						; next monster
+	bpl spinilp			; next monster
 	ldx #$13
 indatlp:lda SpriteInitData,x
 	sta pacman_screen_ptr,x
 	dex
 	bpl indatlp
 	ldy #$00
-	jsr SetMonsterTimer				; init monster start timer
+	jsr SetMonsterTimer		; init monster start timer
 !ifdef 	P500{
 	ldy #VR_MOBMOB
-	lda (VIC),y						; VIC clear sprite-sprite collision
+	lda (VIC),y			; VIC clear sprite-sprite collision
 	iny
-	lda (VIC),y						; VIC clear sprite-foreground collision
+	lda (VIC),y			; VIC clear sprite-foreground collision
 } else{
-	lda $d01e						; VIC clear sprite-sprite collision
-	lda $d01f						; VIC clear sprite-foreground collision
+	lda $d01e			; VIC clear sprite-sprite collision
+	lda $d01f			; VIC clear sprite-foreground collision
 }
 	rts
 ; -------------------------------------------------------------------------------------------------
 ; $8e38 Init maze, xpacs, difficulty, score
 NewGame:
-	lda #LIVES						; start with 3 lives
-	sta extra_pacman1				; do at game start
+	lda #LIVES			; start with 3 lives
+	sta extra_pacman1		; do at game start
 	sta extra_pacman2
 	lda difficulty
 	sta maze_count1
 	sta maze_count2
 	ldx #$01
-	jsr newbrd1						; branch to zero score
-newbrd:	jsr InitGameScreen				; do at screen start
-	jsr UpdateExtraPacs				; sub: Update extra pacmans / lives
+	jsr newbrd1			; branch to zero score
+newbrd:	jsr InitGameScreen		; do at screen start
+	jsr UpdateExtraPacs		; sub: Update extra pacmans / lives
 	ldx player_number
 	lda maze_count1,x
 	tay
 	bne newrek2
 	lda jiffy
 	bpl newrek2
-newrek1:jsr SetMonsterTimer				; init monster start timer
+newrek1:jsr SetMonsterTimer		; init monster start timer
 	jmp newbrd0
 newrek2:iny
 	bne newrek1
 newbrd0:ldx player_number
-newbrd1:lda #$0f						; zero score
+newbrd1:lda #$0f			; zero score
 	sta bigdot_status,x
 	lda #$00
 	sta fruit_counter,x
@@ -2063,10 +2063,10 @@ Fizzle:	lda fizzle_status
 	bne initclr
 	lda fizzle_sequence_no
 	beq nextfsq
-	jsr Skirts						; Wigglw monster skirts
+	jsr Skirts			; Wiggle monster skirts
 	ldx #$03
 udmflp:	lda monster_direction,x
-	jsr MonsterDisplayHandler		; sub: Monster display handler
+	jsr MonsterDisplayHandler	; sub: Monster display handler
 	dex
 	bpl udmflp
 	dec fizzle_sequence_no
@@ -2104,14 +2104,14 @@ fizchk:	cmp #$03
 vfizup:	lda #$21
 !ifdef 	P500{
 	ldy #SR_V1CTRL
-	sta (SID),y						; SID voice 1 control = sawtooth, on
+	sta (SID),y			; SID voice 1 control = sawtooth, on
 	lda fizzle_frequency
 	ldy #SR_V1FREQ+1
-	sta (SID),y						; set SID voice 1 frequency hi
+	sta (SID),y			; set SID voice 1 frequency hi
 } else{
-	sta $d404						; SID voice 1 control = sawtooth, on
+	sta $d404			; SID voice 1 control = sawtooth, on
 	lda fizzle_frequency
-	sta $d401						; set SID voice 1 frequency hi
+	sta $d401			; set SID voice 1 frequency hi
 }
 	sec
 	sbc #$02
@@ -2124,14 +2124,14 @@ vfizup:	lda #$21
 vfizdwn:lda #$21
 !ifdef 	P500{
 	ldy #SR_V1CTRL
-	sta (SID),y						; SID voice 1 control = sawtooth, on
+	sta (SID),y			; SID voice 1 control = sawtooth, on
 	lda fizzle_frequency
 	ldy #SR_V1FREQ+1
-	sta (SID),y						; set SID voice 1 frequency hi
+	sta (SID),y			; set SID voice 1 frequency hi
 } else{
-	sta $d404						; SID voice 1 control = sawtooth, on
+	sta $d404			; SID voice 1 control = sawtooth, on
 	lda fizzle_frequency
-	sta $d401						; set SID voice 1 frequency hi
+	sta $d401			; set SID voice 1 frequency hi
 }
 	clc
 	adc #$02
@@ -2152,14 +2152,14 @@ svfizs:	sta fizzle_status
 vfizfz:	lda #$21
 !ifdef 	P500{
 	ldy #SR_V1CTRL
-	sta (SID),y						; SID voice 1 control = sawtooth, on
+	sta (SID),y			; SID voice 1 control = sawtooth, on
 	lda fizzle_freq_base
 	ldy #SR_V1FREQ+1
-	sta (SID),y						; set SID voice 1 frequency hi
+	sta (SID),y			; set SID voice 1 frequency hi
 } else{
-	sta $d404						; SID voice 1 control = sawtooth, on
+	sta $d404			; SID voice 1 control = sawtooth, on
 	lda fizzle_freq_base
-	sta $d401						; set SID voice 1 frequency hi
+	sta $d401			; set SID voice 1 frequency hi
 }
 	clc
 	adc #$02
@@ -2208,13 +2208,13 @@ storfiz:lda fizzle_ptr
 	dey
 !ifdef 	P500{
 	lda #GAMEBANK
-	sta IndirectBank				; select bank 0 for pointer operations
+	sta IndirectBank		; select bank 0 for pointer operations
 }
 	lda FizzieData,x
 	sta (pixel_put_ptr),y
 !ifdef 	P500{
 	lda #SYSTEMBANK
-	sta IndirectBank				; switch back to bank 15
+	sta IndirectBank		; switch back to bank 15
 }
 	rts
 ; $8f73
@@ -2222,7 +2222,7 @@ fizstor:ldy #$0c			; already bank 0 selected
 	ldx #$09
 !ifdef 	P500{
 	lda #GAMEBANK
-	sta IndirectBank				; select bank 0 for pointer operations
+	sta IndirectBank		; select bank 0 for pointer operations
 }
 fizstlp:lda PacmanDie,x
 	sta (pixel_put_ptr),y
@@ -2231,7 +2231,7 @@ fizstlp:lda PacmanDie,x
 	bpl fizstlp
 !ifdef 	P500{
 	lda #SYSTEMBANK
-	sta IndirectBank				; switch back to bank 15
+	sta IndirectBank		; switch back to bank 15
 }
 	rts
 ; $8f81
@@ -2239,7 +2239,7 @@ explpac:ldy #$0f			; already bank 0 selected
 	ldx #$0f
 !ifdef 	P500{
 	lda #GAMEBANK
-	sta IndirectBank				; select bank 0 for pointer operations
+	sta IndirectBank		; select bank 0 for pointer operations
 }
 expaclp:lda PacmanExplosion,x
 	sta (pixel_put_ptr),y
@@ -2248,7 +2248,7 @@ expaclp:lda PacmanExplosion,x
 	bpl expaclp
 !ifdef 	P500{
 	lda #SYSTEMBANK
-	sta IndirectBank				; switch back to bank 15
+	sta IndirectBank		; switch back to bank 15
 }
 	rts
 ; $8f8f
@@ -2256,7 +2256,7 @@ clrfiz:	ldy #$0f			; already bank 0 selected
 	lda #$00
 !ifdef 	P500{
 	lda #GAMEBANK
-	sta IndirectBank				; select bank 0 for pointer operations
+	sta IndirectBank		; select bank 0 for pointer operations
 }
 clrfzlp:sta (pixel_put_ptr),y
 	dey
@@ -2264,7 +2264,7 @@ clrfzlp:sta (pixel_put_ptr),y
 	sta fizzle_flag
 !ifdef 	P500{
 	lda #SYSTEMBANK
-	sta IndirectBank				; switch back to bank 15
+	sta IndirectBank		; switch back to bank 15
 }
 fizziex:rts
 ; -------------------------------------------------------------------------------------------------
@@ -2274,33 +2274,33 @@ FlightCheck:
 	beq noflit
 	lda tweet_sound_flag
 	bne chkfltm
-	jsr FlightSound					; sub: flight sound
+	jsr FlightSound			; sub: flight sound
 chkfltm:lda flight_timer
 	beq flashsq
 	dec flight_timer
 	jmp setflc
 noflit:	lda tweet_sound_flag
 	bne fizziex
-	jmp ChaseSound					; chase sound (standard siren sound)
+	jmp ChaseSound			; chase sound (standard siren sound)
 flashsq:ldx player_number
 	lda maze_count1,x
 	tax
 	lda FlashingTimerTable,x
 	cmp flash_count
 	bne nxtflsh
-	ldx #$03						; 3-0 monsters
+	ldx #$03			; 3-0 monsters
 !ifdef 	P500{
 	ldy #VR_MOBCOL+3
 rscllp:	lda monster_status,x
 	bpl +
 	lda SpriteColors,x
-	sta (VIC),y						; set VIC sprite color from table
+	sta (VIC),y			; set VIC sprite color from table
 +	dey
 } else{
 rscllp:	lda monster_status,x
 	bpl nextrsc
 	lda SpriteColors,x
-	sta $d027,x						; set VIC sprite color from table
+	sta $d027,x			; set VIC sprite color from table
 }
 nextrsc:dex
 	bpl rscllp
@@ -2335,26 +2335,26 @@ nxtflsh:lda flash_timer
 decfltm:dec flash_timer
 setflc:	lda flash_count
 	lsr
-	bcc mwhite						; color monsters white
+	bcc mwhite			; color monsters white
 !ifdef 	P500{
 	ldx #BLUE
-	bne +							; blue loaded, skip white
+	bne +				; blue loaded, skip white
 mwhite: ldx #WHITE
-+	ldy #$03						; 3-0 monsters
++	ldy #$03			; 3-0 monsters
 mcolrlp:lda monster_status,y
-	bpl mskip						; skip reborn monster (bit#7 = 0)
+	bpl mskip			; skip reborn monster (bit#7 = 0)
 	txa
-	sta (VIC27),y					; set VIC monster sprites color 3-0
+	sta (VIC27),y			; set VIC monster sprites color 3-0
 mskip:	dey
 } else{
 	ldy #BLUE
-	bne +							; blue loaded, skip white
+	bne +				; blue loaded, skip white
 mwhite: ldy #WHITE
-+	ldx #$03						; 3-0 monsters
++	ldx #$03			; 3-0 monsters
 mcolrlp:lda monster_status,x
-	bpl mskip						; skip reborn monster
+	bpl mskip			; skip reborn monster
 	tya
-	sta $d027,x						; set VIC monster sprites color 3-0
+	sta $d027,x			; set VIC monster sprites color 3-0
 mskip:	dex
 }
 	bpl mcolrlp
@@ -2402,14 +2402,14 @@ vfdwnok:	clc
 vrbstor:	sta flight_sound_freq
 !ifdef 	P500{
 	ldy #SR_V2FREQ+1
-	sta (SID),y						; SID voice 2 frequency hi
+	sta (SID),y			; SID voice 2 frequency hi
 	lda #$21
 vrvbx1:	ldy #SR_V2CTRL
-	sta (SID),y						; SID voice 2 control = sawtooth, on
+	sta (SID),y			; SID voice 2 control = sawtooth, on
 } else{
-	sta $d408						; SID voice 2 frequency hi
+	sta $d408			; SID voice 2 frequency hi
 	lda #$21
-vrvbx1:	sta $d40b						; SID voice 2 control = sawtooth, on
+vrvbx1:	sta $d40b			; SID voice 2 control = sawtooth, on
 }
 	rts
 ; -------------------------------------------------------------------------------------------------
@@ -2427,9 +2427,9 @@ itweet:	sec
 	sta tweet_sound_freq
 !ifdef 	P500{
 	ldy #SR_V2FREQ+1
-	sta (SID),y						; SID voice 2 frequency hi
+	sta (SID),y			; SID voice 2 frequency hi
 } else{
-	sta $d408						; SID voice 2 frequency hi
+	sta $d408			; SID voice 2 frequency hi
 }
 	lda #$21
 	bne vrvbx1
@@ -2446,12 +2446,12 @@ GulpSound:
 	beq gulpoff
 !ifdef 	P500{
 	ldy #SR_V1FREQ+1
-	sta (SID),y						; SID voice 1 frequency hi
+	sta (SID),y			; SID voice 1 frequency hi
 	ldy #SR_V2FREQ+1
-	sta (SID),y						; SID voice 2 frequency hi
+	sta (SID),y			; SID voice 2 frequency hi
 } else{
-	sta $d401						; SID voice 1 frequency hi
-	sta $d408						; SID voice 2 frequency hi
+	sta $d401			; SID voice 1 frequency hi
+	sta $d408			; SID voice 2 frequency hi
 }
 	lda #$21
 	bne gbranch
@@ -2463,17 +2463,17 @@ distrt:	lda #$02
 	sta gulp_sound_count2
 !ifdef 	P500{
 	ldy #SR_V1FREQ+1
-	sta (SID),y						; SID voice 1 frequency hi
+	sta (SID),y			; SID voice 1 frequency hi
 	ldy #SR_V2FREQ+1
-	sta (SID),y						; SID voice 2 frequency hi
+	sta (SID),y			; SID voice 2 frequency hi
 	lda #$21
 gbranch:ldy #SR_V2CTRL
-	sta (SID),y						; SID voice 2 control = sawtooth, on
+	sta (SID),y			; SID voice 2 control = sawtooth, on
 } else{
-	sta $d401						; SID voice 1 frequency hi
-	sta $d408						; SID voice 2 frequency hi
+	sta $d401			; SID voice 1 frequency hi
+	sta $d408			; SID voice 2 frequency hi
 	lda #$21
-gbranch:sta $d40b						; SID voice 2 control = sawtooth, on
+gbranch:sta $d40b			; SID voice 2 control = sawtooth, on
 }
 	bne veatrs
 gulpoff:jsr ClearAudio			; returns with Y=$ff
@@ -2483,14 +2483,14 @@ gulpoff:jsr ClearAudio			; returns with Y=$ff
 	lda #$0f
 	sta $02c7
 !ifdef 	P500{
-	ldy #$03						; 3-0 monsters
-rsetpcl:lda (VIC27),y					; load VIC sprites color 3-0 (monsters)
+	ldy #$03			; 3-0 monsters
+rsetpcl:lda (VIC27),y			; load VIC sprites color 3-0 (monsters)
 	cmp #$f1
 	beq rsetplc
 	dey
 } else{
-	ldx #$03						; 3-0 monsters
-rsetpcl:lda $d027,x						; load VIC sprites color 3-0 (monsters)
+	ldx #$03			; 3-0 monsters
+rsetpcl:lda $d027,x			; load VIC sprites color 3-0 (monsters)
 	cmp #$f1
 	beq rsetplc
 	dex
@@ -2499,9 +2499,9 @@ rsetpcl:lda $d027,x						; load VIC sprites color 3-0 (monsters)
 	rts
 rsetplc:lda #$00
 	sta pacman_motion_cnt
-	jsr PackmanJoystick				; sub: Test Joystick and move pacman, open/close mouth
+	jsr PackmanJoystick		; sub: Test Joystick and move pacman, open/close mouth
 	inc pacman_adv_turning
-	jmp Munchy						; sub: munchy subroutine eats dots
+	jmp Munchy			; sub: munchy subroutine eats dots
 ; -------------------------------------------------------------------------------------------------
 ; $90e3 Eating dot sound
 EatingDotSound:
@@ -2522,14 +2522,14 @@ eater2:	lda EatingDotsSoundData2,x
 storeat:inc eatdot_sound_cnt
 !ifdef 	P500{
 	ldy #SR_V1FREQ+1
-	sta (SID),y						; SID voice 1 frequency hi
+	sta (SID),y			; SID voice 1 frequency hi
 	lda #$21
 veatrs:	ldy #SR_V1CTRL
-	sta (SID),y						; SID voice 1 control = sawtooth, on
+	sta (SID),y			; SID voice 1 control = sawtooth, on
 } else{
-	sta $d401						; SID voice 1 frequency hi
+	sta $d401			; SID voice 1 frequency hi
 	lda #$21
-veatrs:	sta $d404						; SID voice 1 control = sawtooth, on
+veatrs:	sta $d404			; SID voice 1 control = sawtooth, on
 }
 veaterx:rts
 ; -------------------------------------------------------------------------------------------------
@@ -2538,20 +2538,20 @@ ClearAudio:
 !ifdef 	P500{
 	lda #$88
 	ldy #SR_MODVOL
-	sta (SID),y						; SID mode to 3OFF, Volume = 8
+	sta (SID),y			; SID mode to 3OFF, Volume = 8
 	lda #$00
 	ldy #SR_V1CTRL
-	sta (SID),y						; SID voice 1 control = off
+	sta (SID),y			; SID voice 1 control = off
 	ldy #SR_V2CTRL
-	sta (SID),y						; SID voice 2 control = off
+	sta (SID),y			; SID voice 2 control = off
 	ldy #$ff
 	rts
 } else{
 	lda #$88
-	sta $d418						; SID mode to 3OFF, Volume = 8
+	sta $d418			; SID mode to 3OFF, Volume = 8
 	lda #$00
-	sta $d404						; SID voice 1 control = off
-	sta $d40b						; SID voice 2 control = off
+	sta $d404			; SID voice 1 control = off
+	sta $d40b			; SID voice 2 control = off
 	ldy #$ff
 	rts
 }
@@ -2577,7 +2577,7 @@ SetColor:
 !ifdef 	P500{
 	lda #YELLOW+MCM
 	ldy #$00
-collp1:	sta (ColorRAM0),y				; init color RAM with yellow + bit#3 for multicolor
+collp1:	sta (ColorRAM0),y		; init color RAM with yellow + bit#3 for multicolor
 	sta (ColorRAM1),y
 	sta (ColorRAM2),y
 	sta (ColorRAM3),y
@@ -2585,19 +2585,19 @@ collp1:	sta (ColorRAM0),y				; init color RAM with yellow + bit#3 for multicolor
 	bne collp1
 	ldy #40*2 - 1
 	lda #WHITE
-collp2:sta (ColorRAM0),y				; init lines 0-1 with white
+collp2:sta (ColorRAM0),y		; init lines 0-1 with white
 	dey
 	bpl collp2
-	ldy #7							; sprite 7-0
+	ldy #7				; sprite 7-0
 collp3:lda SpriteColors,y
-	sta (VIC27),y					; init VIC Sprite colors from table
+	sta (VIC27),y			; init VIC Sprite colors from table
 	dey
 	bpl collp3
 	rts
 } else{
 	ldx #$00
 	lda #YELLOW+MCM
-collp1:	sta ColorRAM64,x				; init color RAM with yellow + bit#3 for multicolor
+collp1:	sta ColorRAM64,x		; init color RAM with yellow + bit#3 for multicolor
 	sta ColorRAM64+$100,x
 	sta ColorRAM64+$200,x
 	sta ColorRAM64+$300,x
@@ -2605,12 +2605,12 @@ collp1:	sta ColorRAM64,x				; init color RAM with yellow + bit#3 for multicolor
 	bne collp1
 	ldx #40*2 - 1
 	lda #WHITE
-collp2:	sta ColorRAM64,x				; init lines 0-1 with white
+collp2:	sta ColorRAM64,x		; init lines 0-1 with white
 	dex
 	bpl collp2
-	ldx #7							; sprite 7-0
+	ldx #7				; sprite 7-0
 collp3:	lda SpriteColors,x
-	sta $d027,x						; init VIC Sprite colors from table
+	sta $d027,x			; init VIC Sprite colors from table
 	dex
 	bpl collp3
 	rts
@@ -2619,8 +2619,8 @@ collp3:	lda SpriteColors,x
 ; $9163 copy game screen to screen RAM
 InitGameScreen:
 	ldx #$00
-inigslp:lda MazeData,x					; load decompressed maze data
-	sta Maze,x						; copy to game screen from line2
+inigslp:lda MazeData,x			; load decompressed maze data
+	sta Maze,x			; copy to game screen from line2
 	lda MazeData+$100,x
 	sta Maze+$100,x
 	lda MazeData+$200,x
@@ -2634,8 +2634,8 @@ inigslp:lda MazeData,x					; load decompressed maze data
 ; $9181 save game screen player 1 to $4400
 SaveScreenPlayer1:
 	ldx #$00
-savp1lp:lda Maze,x						; load from screen memory
-	sta Player1Save,x				; save to player 1 backup memory
+savp1lp:lda Maze,x			; load from screen memory
+	sta Player1Save,x		; save to player 1 backup memory
 	lda Maze+$100,x
 	sta Player1Save+$100,x
 	lda Maze+$200,x
@@ -2649,8 +2649,8 @@ savp1lp:lda Maze,x						; load from screen memory
 ; $919f save game screen player 2 to $4800
 SaveScreenPlayer2:
 	ldx #$00
-savp2lp:lda Maze,x						; load from screen memory
-	sta Player2Save,x				; save to player 2 backup memory
+savp2lp:lda Maze,x			; load from screen memory
+	sta Player2Save,x		; save to player 2 backup memory
 	lda Maze+$100,x
 	sta Player2Save+$100,x
 	lda Maze+$200,x
@@ -2671,9 +2671,9 @@ PackmanJoystick:
 	ldx #$04
 	jsr MazeHandler
 	clc
-	lda pacman_new_dir				; see if we change direction
-	bit temp						; is it valid ?
-	beq pmudst						; no
+	lda pacman_new_dir		; see if we change direction
+	bit temp			; is it valid ?
+	beq pmudst			; no
 	cmp pacman_direction
 	beq pudsam
 	ora pacman_direction
@@ -2689,9 +2689,9 @@ pudsam:	lda pacman_new_dir
 pmudst:	ldx player_number
 !ifdef 	P500{
 	ldy #$01
-	lda (CIA),y						; load CIA port b bit#0-3 = joystick 1 movement
+	lda (CIA),y			; load CIA port b bit#0-3 = joystick 1 movement
 } else{
-	lda $dc00						; load CIA port a bit#0-3 = joystick 2 movement
+	lda $dc00			; load CIA port a bit#0-3 = joystick 2 movement
 }
 	and #$0f
 	eor #$0f
@@ -2708,7 +2708,7 @@ nxptst2:dex
 	pla
 	cpy #$02
 	beq pmsame
-	sta attract_ATARI				; NOT USED in Commodore - prevents Atari screen saver
+	sta attract_ATARI		; NOT USED in Commodore - prevents Atari screen saver
 	sta pacman_new_dir
 	bit temp
 	beq pmsame
@@ -2748,7 +2748,7 @@ decpmap:dec pacman_vmap_count
 	lda pacman_screen_ptr+1
 	sbc #$00
 	sta pacman_screen_ptr+1
-pacups:	ldy #$06						; point to pac top
+pacups:	ldy #$06			; point to pac top
 	jmp movepac
 pacdown:lda pacman_motion_cnt
 	bne pacdns
@@ -2771,7 +2771,7 @@ pacdown:lda pacman_motion_cnt
 	sta pacman_screen_ptr+1
 	bne pacdns
 incpmap:inc pacman_vmap_count
-pacdns:	ldy #$08						; point to pac bottom
+pacdns:	ldy #$08			; point to pac bottom
 	jmp movepac
 pacrt:	lda pacman_motion_cnt
 	bne pacrts
@@ -2798,7 +2798,7 @@ nortn:	inc pacman_hpos
 	inc pacman_screen_ptr+1
 	bne pacrts
 incpby:	inc pacman_byte_ctr
-pacrts:	ldy #$02						; point to pac right
+pacrts:	ldy #$02			; point to pac right
 	bne movepac
 pacleft:lda pacman_motion_cnt
 	bne paclfs
@@ -2830,27 +2830,27 @@ decpby:	dec pacman_byte_ctr
 	lda pacman_screen_ptr+1
 	sbc #$00
 	sta pacman_screen_ptr+1
-paclfs:	ldy #$04						; point to pac left
+paclfs:	ldy #$04			; point to pac left
 	bne movepac
 pacopn:	lda pacman_direction
 	cmp #$01
 	bne popndn
-	ldy #$06						; up
+	ldy #$06			; up
 	bne setopen
 popndn:	cmp #$02
 	bne popnlf
-	ldy #$08						; down
+	ldy #$08			; down
 	bne setopen
 popnlf:	cmp #$04
 	bne popnrt
-	ldy #$04						; left
+	ldy #$04			; left
 	bne setopen
 popnrt:	cmp #$08
 	bne pacstp
-	ldy #$02						; right
+	ldy #$02			; right
 setopen:lda #$0a
 	bne storpac
-pacstp:	ldy #$00						; point to pac dot
+pacstp:	ldy #$00			; point to pac dot
 	tya
 	beq storpac
 movepac:ldx pacman_sequence
@@ -2880,7 +2880,7 @@ storpac:tax
 	ldy #$09
 !ifdef 	P500{
 	lda #GAMEBANK
-	sta IndirectBank				; select bank 0 for pointer operations
+	sta IndirectBank		; select bank 0 for pointer operations
 }
 pmbflp:	lda (pixel_get_ptr),y
 	sta PacmanBuffer+3,y
@@ -2898,7 +2898,7 @@ pmbflp:	lda (pixel_get_ptr),y
 	lda pacman_hpos
 	sta sprite_x+4
 	adc #$02
-	sta pm_missile_x_ATARI+2		; ATARI pm build with 4 missiles - not Commodore
+	sta pm_missile_x_ATARI+2	; ATARI pm build with 4 missiles - not Commodore
 	adc #$02
 	sta pm_missile_x_ATARI+1
 	adc #$02
@@ -2910,7 +2910,7 @@ pploop:	lda (pixel_get_ptr),y
 	bpl pploop
 !ifdef 	P500{
 	lda #SYSTEMBANK
-	sta IndirectBank				; switch back to bank 15
+	sta IndirectBank		; switch back to bank 15
 }
 pmsixx:	rts
 ; -------------------------------------------------------------------------------------------------
@@ -2932,12 +2932,12 @@ mwpref:	lda pacman_vpos
 	sta pacman_hpos_save
 	ldy #$00
 !ifdef 	P500{				; Y already $00
-	sty IndirectBank				; select bank 0 for pointer operations
+	sty IndirectBank		; select bank 0 for pointer operations
 }
 	lda (pacman_screen_ptr),y
 !ifdef 	P500{
 	ldx #SYSTEMBANK
-	stx IndirectBank				; switch back to bank 15
+	stx IndirectBank		; switch back to bank 15
 }
 	cmp #$01
 	beq eatsml
@@ -2945,16 +2945,16 @@ mwpref:	lda pacman_vpos
 	bne munchx
 	tya
 !ifdef 	P500{				; Y already $00
-	sty IndirectBank				; select bank 0 for pointer operations
+	sty IndirectBank		; select bank 0 for pointer operations
 }
 	sta (pacman_screen_ptr),y
 !ifdef 	P500{				; X already $0f
-	stx IndirectBank				; switch back to bank 15
+	stx IndirectBank		; switch back to bank 15
 }
 	rts
 ; $93b0
 eatsml:	sta player_score_text+4
-	jsr PlayerScore					; sub: Add any points scored to the players' score
+	jsr PlayerScore			; sub: Add any points scored to the players' score
 	lda #$01
 	sta eatdot_sound_flag
 	sta pacman_dly_eating
@@ -2969,12 +2969,12 @@ seater:	sta eatdot_sound_togg
 	lda #$00
 	tay
 !ifdef 	P500{				; Y already $00
-	sty IndirectBank				; select bank 0 for pointer operations
+	sty IndirectBank		; select bank 0 for pointer operations
 }
 	sta (pacman_screen_ptr),y
 !ifdef 	P500{
 	ldx #SYSTEMBANK
-	stx IndirectBank				; switch back to bank 15
+	stx IndirectBank		; switch back to bank 15
 }
 incdot:	ldx player_number
 	inc dots_eaten_lo,x
@@ -3031,8 +3031,8 @@ dotfind:eor #$0f
 	sta bigdot_status,x
 	lda #$05
 	sta player_score_text+4
-	jsr PlayerScore					; sub: Add any points scored to the players' score
-	lda #$01						; set up for blue monsters
+	jsr PlayerScore			; sub: Add any points scored to the players' score
+	lda #$01			; set up for blue monsters
 	sta flash_count
 	lda #$ff
 	sta gulp_count
@@ -3046,7 +3046,7 @@ setfll:	lda monster_status,x
 	asl
 	bmi nextfll
 	lda monster_status,x
-	ora #$80						; set status = flight
+	ora #$80			; set status = flight
 	sta monster_status,x
 	lsr
 	lsr
@@ -3064,24 +3064,24 @@ nextfll:dex
 ; -------------------------------------------------------------------------------------------------
 ; $946d Add any points scored to the players' score		
 PlayerScore:	
-	lda #$00						; pscore subroutine
+	lda #$00			; pscore subroutine
 	sta score_carry_bit
-	sed								; set decimal mode
+	sed				; set decimal mode
 	lda player_number
 	beq pscore1
-	ldx #$4c						; player 2
+	ldx #$4c			; player 2
 	bne pscorex
-pscore1:ldx #$2f						; palyer one
-pscorex:	ldy #$05						; 6 digits
+pscore1:ldx #$2f			; palyer one
+pscorex:	ldy #$05		; 6 digits
 kscore:	clc
-	lda GameScreen,x				; load score digit from screen and isolate lower nibble
+	lda GameScreen,x		; load score digit from screen and isolate lower nibble
 	and #$0f
 	adc score_carry_bit
 	adc $0000+player_score_text,y	; add saved digit
 	pha
-	and #$10						; isolate bit#4
-	beq nocarry						; skip if not > 9
-	lda #$01						; save 1 to carry_byte
+	and #$10			; isolate bit#4
+	beq nocarry			; skip if not > 9
+	lda #$01			; save 1 to carry_byte
 nocarry:sta score_carry_bit
 	pla
 	ora #$10
@@ -3121,7 +3121,7 @@ chkbons:lda GameScreen+$48
 	beq nobonus
 bonusp:	inc bonus_pacman,x
 	inc extra_pacman1,x
-	jmp UpdateExtraPacs			; sub: Update extra pacmans
+	jmp UpdateExtraPacs		; sub: Update extra pacmans
 ; -------------------------------------------------------------------------------------------------
 ; $94de Maze handler subroutine
 ; entry: 	a reg value equals vpos
@@ -3138,29 +3138,29 @@ MazeHandler:
 	lda monster_vpos,x
 	stx temp
 	ldx #$09
-mhorlp:	cmp VTable,x					; search vpos
-	beq vrtfind						; match found
+mhorlp:	cmp VTable,x			; search vpos
+	beq vrtfind			; match found
 	dex
-	bpl mhorlp						; keep looking
-	lda hpos_saver					; none found so try hpos
+	bpl mhorlp			; keep looking
+	lda hpos_saver			; none found so try hpos
 	ldy #$09
-mvrtlp:	cmp HTable,y					; search hpos
-	beq horfind						; match found
+mvrtlp:	cmp HTable,y			; search hpos
+	beq horfind			; match found
 	dey
 	bpl mvrtlp
-vrtfind:ldy #$09						; now we check hpos table
-	lda hpos_saver					; to see if decision pt.
+vrtfind:ldy #$09			; now we check hpos table
+	lda hpos_saver			; to see if decision pt.
 vrtfnlp:cmp HTable,y
-	beq choice						; yes - make choice
+	beq choice			; yes - make choice
 	dey
 	bpl vrtfnlp
-	lda #$0c						; no - keep going
+	lda #$0c			; no - keep going
 	clc
 	bcc mazehnx
-horfind:lda #$03						; only one match found
+horfind:lda #$03			; only one match found
 	clc
 	bcc mazehnx
-choice:	txa								; now index into table
+choice:	txa				; now index into table
 	asl
 	tax
 	lda HorizontalTablePointers,x
@@ -3170,12 +3170,12 @@ choice:	txa								; now index into table
 	sta pixel_get_ptr+1
 !ifdef 	P500{
 	lda #GAMEBANK
-	sta IndirectBank				; select bank 0 for pointer operations
+	sta IndirectBank		; select bank 0 for pointer operations
 }
 	lda (pixel_get_ptr),y
 !ifdef 	P500{
 	ldx #SYSTEMBANK
-	stx IndirectBank				; switch back to bank 15
+	stx IndirectBank		; switch back to bank 15
 }
 	sec
 mazehnx:ldx temp
@@ -3243,14 +3243,14 @@ vchdnok:sec
 storvch:sta chase_sound_freq
 !ifdef 	P500{
 	ldy #SR_V2FREQ+1
-	sta (SID),y						; SID voice 2 frequency hi
+	sta (SID),y			; SID voice 2 frequency hi
 	lda #$11
 	ldy #SR_V2CTRL
-	sta (SID),y						; SID voice 2 control = triangle, on
+	sta (SID),y			; SID voice 2 control = triangle, on
 } else{
-	sta $d408						; SID voice 2 frequency hi
+	sta $d408			; SID voice 2 frequency hi
 	lda #$11
-	sta $d40b						; SID voice 2 control = triangle, on
+	sta $d40b			; SID voice 2 control = triangle, on
 }
 	rts
 ; -------------------------------------------------------------------------------------------------
@@ -3305,15 +3305,15 @@ nxtspsq:lda monster_speed_sequ,x
 	sta monster_speed_sequ,x
 incsps:	inc monster_speed_sequ,x
 	ldy player_number
-	lda $0000+maze_count1,y			; load maze in A
+	lda $0000+maze_count1,y		; load maze in A
 	cmp #$06
 	bcc lowsped
-	lda #$06						; limit A to 6 and move it to Y
+	lda #$06			; limit A to 6 and move it to Y
 lowsped:tay
 	cpx #$04
 	bne maxsped
 	lda PacmanSpeedIndex,y
-	bpl ldspdsq							; skip always
+	bpl ldspdsq			; skip always
 maxsped:lda MonsterSpeedIndex,y
 ldspdsq:clc
 	adc monster_speed_sequ,x
@@ -3416,7 +3416,7 @@ setfrut:inc fruit_counter,x
 	lda maze_count1,x
 	cmp #$0c
 	bcc lowfrc
-	lda #$0c						; max difficulty = $0c
+	lda #$0c			; max difficulty = $0c
 lowfrc:	tax
 	lda FruitChars,x
 	sta GameScreen+$243
@@ -3425,7 +3425,7 @@ lowfrc:	tax
 	sta GameScreen+$244
 	lda #$01
 	sta fruit_display_flag
-	lda #FRUITDELAY					; load fruitdelay
+	lda #FRUITDELAY			; load fruitdelay
 	sta fruit_timer
 	lda #$02
 	sta fruit_timer+1
@@ -3482,9 +3482,9 @@ tsteyev:jsr MazeHandler
 	sta monster_targ_hpos,x
 	lda #$64
 	sta monster_targ_vpos,x
-	jsr MonsterDirections			; sub: Directions computed for monsters
+	jsr MonsterDirections		; sub: Directions computed for monsters
 sameyd:	lda monster_direction,x
-	jsr MonsterDisplayHandler		; sub: Monster display handler
+	jsr MonsterDisplayHandler	; sub: Monster display handler
 nxteyd:	dex
 	bpl eyeonlp
 	lda tweet_sound_flag
@@ -3544,7 +3544,7 @@ stordir:sty monster_direction,x
 ; $97a9
 pinkout:lda #$01
 pinkot1:sta monster_direction,x
-	jmp MonsterDisplayHandler		; sub: Monster display handler
+	jmp MonsterDisplayHandler	; sub: Monster display handler
 reincar:lda monster_status,x
 	and #$0f
 	sta monster_status,x
@@ -3554,10 +3554,10 @@ reincar:lda monster_status,x
 	adc #VR_MOBCOL
 	tay
 	lda SpriteColors,x
-	sta (VIC),y						; set VIC sprite color from table
+	sta (VIC),y			; set VIC sprite color from table
 } else{
 	lda SpriteColors,x
-	sta $d027,x						; set VIC sprite color from table
+	sta $d027,x			; set VIC sprite color from table
 }
 	rts
 ; $97bd
@@ -3596,7 +3596,7 @@ ckssqlp:lda monster_status,x
 	lda monster_timer,x
 	beq chksmup
 	dec monster_timer,x
-	jsr Bounce						; sub: startup sequence of	monsters exiting from box
+	jsr Bounce			; sub: startup sequence of	monsters exiting from box
 	jmp nxtckss
 chksmup:cpx #$03
 	bne chkm2up
@@ -3628,7 +3628,7 @@ tsubsq:	lda monster_vpos,x
 	lda #$01
 stsqst:	sta monster_direction,x
 nextbnc:lda monster_direction,x
-	jmp MonsterDisplayHandler		; sub: Monster display handler
+	jmp MonsterDisplayHandler	; sub: Monster display handler
 monster:lda monster_status,x
 	bpl montst1
 	lsr
@@ -3637,22 +3637,22 @@ monster:lda monster_status,x
 	bcc montsch
 	rts
 montst1:cmp #$01
-	beq mstrtup						; monster start path
+	beq mstrtup			; monster start path
 	cmp #$02
 	bne montst3
 	lda chase_timer
 	bne montsch
 	jmp gohome
-montsch:jmp l993f						; monster is chasing
+montsch:jmp l993f			; monster is chasing
 montst3:cmp #$08
 	bne montst4
-	jmp seekps						; seek pattern start
+	jmp seekps			; seek pattern start
 montst4:cmp #$10
 	bne montst5
-	jmp mapatrn						; continue pattern
+	jmp mapatrn			; continue pattern
 montst5:cmp #$20
 	bne montst6
-	jmp gohome						; seek home corner
+	jmp gohome			; seek home corner
 montst6:rts
 ; $9877
 mstrtup:jsr MazeHandler
@@ -3671,12 +3671,12 @@ samepth:txa
 	tay
 !ifdef 	P500{
 	lda #GAMEBANK
-	sta IndirectBank				; select bank 0 for pointer operations
+	sta IndirectBank		; select bank 0 for pointer operations
 }
 	lda (pixel_get_ptr),y
 !ifdef 	P500{
 	ldy #SYSTEMBANK
-	sty IndirectBank				; switch back to bank 15
+	sty IndirectBank		; switch back to bank 15
 }
 ; - monster has reached start posit set up to find pattern start and set timer for 20 secs
 	cmp #$0f
@@ -3692,11 +3692,11 @@ setpath:lda #$08
 	sta monster_patt_count,x
 !ifdef 	P500{
 	ldy #SR_RANDOM
-	lda (SID),y						; load random value SID register $1b
+	lda (SID),y			; load random value SID register $1b
 } else{
-	lda $d41b						; load random value SID register $1b
+	lda $d41b			; load random value SID register $1b
 }
-	and #$0f						; calc random value from $0-$f
+	and #$0f			; calc random value from $0-$f
 	sta monster_patt_index,x
 	asl
 	tay
@@ -3709,7 +3709,7 @@ setpath:lda #$08
 	sta monster_timer,x
 	bne seekps
 monpath:sta monster_direction,x
-	jmp MonsterDisplayHandler		; sub: Monster display handler
+	jmp MonsterDisplayHandler	; sub: Monster display handler
 ; go find start of pattern
 seekps:	lda monster_timer,x
 	bne seekps1
@@ -3718,7 +3718,7 @@ seekps1:jsr MazeHandler
 	bcs seekps2
 findst:	jmp samemdr
 seekps2:	clc
-	jsr MonsterDirections			; sub: Directions computed for monsters
+	jsr MonsterDirections		; sub: Directions computed for monsters
 	lda monster_hdir,x
 	bne findst
 	lda monster_vdir,x
@@ -3761,7 +3761,7 @@ gohome:	lda #$20
 	jsr MazeHandler
 	bcc samemdr
 	clc
-	jsr MonsterDirections			; sub: Directions computed for monsters
+	jsr MonsterDirections		; sub: Directions computed for monsters
 	lda monster_hdir,x
 	bne samemdr
 	lda monster_vdir,x
@@ -3776,7 +3776,7 @@ l993f:	lda pacman_hpos
 	jsr MazeHandler
 	bcc samemdr
 	clc
-	jsr MonsterDirections			; sub: Directions computed for monsters
+	jsr MonsterDirections		; sub: Directions computed for monsters
 samemdr:lda monster_direction,x
 ; -------------------------------------------------------------------------------------------------
 ; $9952 monster display handler
@@ -3844,12 +3844,12 @@ mnskirt:sty MonsterBuffer+12
 	adc #<MonsterUp
 	sta pixel_get_ptr
 	lda #$00
-	adc #>MonsterUp					; pointer to sprite data
+	adc #>MonsterUp			; pointer to sprite data
 	sta pixel_get_ptr+1
 	ldy #$09
 !ifdef 	P500{
 	lda #GAMEBANK
-	sta IndirectBank				; select bank 0 for pointer operations
+	sta IndirectBank		; select bank 0 for pointer operations
 }	
 mnldbl:	lda (pixel_get_ptr),y
 	sta MonsterBuffer+2,y
@@ -3876,7 +3876,7 @@ mwrite:	lda (pixel_get_ptr),y
 	bpl mwrite
 !ifdef 	P500{
 	lda #SYSTEMBANK
-	sta IndirectBank				; switch back to bank 15
+	sta IndirectBank		; switch back to bank 15
 }
 	rts
 ; -------------------------------------------------------------------------------------------------
@@ -3885,32 +3885,32 @@ mwrite:	lda (pixel_get_ptr),y
 ; target vertical & horizontal coordinates must be placed into vsaver & hsaver prior to entry
 MonsterDirections:
 	lda monster_vpos,x
-	cmp monster_targ_vpos,x			; monster is above target
+	cmp monster_targ_vpos,x		; monster is above target
 	beq vequal
 	bcc vgrater
 ; monster is below target
 	lda monster_status,x
 	bmi vbigger
-vlesser:lda #$01						; point to up
+vlesser:lda #$01			; point to up
 	bne storvrt
 vgrater:lda monster_status,x
 	bmi vlesser
-vbigger:lda #$02						; point to down
+vbigger:lda #$02			; point to down
 	bne storvrt
 vequal:	lda #$00
 storvrt:sta monster_vdir,x
 	lda monster_hpos,x
 	cmp monster_targ_hpos,x
 	beq hequal
-	bcs hgrater						; monster is right of target
+	bcs hgrater			; monster is right of target
 ; monster is left of target
 	lda monster_status,x
 	bmi hbigger
-hlesser:lda #$08						; point to right
+hlesser:lda #$08			; point to right
 	bne storhrz
 hgrater:lda monster_status,x
 	bmi hlesser
-hbigger:lda #$04						; point to left
+hbigger:lda #$04			; point to left
 	bne storhrz
 hequal:	lda #$00
 storhrz:sta monster_hdir,x
@@ -3925,9 +3925,9 @@ storhrz:sta monster_hdir,x
 ; choice of directions
 !ifdef 	P500{
 	ldy #SR_RANDOM
-	lda (SID),y						; load random value SID register $1b
+	lda (SID),y			; load random value SID register $1b
 } else{
-	lda $d41b						; load random value SID register $1b
+	lda $d41b			; load random value SID register $1b
 }
 	bmi l9a3a
 l9a36:	lda monster_vdir,x
@@ -3939,13 +3939,13 @@ l9a3e:	lda monster_hdir,x
 	bne l9a3a
 !ifdef 	P500{
 	ldy #SR_RANDOM
-	lda (SID),y						; load random value SID register $1b
+	lda (SID),y			; load random value SID register $1b
 } else{
-	lda $d41b						; load random value SID register $1b
+	lda $d41b			; load random value SID register $1b
 }
 	and temp
 	bne uptest
-	lda temp						; reload original
+	lda temp			; reload original
 uptest:	lsr
 	bcc dwntest
 	lda #$01
@@ -4065,7 +4065,7 @@ storchs:	lda #$02
 seechx:	rts
 ; ***************************************** ZONE DATA2 ********************************************
 !zone data2
-!source "pm500dat.b"				; C64 + P500 common data
+!source "pm500dat.b"			; C64 + P500 common data
 !ifndef	P500{!source "c64enibb.b"}	; C64 encoded nibbles
 ; ***************************************** ZONE P500 *********************************************
 !zone p500
@@ -4073,42 +4073,42 @@ seechx:	rts
 ; P500 I/O pointer init
 InitP500:
 	ldx #$00
-iniiolp:lda IOPointerTable,x			; copy 8 IO pointer to ZP
+iniiolp:lda IOPointerTable,x		; copy 8 IO pointer to ZP
 	sta ColorRAM0,x
 	inx
-	cpx #$1a						; number of IO pointers
+	cpx #$1a			; number of IO pointers
 	bne iniiolp
 	
-	lda #<Cold	 					; set NMI vector to Cold start
+	lda #<Cold	 		; set NMI vector to Cold start
 	sta HW_NMI
 	lda #>Cold
 	sta HW_NMI+1
-	lda #<Interrupt					; set IRQ vector to interrupt routine
+	lda #<Interrupt			; set IRQ vector to interrupt routine
 	sta HW_IRQ
 	lda #>Interrupt
 	sta HW_IRQ+1
 	
 	ldy #$06
-	lda (TPI1),y					; load TRI1 control register
-	and #$0f						; clear CA, CB control bits#4-7 vic bank 0/15 select 
-	ora #$a0						; set bit#5,4=10 CA=low -> Video matrix in bank 0
-	sta (TPI1),y					; set bit#7,6=10 CB=high -> Characterset in bank 0 
+	lda (TPI1),y			; load TRI1 control register
+	and #$0f			; clear CA, CB control bits#4-7 vic bank 0/15 select 
+	ora #$a0			; set bit#5,4=10 CA=low -> Video matrix in bank 0
+	sta (TPI1),y			; set bit#7,6=10 CB=high -> Characterset in bank 0 
 	ldy #$02
-	lda (TPI2),y					; load TPI2 port c
-	and #$3f						; clear bit#6,7 vic 16k select bank $0000-$3fff
-	sta (TPI2),y					; store to TPI2 port c
+	lda (TPI2),y			; load TPI2 port c
+	and #$3f			; clear bit#6,7 vic 16k select bank $0000-$3fff
+	sta (TPI2),y			; store to TPI2 port c
 	lda #$3a
-	ldy #$18						; VIC reg $18 memory pointers
-	sta (VIC),y						; set VM13-10=$3 screen at $0c00, CB13,12,11,x=1010 char at $2800
-	lda #$7f						; bit#7=0 clears/mask out all 5 irq sources with bit#0-4 = 1
-	ldy #$0d						; CIA interrupt control register
-	sta (CIA),y						; disable all hardware interrupts
+	ldy #$18			; VIC reg $18 memory pointers
+	sta (VIC),y			; set VM13-10=$3 screen at $0c00, CB13,12,11,x=1010 char at $2800
+	lda #$7f			; bit#7=0 clears/mask out all 5 irq sources with bit#0-4 = 1
+	ldy #$0d			; CIA interrupt control register
+	sta (CIA),y			; disable all hardware interrupts
 	lda #$00
 	ldy #$05
-	sta (TPI1),y					; set TPI1 reg $5 interrupt mask reg = $00 - disable all irq
+	sta (TPI1),y			; set TPI1 reg $5 interrupt mask reg = $00 - disable all irq
 	lda #$ff
 	ldy #$00
-	sta (TPI2),y					; reset TPI2 port a to no column
+	sta (TPI2),y			; reset TPI2 port a to no column
 	rts
 !source "p500data.b"		
 }
